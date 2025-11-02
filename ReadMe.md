@@ -1,6 +1,8 @@
-## Activate Environment (temporary)
+## Activate Environment
 
-source /Users/neerajaabhyankar/Library/Caches/pypoetry/virtualenvs/ml-playground-U3_zo12P-py3.11/bin/activate.fish
+(temporary, for myself) `source /Users/neerajaabhyankar/Library/Caches/pypoetry/virtualenvs/ml-playground-U3_zo12P-py3.11/bin/activate.fish`
+
+(general) `pip install -r requirements.txt`
 
 ## Goal
 
