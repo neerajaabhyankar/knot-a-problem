@@ -1,0 +1,266 @@
+:root {
+  --bg: #0a0b0e;
+  --panel: rgba(22, 24, 30, 0.86);
+  --border: rgba(255, 255, 255, 0.09);
+  --fg: #e8eaf0;
+  --dim: #878d9c;
+  --faint: #5c6373;
+  --accent: #61afef;
+  --danger: #e06c75;
+  --pierce: #ff5fa2;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#view {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+  color: var(--fg);
+}
+
+/* ---------- left rail ---------- */
+
+#rail {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 172px;
+  user-select: none;
+}
+
+#toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}
+
+#toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  font: inherit;
+  color: var(--dim);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+
+#toolbar .ico {
+  width: 16px;
+  font-size: 14px;
+  text-align: center;
+  flex: none;
+}
+
+#toolbar button:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
+
+#toolbar button.active {
+  background: rgba(97, 175, 239, 0.15);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(97, 175, 239, 0.28);
+}
+
+#toolbar button:disabled { opacity: 0.32; cursor: default; }
+#toolbar button:disabled:hover { background: transparent; color: var(--dim); }
+
+#toolbar .sep {
+  height: 1px;
+  margin: 5px 6px;
+  background: var(--border);
+}
+
+/* ---------- shortcut hints ---------- */
+
+#shortcuts {
+  padding: 9px 11px;
+  background: rgba(22, 24, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 11px;
+  line-height: 1.75;
+}
+
+#shortcuts .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--faint);
+}
+
+#shortcuts kbd { color: var(--dim); flex: none; }
+#shortcuts span { text-align: right; }
+
+/* ---------- eraser cursor ---------- */
+
+#eraser-cursor {
+  position: fixed;
+  border: 1.5px solid rgba(224, 108, 117, 0.85);
+  background: rgba(224, 108, 117, 0.1);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
+/* Nothing selected — the eraser has nothing it's allowed to touch. */
+#eraser-cursor.disabled {
+  border-style: dashed;
+  border-color: rgba(135, 141, 156, 0.5);
+  background: transparent;
+}
+
+/* ---------- status ---------- */
+
+#status {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  padding: 7px 12px;
+  color: var(--dim);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: none;
+  user-select: none;
+  font-size: 12px;
+}
+
+#status b { color: var(--fg); font-weight: 500; }
+
+/* ---------- help ---------- */
+
+#help {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(470px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 26px 28px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+  z-index: 10;
+}
+
+#help.hidden { display: none; }
+
+#help h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+#help .lede { margin: 3px 0 20px; color: var(--dim); }
+#help h2 {
+  margin: 19px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+#help p { margin: 6px 0; color: #c3c8d4; }
+#help ol { margin: 6px 0; padding-left: 18px; color: #c3c8d4; }
+#help li { margin: 4px 0; }
+#help b { color: var(--fg); font-weight: 600; }
+#help .pierce { color: var(--pierce); font-weight: 600; }
+#help .warn { color: var(--dim); font-size: 12px; }
+
+#help-close {
+  display: block;
+  width: 100%;
+  margin-top: 22px;
+  padding: 9px;
+  font: inherit;
+  font-weight: 500;
+  color: #04121a;
+  background: var(--accent);
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+#help-close:hover { filter: brightness(1.08); }
+
+/* ---------- confirm ---------- */
+
+#confirm {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 6, 9, 0.55);
+  z-index: 20;
+}
+
+#confirm[hidden] { display: none; }
+
+#confirm .box {
+  width: min(330px, calc(100vw - 32px));
+  padding: 22px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+}
+
+#confirm p { margin: 0 0 18px; font-size: 14px; }
+#confirm .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+#confirm button {
+  padding: 7px 15px;
+  font: inherit;
+  font-weight: 500;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#confirm .ghost {
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.06);
+}
+#confirm .ghost:hover { color: var(--fg); background: rgba(255, 255, 255, 0.1); }
+
+#confirm .danger { color: #180a0c; background: var(--danger); }
+#confirm .danger:hover { filter: brightness(1.08); }

@@ -1,0 +1,499 @@
+// Everything three.js: renderer, camera, lights, the draw-plane indicator,
+// endpoint handles, and turning Curve records into tube meshes.
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const TUBE_RADIUS = 0.075;
+const GROUND_Y = -3;
+const PLANE_HALF = 3.2; // draw-plane indicator half-width, world units
+const GRID_STEP = 0.8;
+
+const mod = (a, n) => ((a % n) + n) % n;
+
+export class Viewer {
+  constructor(canvas) {
+    this.canvas = canvas;
+
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.0;
+
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x0a0b0e);
+    // Fades the ground into the background instead of leaving a bright horizon.
+    this.scene.fog = new THREE.Fog(0x0a0b0e, 9, 34);
+
+    this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+    this.camera.position.set(0, 2.2, 7.5);
+
+    this.controls = new OrbitControls(this.camera, canvas);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.09;
+    this.controls.rotateSpeed = 0.85;
+    this.controls.panSpeed = 1.0;
+    this.controls.minDistance = 1.5;
+    this.controls.maxDistance = 40;
+    this.controls.screenSpacePanning = true;
+    this.controls.zoomToCursor = true; // zoom goes where you point, like a map
+    // Plotly-style turntable: left orbits, right pans, wheel zooms. The left
+    // button is taken away only while a stroke tool is armed, and swapped to
+    // pan while Shift is held (see setPanModifier).
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.PAN,
+      RIGHT: THREE.MOUSE.PAN,
+    };
+
+    this._setupEnvironment();
+    this._setupLights();
+    this._setupGround();
+    this._setupDrawPlane();
+    this._setupHandles();
+
+    this.curveGroup = new THREE.Group();
+    this.scene.add(this.curveGroup);
+    this.meshes = new Map(); // curve id -> Mesh
+
+    this.preview = null;
+    this.selection = new Set();
+    this.tool = 'select';
+    this.shift = false;
+
+    this.raycaster = new THREE.Raycaster();
+    this._plane = new THREE.Plane();
+    this._ndc = new THREE.Vector2();
+    this._tmp = new THREE.Vector3();
+
+    this.resize();
+    addEventListener('resize', () => this.resize());
+  }
+
+  // ---------- setup ----------
+
+  _setupEnvironment() {
+    // A faint room reflection keeps the tubes from looking like flat vector
+    // art. Kept low — a strong one reads as cheap shiny plastic.
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = 0.16;
+    pmrem.dispose();
+  }
+
+  _setupLights() {
+    // Neutral and broad: solid, evenly lit colour rather than a specular sweep.
+    this.scene.add(new THREE.AmbientLight(0xa8b4c8, 1.1));
+
+    const key = new THREE.DirectionalLight(0xffffff, 1.5);
+    key.position.set(4, 8, 6);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.near = 1;
+    key.shadow.camera.far = 30;
+    key.shadow.camera.left = -8;
+    key.shadow.camera.right = 8;
+    key.shadow.camera.top = 8;
+    key.shadow.camera.bottom = -8;
+    key.shadow.bias = -0.0008;
+    key.shadow.radius = 4;
+    this.scene.add(key);
+
+    const fill = new THREE.DirectionalLight(0xdfe6f2, 0.55);
+    fill.position.set(-6, 1, -4);
+    this.scene.add(fill);
+  }
+
+  _setupGround() {
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(60, 60),
+      new THREE.MeshStandardMaterial({ color: 0x0d1015, roughness: 0.95, metalness: 0 }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = GROUND_Y;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+  }
+
+  _setupDrawPlane() {
+    this.drawPlane = new THREE.Group();
+    this.scene.add(this.drawPlane);
+
+    this._planeFill = new THREE.MeshBasicMaterial({
+      color: 0x4dd2ff,
+      transparent: true,
+      opacity: 0.02,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.drawPlane.add(
+      new THREE.Mesh(new THREE.PlaneGeometry(PLANE_HALF * 2, PLANE_HALF * 2), this._planeFill),
+    );
+
+    // The grid is drawn one cell oversized and then slid by the pan offset, so
+    // the lines stay put in the world while the patch stays on screen. Without
+    // that the grid is glued to the screen centre and panning looks broken.
+    const reach = PLANE_HALF + GRID_STEP;
+    const verts = [];
+    for (let v = -reach; v <= reach + 1e-6; v += GRID_STEP) {
+      verts.push(-reach, v, 0, reach, v, 0);
+      verts.push(v, -reach, 0, v, reach, 0);
+    }
+    this._planeGrid = new THREE.LineBasicMaterial({
+      color: 0x4dd2ff,
+      transparent: true,
+      opacity: 0.07,
+      depthWrite: false,
+    });
+    this._grid = new THREE.LineSegments(
+      new THREE.BufferGeometry().setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(verts, 3),
+      ),
+      this._planeGrid,
+    );
+    this.drawPlane.add(this._grid);
+
+    // Markers for where existing curves pierce the draw plane. These are what
+    // make linking two loops aimable instead of lucky. Only shown while the pen
+    // is actually in your hand — otherwise they just litter the drawing.
+    this.pierceGroup = new THREE.Group();
+    this.scene.add(this.pierceGroup);
+    this._pierceGeom = new THREE.SphereGeometry(0.1, 16, 12);
+    this._pierceMat = new THREE.MeshBasicMaterial({
+      color: 0xff5fa2,
+      transparent: true,
+      opacity: 0.9,
+      depthTest: false,
+    });
+  }
+
+  _setupHandles() {
+    // Grabbable ends of an open strand. Drawn on top of everything so you can
+    // always get hold of one.
+    this.handleGroup = new THREE.Group();
+    this.scene.add(this.handleGroup);
+    this.handles = [];
+    this._handleGeom = new THREE.SphereGeometry(TUBE_RADIUS * 1.7, 20, 14);
+    this._handleMat = new THREE.MeshBasicMaterial({ color: 0xf4f7ff, depthTest: false });
+  }
+
+  // ---------- tools ----------
+
+  setTool(tool) {
+    this.tool = tool;
+    const armed = tool === 'draw';
+    this._planeFill.opacity = armed ? 0.035 : 0.015;
+    this._planeGrid.opacity = armed ? 0.15 : 0.05;
+    this.pierceGroup.visible = armed;
+    this._applyLeftButton();
+    this.canvas.style.cursor = armed ? 'crosshair' : tool === 'erase' ? 'none' : 'default';
+  }
+
+  /** Shift swaps left-drag from orbit to pan — the usual trackpad-friendly out. */
+  setPanModifier(down) {
+    this.shift = down;
+    this._applyLeftButton();
+  }
+
+  _applyLeftButton() {
+    this.controls.mouseButtons.LEFT =
+      this.tool === 'select'
+        ? this.shift
+          ? THREE.MOUSE.PAN
+          : THREE.MOUSE.ROTATE
+        : null;
+  }
+
+  // ---------- draw plane math ----------
+
+  /** The plane parallel to the screen through `anchor` (default: orbit target). */
+  drawPlaneObject(anchor = null) {
+    const normal = new THREE.Vector3();
+    this.camera.getWorldDirection(normal);
+    this._plane.setFromNormalAndCoplanarPoint(normal, anchor ?? this.controls.target);
+    return this._plane;
+  }
+
+  /** World units per screen pixel, measured at the draw plane. */
+  worldPerPixel() {
+    const dist = this.camera.position.distanceTo(this.controls.target);
+    const h = this.canvas.clientHeight || 1;
+    return (2 * dist * Math.tan((this.camera.fov * Math.PI) / 360)) / h;
+  }
+
+  _rayThrough(px, py) {
+    const rect = this.canvas.getBoundingClientRect();
+    this._ndc.set(
+      ((px - rect.left) / rect.width) * 2 - 1,
+      -((py - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this._ndc, this.camera);
+    return this.raycaster.ray;
+  }
+
+  /**
+   * Screen pixels -> a point in space. `depthPixels` lifts the point toward the
+   * viewer *along the view ray*, so the point still lands on exactly the pixel
+   * you drew — depth is added without the drawing sliding around. `anchor`
+   * chooses which parallel plane to land on; extending a strand uses its
+   * endpoint so the continuation starts where the strand actually is.
+   */
+  unproject(px, py, depthPixels = 0, anchor = null) {
+    const ray = this._rayThrough(px, py);
+    const hit = new THREE.Vector3();
+    if (!ray.intersectPlane(this.drawPlaneObject(anchor), hit)) return null;
+    if (depthPixels) hit.addScaledVector(ray.direction, -depthPixels * this.worldPerPixel());
+    return hit;
+  }
+
+  /** World point -> screen pixels. */
+  project(v) {
+    const rect = this.canvas.getBoundingClientRect();
+    const p = v.clone().project(this.camera);
+    return [((p.x + 1) / 2) * rect.width, ((1 - p.y) / 2) * rect.height];
+  }
+
+  _syncDrawPlaneTransform() {
+    const target = this.controls.target;
+    this.drawPlane.position.copy(target);
+    this.drawPlane.quaternion.copy(this.camera.quaternion);
+
+    // Slide the grid lines so they stay anchored to world coordinates.
+    const right = this._tmp.set(1, 0, 0).applyQuaternion(this.camera.quaternion);
+    const u = target.dot(right);
+    const up = this._tmp.set(0, 1, 0).applyQuaternion(this.camera.quaternion);
+    const v = target.dot(up);
+    this._grid.position.set(-mod(u, GRID_STEP), -mod(v, GRID_STEP), 0);
+  }
+
+  /**
+   * Recompute the pink dots where curves cross the draw plane. Reuses a pool of
+   * dot meshes rather than allocating on every orbit frame.
+   */
+  updatePierceMarkers(model) {
+    for (const dot of this.pierceGroup.children) dot.visible = false;
+    if (this.tool !== 'draw') return;
+
+    const plane = this.drawPlaneObject();
+    let used = 0;
+    const hit = new THREE.Vector3();
+
+    for (const curve of model.curves) {
+      const pts = sampleCurve(curve, 200);
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = plane.distanceToPoint(pts[i]);
+        const b = plane.distanceToPoint(pts[i + 1]);
+        if (a !== 0 && (a < 0) === (b < 0)) continue;
+        hit.copy(pts[i]).lerp(pts[i + 1], a / (a - b));
+        if (hit.distanceTo(this.controls.target) > PLANE_HALF * 1.6) continue;
+
+        let dot = this.pierceGroup.children[used];
+        if (!dot) {
+          dot = new THREE.Mesh(this._pierceGeom, this._pierceMat);
+          dot.renderOrder = 10;
+          this.pierceGroup.add(dot);
+        }
+        dot.position.copy(hit);
+        dot.visible = true;
+        used++;
+      }
+    }
+  }
+
+  // ---------- endpoint handles ----------
+
+  /** Selected open strands get a grabbable ball on each end. */
+  updateHandles(model) {
+    this.handles = [];
+    for (const curve of model.curves) {
+      if (curve.closed || !this.selection.has(curve.id)) continue;
+      const pts = curve.points;
+      this.handles.push({ curveId: curve.id, end: 'start', position: vec(pts[0]) });
+      this.handles.push({ curveId: curve.id, end: 'end', position: vec(pts[pts.length - 1]) });
+    }
+
+    for (const m of this.handleGroup.children) m.visible = false;
+    this.handles.forEach((h, i) => {
+      let mesh = this.handleGroup.children[i];
+      if (!mesh) {
+        mesh = new THREE.Mesh(this._handleGeom, this._handleMat);
+        mesh.renderOrder = 12;
+        this.handleGroup.add(mesh);
+      }
+      mesh.position.copy(h.position);
+      mesh.visible = true;
+    });
+  }
+
+  /** The endpoint handle under the cursor, if any. */
+  hitHandle(px, py, tol = 15) {
+    let best = null;
+    let bestD = tol;
+    for (const h of this.handles) {
+      const [hx, hy] = this.project(h.position);
+      const d = Math.hypot(hx - px, hy - py);
+      if (d < bestD) {
+        bestD = d;
+        best = h;
+      }
+    }
+    return best;
+  }
+
+  // ---------- curves ----------
+
+  syncCurves(model) {
+    const live = new Set();
+    for (const curve of model.curves) {
+      live.add(curve.id);
+      const existing = this.meshes.get(curve.id);
+      if (existing) {
+        if (existing.userData.stamp === stampOf(curve)) continue;
+        this._disposeMesh(existing);
+        this.curveGroup.remove(existing);
+      }
+      const mesh = buildTubeMesh(curve);
+      mesh.userData = { id: curve.id, stamp: stampOf(curve) };
+      this.curveGroup.add(mesh);
+      this.meshes.set(curve.id, mesh);
+    }
+
+    for (const [id, mesh] of this.meshes) {
+      if (live.has(id)) continue;
+      this._disposeMesh(mesh);
+      this.curveGroup.remove(mesh);
+      this.meshes.delete(id);
+    }
+
+    this.setSelection(this.selection);
+    this.updateHandles(model);
+  }
+
+  _disposeMesh(mesh) {
+    mesh.geometry.dispose();
+    mesh.material.dispose();
+  }
+
+  setSelection(ids) {
+    this.selection = new Set([...ids].filter((id) => this.meshes.has(id)));
+    for (const [meshId, mesh] of this.meshes) {
+      const on = this.selection.has(meshId);
+      mesh.material.emissive.set(on ? 0xffffff : 0x000000);
+      mesh.material.emissiveIntensity = on ? 0.22 : 0;
+    }
+  }
+
+  /** Screen pixels -> curve id under the cursor, or null. */
+  pick(px, py) {
+    this._rayThrough(px, py);
+    const hits = this.raycaster.intersectObjects(this.curveGroup.children, false);
+    return hits.length ? hits[0].object.userData.id : null;
+  }
+
+  /** Recentre the camera on everything that's been drawn. */
+  frameAll(model) {
+    const box = new THREE.Box3();
+    let any = false;
+    for (const curve of model.curves) {
+      for (const p of curve.points) {
+        box.expandByPoint(vec(p));
+        any = true;
+      }
+    }
+    if (!any) {
+      this.controls.target.set(0, 0, 0);
+      return;
+    }
+    const center = box.getCenter(new THREE.Vector3());
+    const radius = Math.max(box.getBoundingSphere(new THREE.Sphere()).radius, 0.8);
+    const dist = (radius * 1.9) / Math.tan((this.camera.fov * Math.PI) / 360);
+
+    const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+    this.controls.target.copy(center);
+    this.camera.position.copy(center).addScaledVector(dir, dist);
+  }
+
+  // ---------- live stroke preview ----------
+
+  showPreview(points3, closed) {
+    this.clearPreview();
+    if (points3.length < 2) return;
+    const pts = closed ? [...points3, points3[0]] : points3;
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    this.preview = new THREE.Line(
+      geom,
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }),
+    );
+    this.preview.renderOrder = 5;
+    this.scene.add(this.preview);
+  }
+
+  clearPreview() {
+    if (!this.preview) return;
+    this.preview.geometry.dispose();
+    this.preview.material.dispose();
+    this.scene.remove(this.preview);
+    this.preview = null;
+  }
+
+  // ---------- loop ----------
+
+  resize() {
+    const w = innerWidth;
+    const h = innerHeight;
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  }
+
+  render() {
+    this.controls.update();
+    this._syncDrawPlaneTransform();
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+
+// ---------- helpers ----------
+
+/** [x, y, z] -> Vector3. Exported so main.js needn't import three itself. */
+export const vec3 = (p) => new THREE.Vector3(p[0], p[1], p[2]);
+const vec = vec3;
+
+function stampOf(curve) {
+  const p = curve.points;
+  return `${curve.closed}|${curve.color}|${p.length}|${p[0]?.join(',')}|${p[p.length - 1]?.join(',')}`;
+}
+
+/** Curve record -> smooth three.js curve. Centripetal avoids cusps and loops. */
+export function toSpline(curve) {
+  return new THREE.CatmullRomCurve3(curve.points.map(vec), curve.closed, 'centripetal', 0.5);
+}
+
+/** Dense world-space sample of a curve. Closed curves don't repeat the seam. */
+export function sampleCurve(curve, n) {
+  if (curve.points.length < 2) return [];
+  const pts = toSpline(curve).getSpacedPoints(n);
+  return curve.closed ? pts.slice(0, -1) : pts;
+}
+
+function buildTubeMesh(curve) {
+  const spline = toSpline(curve);
+  const segments = Math.max(120, curve.points.length * 12);
+  const geom = new THREE.TubeGeometry(spline, segments, TUBE_RADIUS, 16, curve.closed);
+  const mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(curve.color),
+    roughness: 0.62,
+    metalness: 0.0,
+    emissive: new THREE.Color(0x000000),
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+export { TUBE_RADIUS };

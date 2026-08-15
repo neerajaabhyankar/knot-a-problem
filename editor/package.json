@@ -1,0 +1,20 @@
+{
+  "name": "knot-editor",
+  "version": "0.1.0",
+  "description": "Paint, but for knots in 3D space.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node test/crossings.test.mjs && node test/smoke.mjs"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1",
+    "vite": "^8.2.1"
+  }
+}

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Knot Editor</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="eraser-cursor" hidden></div>
+
+    <div id="rail">
+      <div id="toolbar">
+        <button class="tool" data-tool="select" title="Select — click a strand (2)">
+          <span class="ico">↖</span><span class="lbl">Select</span>
+        </button>
+        <button class="tool" data-tool="draw" title="Draw a strand (D)">
+          <span class="ico">✎</span><span class="lbl">Draw</span>
+        </button>
+        <button class="tool" data-tool="erase" title="Erase from the selected strands (E)">
+          <span class="ico">◍</span><span class="lbl">Erase</span>
+        </button>
+        <div class="sep"></div>
+        <button id="btn-undo" title="Undo (⌘Z)">
+          <span class="ico">↶</span><span class="lbl">Undo</span>
+        </button>
+        <button id="btn-redo" title="Redo (⇧⌘Z)">
+          <span class="ico">↷</span><span class="lbl">Redo</span>
+        </button>
+        <div class="sep"></div>
+        <button id="btn-delete" title="Delete selection (Del)">
+          <span class="ico">✕</span><span class="lbl">Delete</span>
+        </button>
+        <button id="btn-clear" title="Remove everything">
+          <span class="ico">⌫</span><span class="lbl">Clear</span>
+        </button>
+        <div class="sep"></div>
+        <button id="btn-help" title="Help (?)">
+          <span class="ico">?</span><span class="lbl">Help</span>
+        </button>
+      </div>
+
+      <div id="shortcuts">
+        <div class="row"><kbd>drag</kbd><span id="sc-drag">orbit</span></div>
+        <div class="row"><kbd>right-drag</kbd><span>pan</span></div>
+        <div class="row"><kbd>scroll</kbd><span>zoom</span></div>
+        <div id="sc-draw" hidden>
+          <div class="row"><kbd>⇧ drag</kbd><span>straight line</span></div>
+          <div class="row"><kbd>lift pen</kbd><span>go under</span></div>
+          <div class="row"><kbd>Enter</kbd><span>finish open</span></div>
+        </div>
+        <div id="sc-erase" hidden>
+          <div class="row"><kbd>[ ]</kbd><span>eraser size</span></div>
+        </div>
+        <div class="row"><kbd>⇧ click</kbd><span>add to selection</span></div>
+        <div class="row"><kbd>⌘Z</kbd><span>undo</span></div>
+        <div class="row"><kbd>F</kbd><span>frame all</span></div>
+        <div class="row"><kbd>Esc</kbd><span>cancel</span></div>
+      </div>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="help">
+      <h1>Knot Editor</h1>
+      <p class="lede">Paint, but for knots in 3D space.</p>
+
+      <h2>Getting around</h2>
+      <p>
+        Left-drag orbits, right-drag pans, scroll zooms. <kbd>F</kbd> frames
+        everything you've drawn. Clicking without dragging selects a strand.
+      </p>
+
+      <h2>Drawing</h2>
+      <p>
+        <b>Draw</b> stays armed until the strand is finished. Your stroke lands on
+        the <b>draw plane</b> &mdash; the faint grid facing you, through the orbit
+        centre. Hold <kbd>⇧</kbd> for a straight line. Finish by ending a stroke
+        back where you started, which closes the loop, or press <kbd>Enter</kbd> to
+        leave it open.
+      </p>
+
+      <h2>Over and under: lift the pen</h2>
+      <p>
+        Draw the way you would on paper. Keep the pen down and the strand passes
+        <b>over</b>; <b>lift the pen</b> across a crossing and the gap is bridged by
+        an arc that dips <b>under</b>. So a trefoil is three strokes with three
+        lifts.
+      </p>
+      <p class="warn">
+        Leave a crossing ambiguous &mdash; both passes drawn with the pen down &mdash;
+        and those crossings are made alternating instead, so the result is still a
+        genuine knot. The status line tells you when that happened.
+      </p>
+
+      <h2>Linking two loops</h2>
+      <ol>
+        <li>Draw a loop.</li>
+        <li>Orbit about 90&deg;. It goes edge-on. Arm <b>Draw</b> and two
+          <span class="pierce">pink dots</span> appear where it pierces the draw plane.</li>
+        <li>Draw a second loop around <b>one</b> pink dot. That's a Hopf link.</li>
+      </ol>
+
+      <h2>Editing</h2>
+      <p>
+        Select an open strand and its ends get <b>grab handles</b> &mdash; drag one to
+        keep drawing from there. Bring it round to the other end and the strand ties
+        into a loop.
+      </p>
+      <p>
+        <b>Erase</b> rubs away part of the strands you've <b>selected</b>, and only
+        those. A bite out of a loop makes it an open arc; a rub through the middle of
+        an arc splits it in two. <kbd>[</kbd> and <kbd>]</kbd> change the size.
+      </p>
+      <p>Everything is undoable with <kbd>⌘Z</kbd>.</p>
+
+      <button id="help-close">Got it</button>
+    </div>
+
+    <div id="confirm" hidden>
+      <div class="box">
+        <p id="confirm-text"></p>
+        <div class="actions">
+          <button id="confirm-no" class="ghost">Cancel</button>
+          <button id="confirm-yes" class="danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
