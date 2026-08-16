@@ -35,10 +35,13 @@ function underPositions(pts) {
 }
 
 /**
- * The three pen-down strokes, in drawing order. Feed them to `assembleStrokes`
- * with `closed: true` and every crossing is decided by a break.
+ * The three pen-down strokes, in drawing order. Draw them in order and close the
+ * loop and every crossing is decided by a break.
+ *
+ * `halfGap` is deliberately generous: a break has to be wide enough that the two
+ * stroke ends flanking it clear the strand they break around. Same as on paper.
  */
-export function trefoilStrokes(cx, cy, s, { n = 240, halfGap = 26 } = {}) {
+export function trefoilStrokes(cx, cy, s, { n = 240, halfGap = 34 } = {}) {
   const pts = trefoilPath(cx, cy, s, n);
 
   const cum = [0];

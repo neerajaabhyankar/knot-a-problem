@@ -156,30 +156,28 @@ export class Viewer {
       this._planeGrid,
     );
     this.drawPlane.add(this._grid);
-
-    // Markers for where existing curves pierce the draw plane. These are what
-    // make linking two loops aimable instead of lucky. Only shown while the pen
-    // is actually in your hand — otherwise they just litter the drawing.
-    this.pierceGroup = new THREE.Group();
-    this.scene.add(this.pierceGroup);
-    this._pierceGeom = new THREE.SphereGeometry(0.1, 16, 12);
-    this._pierceMat = new THREE.MeshBasicMaterial({
-      color: 0xff5fa2,
-      transparent: true,
-      opacity: 0.9,
-      depthTest: false,
-    });
   }
 
   _setupHandles() {
     // Grabbable ends of an open strand. Drawn on top of everything so you can
-    // always get hold of one.
+    // always get hold of one. Three looks, and they mean three different things:
+    // the end your next stroke attaches to, an end you could grab instead, and
+    // an end the pointer is close enough to act on.
     this.handleGroup = new THREE.Group();
     this.scene.add(this.handleGroup);
     this.handles = [];
+    this.hotHandle = null;
+    this.liveId = null; // the strand the next stroke will continue
     this._handleGeom = new THREE.SphereGeometry(TUBE_RADIUS * 1.7, 20, 14);
-    this._handleMat = new THREE.MeshBasicMaterial({ color: 0xf4f7ff, depthTest: false });
+    this._handleMats = {
+      idle: new THREE.MeshBasicMaterial({ color: 0x8b93a7, depthTest: false }),
+      live: new THREE.MeshBasicMaterial({ color: 0xf4f7ff, depthTest: false }),
+      hot: new THREE.MeshBasicMaterial({ color: 0x61afef, depthTest: false }),
+    };
   }
+
+  /** Scale that goes with each handle look. */
+  static HANDLE_SCALE = { idle: 0.7, live: 1, hot: 1.45 };
 
   // ---------- tools ----------
 
@@ -188,7 +186,6 @@ export class Viewer {
     const armed = tool === 'draw';
     this._planeFill.opacity = armed ? 0.035 : 0.015;
     this._planeGrid.opacity = armed ? 0.15 : 0.05;
-    this.pierceGroup.visible = armed;
     this._applyLeftButton();
     this.canvas.style.cursor = armed ? 'crosshair' : tool === 'erase' ? 'none' : 'default';
   }
@@ -270,66 +267,59 @@ export class Viewer {
     this._grid.position.set(-mod(u, GRID_STEP), -mod(v, GRID_STEP), 0);
   }
 
-  /**
-   * Recompute the pink dots where curves cross the draw plane. Reuses a pool of
-   * dot meshes rather than allocating on every orbit frame.
-   */
-  updatePierceMarkers(model) {
-    for (const dot of this.pierceGroup.children) dot.visible = false;
-    if (this.tool !== 'draw') return;
-
-    const plane = this.drawPlaneObject();
-    let used = 0;
-    const hit = new THREE.Vector3();
-
-    for (const curve of model.curves) {
-      const pts = sampleCurve(curve, 200);
-      for (let i = 0; i < pts.length - 1; i++) {
-        const a = plane.distanceToPoint(pts[i]);
-        const b = plane.distanceToPoint(pts[i + 1]);
-        if (a !== 0 && (a < 0) === (b < 0)) continue;
-        hit.copy(pts[i]).lerp(pts[i + 1], a / (a - b));
-        if (hit.distanceTo(this.controls.target) > PLANE_HALF * 1.6) continue;
-
-        let dot = this.pierceGroup.children[used];
-        if (!dot) {
-          dot = new THREE.Mesh(this._pierceGeom, this._pierceMat);
-          dot.renderOrder = 10;
-          this.pierceGroup.add(dot);
-        }
-        dot.position.copy(hit);
-        dot.visible = true;
-        used++;
-      }
-    }
-  }
-
   // ---------- endpoint handles ----------
 
-  /** Selected open strands get a grabbable ball on each end. */
+  /**
+   * Open strands that are selected or live get a grabbable ball on each end.
+   * The live strand grows from its last point, so that end is the emphasised
+   * one — it is where your next stroke will attach.
+   */
   updateHandles(model) {
+    const liveId = this.liveId;
     this.handles = [];
     for (const curve of model.curves) {
-      if (curve.closed || !this.selection.has(curve.id)) continue;
+      if (curve.closed) continue;
+      if (!this.selection.has(curve.id) && curve.id !== liveId) continue;
       const pts = curve.points;
-      this.handles.push({ curveId: curve.id, end: 'start', position: vec(pts[0]) });
-      this.handles.push({ curveId: curve.id, end: 'end', position: vec(pts[pts.length - 1]) });
+      const isLive = curve.id === liveId;
+      this.handles.push({ curveId: curve.id, end: 'start', position: vec(pts[0]), live: false });
+      this.handles.push({
+        curveId: curve.id,
+        end: 'end',
+        position: vec(pts[pts.length - 1]),
+        live: isLive,
+      });
     }
+    this._drawHandles();
+  }
 
+  /** Mark the handle the pointer is close enough to act on. */
+  setHotHandle(handle) {
+    const id = handle ? `${handle.curveId}:${handle.end}` : null;
+    if (id === this.hotHandle) return false;
+    this.hotHandle = id;
+    this._drawHandles();
+    return true;
+  }
+
+  _drawHandles() {
     for (const m of this.handleGroup.children) m.visible = false;
     this.handles.forEach((h, i) => {
       let mesh = this.handleGroup.children[i];
       if (!mesh) {
-        mesh = new THREE.Mesh(this._handleGeom, this._handleMat);
+        mesh = new THREE.Mesh(this._handleGeom, this._handleMats.idle);
         mesh.renderOrder = 12;
         this.handleGroup.add(mesh);
       }
+      const look = `${h.curveId}:${h.end}` === this.hotHandle ? 'hot' : h.live ? 'live' : 'idle';
+      mesh.material = this._handleMats[look];
+      mesh.scale.setScalar(Viewer.HANDLE_SCALE[look]);
       mesh.position.copy(h.position);
       mesh.visible = true;
     });
   }
 
-  /** The endpoint handle under the cursor, if any. */
+  /** The endpoint handle within `tol` pixels of the cursor, if any. */
   hitHandle(px, py, tol = 15) {
     let best = null;
     let bestD = tol;
@@ -342,6 +332,22 @@ export class Viewer {
       }
     }
     return best;
+  }
+
+  /** Screen depth of a world point, in pixels — positive is toward the viewer. */
+  depthOf(v) {
+    return -this.drawPlaneObject().distanceToPoint(v) / this.worldPerPixel();
+  }
+
+  /** A curve as the lift wants an obstacle: screen pixels carrying their depth. */
+  projectCurve(curve) {
+    const out = curve.points.map((p) => {
+      const v = vec(p);
+      const [x, y] = this.project(v);
+      return [x, y, this.depthOf(v)];
+    });
+    if (curve.closed && out.length) out.push(out[0]);
+    return out;
   }
 
   // ---------- curves ----------

@@ -50,6 +50,7 @@
           <div class="row"><kbd>⇧ drag</kbd><span>straight line</span></div>
           <div class="row"><kbd>lift pen</kbd><span>break = under</span></div>
           <div class="row"><kbd>Enter</kbd><span>finish open</span></div>
+          <div class="row"><kbd>grab end</kbd><span>keep drawing</span></div>
         </div>
         <div id="sc-erase" hidden>
           <div class="row"><kbd>[ ]</kbd><span>eraser size</span></div>
@@ -73,13 +74,27 @@
         everything you've drawn. Clicking without dragging selects a strand.
       </p>
 
-      <h2>Drawing</h2>
+      <h2>Drawing: the live strand</h2>
       <p>
-        <b>Draw</b> stays armed until the strand is finished. Your stroke lands on
-        the <b>draw plane</b> &mdash; the faint grid facing you, through the orbit
-        centre. Hold <kbd>⇧</kbd> for a straight line. Finish by ending a stroke
-        back where you started, which closes the loop, or press <kbd>Enter</kbd> to
-        leave it open.
+        One strand at a time is <b>live</b> &mdash; the next stroke continues it.
+        A live strand glows like a selected one and shows a ball on each end; the
+        brighter ball is where your next stroke will attach. Your stroke lands on
+        the <b>draw plane</b>, the faint grid facing you through the orbit centre.
+        Hold <kbd>⇧</kbd> for a straight line.
+      </p>
+      <p>
+        Wherever you put the pen down next, it <b>continues from the live end</b>
+        &mdash; the gap between is filled in for you. You never have to aim.
+      </p>
+      <p>
+        Finish with <kbd>Enter</kbd>, <kbd>Esc</kbd>, a click on empty space, or
+        by ending a stroke back near the strand's other end, which closes the
+        loop. Finishing hands you back to <b>Select</b> so you can orbit and look.
+      </p>
+      <p>
+        <b>Grab a handle to keep drawing</b> &mdash; on the strand you just made
+        or one from an hour ago, from any camera angle. What you already drew
+        never moves. To reopen a closed loop, erase a bite out of it first.
       </p>
 
       <h2>Over and under: lift the pen</h2>
@@ -108,23 +123,26 @@
       <h2>Linking two loops</h2>
       <ol>
         <li>Draw a loop.</li>
-        <li>Orbit about 90&deg;. It goes edge-on. Arm <b>Draw</b> and two
-          <span class="pierce">pink dots</span> appear where it pierces the draw plane.</li>
-        <li>Draw a second loop around <b>one</b> pink dot. That's a Hopf link.</li>
+        <li>Orbit about 90&deg;, so the loop goes edge-on and reads as a line.</li>
+        <li>Arm <b>Draw</b> and sweep a second loop around <b>one</b> side of that
+          line. That's a Hopf link.</li>
       </ol>
+      <p>
+        The two rules apply between <b>different</b> strands as well, so lifting
+        the pen makes your stroke pass under another loop. Strands that are
+        already clear of each other in depth are left alone.
+      </p>
 
       <h2>Editing</h2>
-      <p>
-        Select an open strand and its ends get <b>grab handles</b> &mdash; drag one to
-        keep drawing from there. Bring it round to the other end and the strand ties
-        into a loop.
-      </p>
       <p>
         <b>Erase</b> rubs away part of the strands you've <b>selected</b>, and only
         those. A bite out of a loop makes it an open arc; a rub through the middle of
         an arc splits it in two. <kbd>[</kbd> and <kbd>]</kbd> change the size.
       </p>
-      <p>Everything is undoable with <kbd>⌘Z</kbd>.</p>
+      <p>
+        <kbd>⌘Z</kbd> undoes <b>one stroke at a time</b>, so a bad arc can go back
+        without taking the rest of the strand with it.
+      </p>
 
       <button id="help-close">Got it</button>
     </div>

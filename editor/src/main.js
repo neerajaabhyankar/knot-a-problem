@@ -3,7 +3,7 @@
 import { Scene } from './model.js';
 import { Viewer, TUBE_RADIUS, vec3 } from './viewer.js';
 import { EraseSession } from './eraser.js';
-import { assembleStrokes, liftPath } from './crossings.js';
+import { fillRun, liftStroke } from './crossings.js';
 import { dedupe, simplifyStroke } from './simplify.js';
 
 const canvas = document.getElementById('view');
@@ -15,13 +15,16 @@ const btn = (id) => document.getElementById(id);
 const model = new Scene();
 const viewer = new Viewer(canvas);
 
-// Select is home. Draw stays armed across pen lifts until the strand closes.
+// Select is home. Draw stays armed until you finish the strand.
 let tool = 'select';
 let selection = new Set();
 
-let draft = null; // { strokes: [[px,py][]], current } while drawing
+// At most one strand is live: the one the next stroke continues. It always
+// grows from its last point, so grabbing the other end reverses it and there is
+// only ever one direction to think about. See design-drawing.md.
+let live = null; // curve id, or null
+let pen = null; // [[px, py]] while the pointer is down
 let erase = null;
-let extending = null; // { curveId, end, anchor, points }
 let downAt = null; // to tell a click apart from an orbit drag
 let eraserRadius = 20;
 
@@ -87,20 +90,26 @@ function undo() {
   if (!past.length) return;
   future.push(model.toJSON());
   model.restore(past.pop());
-  cancelDraft();
-  setSelection([]);
-  refresh();
-  flashStatus('undo');
+  afterHistory('undo');
 }
 
 function redo() {
   if (!future.length) return;
   past.push(model.toJSON());
   model.restore(future.pop());
-  cancelDraft();
-  setSelection([]);
+  afterHistory('redo');
+}
+
+/** A strand that survived the step stays live, so you can undo a bad stroke and
+ *  simply draw it again. */
+function afterHistory(label) {
+  pen = null;
+  viewer.clearPreview();
+  if (live && !model.get(live)) live = null;
+  viewer.liveId = live;
   refresh();
-  flashStatus('redo');
+  setSelection(live ? [live] : []);
+  flashStatus(label);
 }
 
 function updateHistoryButtons() {
@@ -111,7 +120,9 @@ function updateHistoryButtons() {
 // ---------- tools ----------
 
 function setTool(next) {
-  if (next !== 'draw') cancelDraft();
+  pen = null;
+  viewer.clearPreview();
+  endLive();
   tool = next;
   viewer.setTool(next);
   for (const b of document.querySelectorAll('#toolbar .tool')) {
@@ -122,8 +133,6 @@ function setTool(next) {
   btn('sc-drag').textContent = next === 'select' ? 'orbit' : next;
   eraserCursor.hidden = next !== 'erase';
   eraserCursor.classList.toggle('disabled', next === 'erase' && selection.size === 0);
-  if (next === 'draw') draft = { strokes: [], current: null };
-  viewer.updatePierceMarkers(model);
   updateStatus();
 }
 
@@ -137,10 +146,9 @@ function setSelection(ids) {
   updateStatus();
 }
 
-/** Rebuild meshes and markers after any change to the model. */
+/** Rebuild meshes and handles after any change to the model. */
 function refresh() {
   viewer.syncCurves(model);
-  viewer.updatePierceMarkers(model);
   setSelection(selection);
   updateHistoryButtons();
 }
@@ -151,22 +159,19 @@ function updateStatus() {
 
   let hint;
   if (tool === 'draw') {
-    const k = draft?.strokes.length ?? 0;
-    hint = k
-      ? `<b>${k}</b> stroke${k === 1 ? '' : 's'} · every gap goes under · finish near the start to close`
-      : 'draw · break the strand wherever it passes under';
+    hint = live
+      ? 'continuing · every gap you leave goes under · come back to the other end to close'
+      : 'draw · lift the pen wherever the strand passes under';
   } else if (tool === 'erase') {
     hint = selection.size
       ? `rub to erase from <b>${selection.size}</b> selected · size <b>${eraserRadius}</b>px`
       : 'select a strand first — the eraser only touches what you pick';
-  } else if (extending) {
-    hint = 'extending the strand';
   } else if (selection.size) {
     hint = `<b>${selection.size}</b> selected · drag an end to continue it · Del to remove`;
   } else if (n === 0) {
     hint = 'press <b>D</b> and sweep a loop';
   } else if (n === 1) {
-    hint = 'orbit 90&deg;, press <b>D</b>, then draw around <b>one</b> pink dot';
+    hint = 'orbit 90&deg; so it goes edge-on, press <b>D</b>, then draw a loop around it';
   } else {
     hint = 'drag to orbit · click a strand to select';
   }
@@ -180,164 +185,152 @@ function flashStatus(html) {
   flashTimer = setTimeout(updateStatus, 2400);
 }
 
-// ---------- drawing: many strokes, one strand ----------
+// ---------- drawing: the live strand ----------
 //
-// Each pen-down stroke is one piece of the strand and stays on top. Every gap
-// where you lifted the pen becomes a bridge that dips underneath — including
-// the gap that closes the loop. So a trefoil is three strokes and three lifts,
-// one break per undercrossing.
+// One concept: at most one strand is live, and the next stroke continues it.
+// The gap between the live end and where you put the pen down is filled with a
+// straight run, which passes under anything it crosses — that is what a break
+// in a knot diagram means. See design-drawing.md.
 
-/** Everything drawn so far as one path. */
-function assemble({ closed = false, current = null } = {}) {
-  const strokes = current ? [...draft.strokes, current] : draft.strokes;
-  return assembleStrokes(strokes, { closed, minGap: minGapPx() });
+/** The strand the next stroke continues, if there is one. */
+function liveCurve() {
+  return live ? model.get(live) : null;
 }
 
-function draftPreview() {
-  const { pts } = assemble({ current: draft.current });
-  if (pts.length < 2) return;
-  const world = pts.map(([x, y]) => viewer.unproject(x, y)).filter(Boolean);
-  viewer.showPreview(world, false);
+/** Make `id` live, growing from `end`. Growing always happens at the last point,
+ *  so grabbing the start reverses the strand rather than adding a second case. */
+function setLive(id, end = 'end') {
+  const curve = model.get(id);
+  if (curve && end === 'start') {
+    record();
+    curve.points.reverse();
+  }
+  live = curve ? id : null;
+  viewer.liveId = live;
+  setSelection(live ? [live] : []);
 }
 
-function cancelDraft() {
-  draft = tool === 'draw' ? { strokes: [], current: null } : null;
-  viewer.clearPreview();
+/** Release the live strand without leaving Draw. */
+function endLive() {
+  if (!live) return;
+  live = null;
+  viewer.liveId = null;
+  setSelection([]);
 }
 
-function endStrokePiece() {
-  const raw = dedupe(draft.current, 2);
-  draft.current = null;
-  // Judge by travel, not point count — a Shift-straightened stroke is two points.
-  if (raw.length < 2 || pathLength(raw) < MIN_STROKE) {
-    draftPreview();
-    return; // a click, not a stroke
+/**
+ * Done with this strand. Select is home — you almost always want to orbit and
+ * look at what you just made, and Draw holds the left button hostage.
+ */
+function finishStrand() {
+  endLive();
+  if (tool !== 'select') setTool('select');
+  else updateStatus();
+}
+
+/** Everything already on screen, as depth-carrying obstacles for the lift. */
+function obstacles() {
+  const out = [];
+  for (const curve of model.curves) {
+    const projected = viewer.projectCurve(curve);
+    // The live end is where the new stroke attaches, not something it crosses.
+    if (curve.id === live) projected.length = Math.max(0, projected.length - 2);
+    if (projected.length > 1) out.push(projected);
+  }
+  return out;
+}
+
+/** Screen points of the pen stroke, denoised and simplified. */
+function penPoints() {
+  const raw = dedupe(pen ?? [], 2);
+  return raw.length < 2 || pathLength(raw) < MIN_STROKE ? null : simplifyStroke(raw, 6, 4);
+}
+
+function showPen() {
+  const raw = dedupe(pen ?? [], 2);
+  if (raw.length < 2) return viewer.clearPreview();
+  const world = raw.map(([x, y]) => viewer.unproject(x, y)).filter(Boolean);
+  if (world.length >= 2) viewer.showPreview(world, false);
+}
+
+/**
+ * Add one finished stroke to the live strand — or start a new strand with it.
+ * The strand's existing points are never touched; this only ever appends.
+ */
+function addStroke(stroke) {
+  const curve = liveCurve();
+  // The far end of the strand — for a brand-new one, where this stroke began.
+  const head = curve ? viewer.project(vec3(curve.points[0])) : stroke[0];
+
+  // Splice the stroke onto the live end, filling the pen-up gap.
+  let pts = stroke;
+  let isFill = stroke.map(() => false);
+  let startDepth = 0;
+
+  if (curve) {
+    const tail = vec3(curve.points[curve.points.length - 1]);
+    const fill = fillRun(viewer.project(tail), stroke[0], minGapPx());
+    pts = [...fill, ...stroke];
+    isFill = [...fill.map(() => true), ...stroke.map(() => false)];
+    startDepth = viewer.depthOf(tail);
   }
 
-  draft.strokes.push(raw);
-
-  // Finished when the strand comes back to where it started — whether you drew
-  // right up to the start or stopped a break short of it.
-  const start = draft.strokes[0][0];
-  const here = raw[raw.length - 1];
-  if (Math.hypot(here[0] - start[0], here[1] - start[1]) < closeSlopPx()) {
-    commitDraft(true);
-  } else {
-    draftPreview();
-    updateStatus();
-  }
-}
-
-function commitDraft(closed) {
-  if (!draft?.strokes.length) return;
-  const { pts, isBridge } = assemble({ closed });
-
-  if (pts.length < (closed ? 3 : 2)) {
-    cancelDraft();
-    setTool('select');
-    return;
+  // Coming back to the far end ties the strand into a loop, and that closing gap
+  // is a fill like any other.
+  const last = stroke[stroke.length - 1];
+  const closing = Math.hypot(last[0] - head[0], last[1] - head[1]) < closeSlopPx();
+  if (closing) {
+    const back = fillRun(last, head, minGapPx());
+    pts = [...pts, ...back];
+    isFill = [...isFill, ...back.map(() => true)];
   }
 
-  const lifted = liftPath(pts, isBridge, closed, { separation: separationPx() });
-
-  const points3 = padToThree(
-    lifted.points
-      .map(([x, y, d]) => viewer.unproject(x, y, d))
-      .filter(Boolean)
-      .map((v) => [v.x, v.y, v.z]),
-  );
-
-  cancelDraft();
-  setTool('select');
-  if (points3.length < 3) return;
-
-  record();
-  model.addCurve(points3, { closed });
-  refresh();
-
-  if (lifted.crossings) {
-    const { crossings: n, broken } = lifted;
-    flashStatus(
-      broken === n
-        ? `<b>${n}</b> crossing${n === 1 ? '' : 's'}, all from your breaks — orbit to check`
-        : `<b>${n}</b> crossing${n === 1 ? '' : 's'}, <b>${n - broken}</b> unbroken so the later strand went over — break the strand to flip one`,
-    );
-  }
-}
-
-// ---------- extending a strand from its end ----------
-
-function beginExtend(handle, ev) {
-  const curve = model.get(handle.curveId);
-  if (!curve) return;
-  const anchorPt = handle.end === 'start' ? curve.points[0] : curve.points[curve.points.length - 1];
-  extending = {
-    curveId: handle.curveId,
-    end: handle.end,
-    anchor: vec3(anchorPt),
-    points: [[ev.clientX, ev.clientY]],
-  };
-  canvas.setPointerCapture(ev.pointerId);
-  canvas.style.cursor = 'grabbing';
-  updateStatus();
-}
-
-function extendMove(ev) {
-  if (ev.shiftKey) extending.points = [extending.points[0], [ev.clientX, ev.clientY]];
-  else extending.points.push([ev.clientX, ev.clientY]);
-  const world = dedupe(extending.points, 4)
-    .map(([x, y]) => viewer.unproject(x, y, 0, extending.anchor))
-    .filter(Boolean);
-  viewer.showPreview(world, false);
-}
-
-function endExtend() {
-  const { curveId, end, anchor } = extending;
-  const raw = dedupe(extending.points, 2);
-  extending = null;
-  viewer.clearPreview();
-  canvas.style.cursor = 'default';
-
-  const curve = model.get(curveId);
-  if (!curve || raw.length < 2 || pathLength(raw) < MIN_STROKE) {
-    updateStatus();
-    return;
-  }
-
-  const simplified = simplifyStroke(raw, 6, 4);
-  // The first point sits on the handle we grabbed; don't duplicate it.
-  const tail = simplified.length > 2 ? simplified.slice(1) : simplified;
-  if (tail.length < 2) {
-    updateStatus();
-    return;
-  }
-
-  const lifted = liftPath(tail, null, false, { separation: separationPx() });
+  const lifted = liftStroke(pts, isFill, {
+    startDepth,
+    separation: separationPx(),
+    obstacles: obstacles(),
+  });
   const added = lifted.points
-    .map(([x, y, d]) => viewer.unproject(x, y, d, anchor))
+    .map(([x, y, d]) => viewer.unproject(x, y, d))
     .filter(Boolean)
     .map((v) => [v.x, v.y, v.z]);
-  if (added.length < 2) {
-    updateStatus();
-    return;
+  if (added.length < 2) return;
+
+  record(); // one undo step per stroke
+  if (curve) {
+    curve.points.push(...added);
+    curve.closed = closing;
+  } else {
+    live = model.addCurve(padToThree(added), { closed: closing }).id;
   }
-
-  record();
-  if (end === 'end') curve.points.push(...added);
-  else curve.points.unshift(...added.reverse());
-
-  // Reaching the strand's other end ties it into a loop.
-  const otherEnd = end === 'end' ? curve.points[0] : curve.points[curve.points.length - 1];
-  const [ox, oy] = viewer.project(vec3(otherEnd));
-  const [nx, ny] = raw[raw.length - 1];
-  if (Math.hypot(ox - nx, oy - ny) < closeSlopPx()) {
-    curve.closed = true;
-    if (end === 'end') curve.points.pop();
-    else curve.points.shift();
-    flashStatus('ends joined — the strand is a loop');
-  }
-
+  viewer.clearPreview();
   refresh();
+  if (closing) finishStrand(); // a loop has no end to grow from
+  else {
+    viewer.liveId = live;
+    setSelection([live]);
+  }
+  report(lifted, closing);
+}
+
+function report({ crossings: n, under }, closed) {
+  const made = n ? `<b>${n}</b> crossing${n === 1 ? '' : 's'}` : '';
+  if (closed) return flashStatus(n ? `${made} — the strand is a loop` : 'the strand is a loop');
+  if (!n) return;
+  flashStatus(
+    under === n
+      ? `${made}, all passing under — orbit to check`
+      : `${made}, <b>${n - under}</b> passed over — lift the pen there to go under instead`,
+  );
+}
+
+function endPenStroke() {
+  const stroke = penPoints();
+  pen = null;
+  viewer.clearPreview();
+  // Too short to be a stroke: that was a click, which finishes the strand.
+  if (!stroke) return finishStrand();
+  addStroke(stroke);
 }
 
 // ---------- erasing ----------
@@ -373,18 +366,23 @@ function endErase() {
 
 // ---------- pointer wiring ----------
 
-// Grabbing an endpoint has to beat OrbitControls to the event. Its listener is
-// on the canvas, so we intercept during the capture phase on the way down.
+// Grabbing a handle has to beat OrbitControls to the event. Its listener is on
+// the canvas, so we intercept during the capture phase on the way down. This is
+// the one gesture that crosses modes: grab an end and you are drawing again.
 addEventListener(
   'pointerdown',
   (ev) => {
-    // Shift is allowed through: it straightens the extension rather than panning.
-    if (ev.button !== 0 || ev.target !== canvas || tool !== 'select') return;
+    // Shift is allowed through: it straightens the stroke rather than panning.
+    if (ev.button !== 0 || ev.target !== canvas || tool === 'erase') return;
     const handle = viewer.hitHandle(ev.clientX, ev.clientY);
     if (!handle) return;
     ev.stopPropagation();
     ev.preventDefault();
-    beginExtend(handle, ev);
+    setTool('draw');
+    setLive(handle.curveId, handle.end);
+    downAt = [ev.clientX, ev.clientY];
+    pen = [[ev.clientX, ev.clientY]];
+    canvas.setPointerCapture(ev.pointerId);
   },
   true,
 );
@@ -393,7 +391,7 @@ canvas.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
   downAt = [ev.clientX, ev.clientY];
   if (tool === 'draw') {
-    draft.current = [[ev.clientX, ev.clientY]];
+    pen = [[ev.clientX, ev.clientY]];
     canvas.setPointerCapture(ev.pointerId);
   } else if (tool === 'erase') {
     beginErase(ev);
@@ -405,16 +403,19 @@ canvas.addEventListener('pointermove', (ev) => {
     eraserCursor.style.left = `${ev.clientX}px`;
     eraserCursor.style.top = `${ev.clientY}px`;
   }
-  if (tool === 'select' && !extending) {
-    canvas.style.cursor = viewer.hitHandle(ev.clientX, ev.clientY) ? 'grab' : 'default';
+  // Light up the handle you are close enough to act on, in either mode.
+  if (tool !== 'erase') {
+    const hot = viewer.hitHandle(ev.clientX, ev.clientY, closeSlopPx());
+    if (viewer.setHotHandle(hot) && tool === 'select') {
+      canvas.style.cursor = hot ? 'grab' : 'default';
+    }
   }
 
-  if (extending) extendMove(ev);
-  else if (draft?.current) {
+  if (pen) {
     // Shift collapses the stroke to a straight run from where it began.
-    if (ev.shiftKey) draft.current = [draft.current[0], [ev.clientX, ev.clientY]];
-    else draft.current.push([ev.clientX, ev.clientY]);
-    draftPreview();
+    if (ev.shiftKey) pen = [pen[0], [ev.clientX, ev.clientY]];
+    else pen.push([ev.clientX, ev.clientY]);
+    showPen();
   } else if (erase) extendErase(ev);
 });
 
@@ -423,12 +424,9 @@ canvas.addEventListener('pointerup', (ev) => {
   const moved = downAt && Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]);
   downAt = null;
 
-  if (extending) {
+  if (pen) {
     canvas.releasePointerCapture(ev.pointerId);
-    endExtend();
-  } else if (draft?.current) {
-    canvas.releasePointerCapture(ev.pointerId);
-    endStrokePiece();
+    endPenStroke();
   } else if (erase) {
     canvas.releasePointerCapture(ev.pointerId);
     endErase();
@@ -446,18 +444,14 @@ canvas.addEventListener('pointerup', (ev) => {
 });
 
 canvas.addEventListener('pointercancel', () => {
-  extending = null;
   erase = null;
   downAt = null;
-  if (draft) draft.current = null;
+  pen = null;
   viewer.clearPreview();
 });
 
 // Right-drag pans, so the context menu has to go.
 canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
-
-// The draw plane moves with the camera; so do the pierce markers.
-viewer.controls.addEventListener('change', () => viewer.updatePierceMarkers(model));
 
 // ---------- confirm dialog ----------
 
@@ -519,7 +513,6 @@ function setEraserRadius(r) {
 
 function frameAll() {
   viewer.frameAll(model);
-  viewer.updatePierceMarkers(model);
 }
 
 // ---------- toolbar & keys ----------
@@ -560,13 +553,13 @@ addEventListener('keydown', (ev) => {
   const k = ev.key;
   if (k === 'Escape') {
     if (!helpEl.classList.contains('hidden')) helpEl.classList.add('hidden');
-    extending = null;
     erase = null;
+    pen = null;
     viewer.clearPreview();
-    if (tool !== 'select') setTool('select');
+    if (live || tool !== 'select') finishStrand();
     else setSelection([]);
   } else if (k === 'Enter') {
-    if (tool === 'draw' && draft?.strokes.length) commitDraft(false);
+    finishStrand();
   } else if (k === 'd' || k === 'D' || k === '1') setTool('draw');
   else if (k === '2') setTool('select');
   else if (k === 'e' || k === 'E' || k === '3') setTool('erase');

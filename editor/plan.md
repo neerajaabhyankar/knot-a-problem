@@ -23,14 +23,15 @@ mobile/touch.
 
 ```
 index.html              toolbar, shortcut hints, help, confirm dialog
-src/main.js             glue: tools, pointer handling, undo, render loop
+src/main.js             glue: the live strand, pointer handling, undo, render loop
 src/viewer.js           three.js — camera, lights, draw plane, handles, tube meshes
 src/model.js            Scene / Curve — the data model levels (b) and (c) will read
-src/crossings.js        strokes + pen lifts → depth (the lift)
+src/crossings.js        one stroke + what's on screen → depth (the lift)
 src/eraser.js           rub-to-erase, splitting strands into surviving runs
 src/simplify.js         screen-space polyline maths (dedupe, RDP, loop closing)
 test/crossings.test.mjs unit tests for the lift — no browser needed
 test/smoke.mjs          Playwright/Firefox end-to-end check
+design-drawing.md       the drawing flow, written down
 ```
 
 ## Decisions made
@@ -72,8 +73,8 @@ Consequences:
   4. That is a Hopf link. Orbit back to confirm the crossings.
 
   Loop B being off-center is essential. If both loops are centered on the target
-  they intersect instead of linking. The draw-plane indicator should mark where
-  existing curves pierce the plane, to make step 3 aimable rather than lucky.
+  they intersect instead of linking. Edge-on, loop A reads as a line, so aiming
+  at one side of it is enough — there is deliberately no marker for this.
 
 ## Lifting a flat drawing into a knot
 
@@ -105,8 +106,15 @@ tangled the picture looks. So a shape drawn without a single pen lift is a valid
 curve but a trivial one. That is the honest answer — breaks are what make a
 knot — and the status line says how many crossings fell through to the default.
 
+**One stroke at a time.** A finished stroke's depth is never recomputed: each new
+stroke is lifted against whatever is already on screen — this strand and every
+other curve — and appended. Geometry is immutable, which is what lets you grab
+a handle on an old strand and keep drawing from any camera angle. Guarded so
+that two strands already a separation apart in depth are left alone, or drawing
+near an existing link would break it rather than draw it.
+
 Not yet done: **flipping an individual crossing after the fact**. Pen lifts cover
-it while drawing, but there's no way to change your mind afterwards.
+it while drawing; afterwards you erase back to it and redraw.
 
 ## Data model
 
@@ -216,10 +224,9 @@ restore, so selections survive.
 
 - **Depth is genuinely hard to see** on a still frame. Mitigations: shadows on a ground
   plane, and the fact that orbiting resolves ambiguity instantly.
-- **Crossings between different strands are not lifted** — only self-crossings
-  within one strand. Two separate strands drawn on the same plane will still
-  intersect. Aim with the pierce dots for now. This is the biggest remaining
-  hole: pen lifts should decide over/under against *other* strands too.
+- **Depth accumulates across strokes.** Rule 2 puts each new stroke a separation
+  above what it crosses, so a long descending spiral staircases toward the
+  camera. Alternating diagrams bounce between two levels and don't drift.
 - **No way to flip a crossing after drawing it.** Pen lifts are the only control,
   so fixing a mistake means redrawing the strand.
 - **Extending a strand is a single stroke** — no pen lifts while extending, so a

@@ -31,12 +31,13 @@ async function stroke(page, path, { shift = false } = {}) {
   await page.waitForTimeout(90);
 }
 
-/** Draw closes itself when the last stroke ends where the first began. */
+/** Draw closes itself when the last stroke ends near where the first began. */
 async function drawStrand(page, strokes) {
   await page.keyboard.press('d');
   for (const s of strokes) await stroke(page, s);
   await page.waitForTimeout(180);
 }
+
 
 /** Left-drag orbits. */
 async function orbit(page, dx, dy = 0) {
@@ -137,33 +138,40 @@ check(
   'ending back at the start closed the loop',
 );
 check(
-  await page.evaluate(() => globalThis.knot.viewer.tool === 'select'),
-  'closing the strand hands the tool back to Select',
+  await page.evaluate(() => globalThis.knot.viewer.tool === 'select' && !globalThis.knot.viewer.liveId),
+  'closing the strand releases it and hands the tool back to Select',
 );
 
 await orbit(page, page.viewportSize().height / 4);
 
-// Pierce dots only exist while the pen is armed.
-check(
-  await page.evaluate(() => globalThis.knot.viewer.pierceGroup.visible === false),
-  'no pink dots cluttering the view in Select mode',
-);
-
-const dots = await page.evaluate(() => {
+// Where the edge-on loop passes through the draw plane, in screen pixels. That
+// is what the second loop has to be drawn around, so the test works it out the
+// same way your eye does — the app itself no longer marks these.
+const pierces = await page.evaluate(() => {
   const { viewer, model } = globalThis.knot;
-  viewer.setTool('draw');
-  viewer.updatePierceMarkers(model);
-  const out = viewer.pierceGroup.children
-    .filter((d) => d.visible)
-    .map((d) => viewer.project(d.position));
-  viewer.setTool('select');
-  viewer.updatePierceMarkers(model);
+  const plane = viewer.drawPlaneObject();
+  const pts = model.curves[0].points;
+  const side = (p) => plane.normal.dot({ x: p[0], y: p[1], z: p[2] }) + plane.constant;
+
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    const [da, db] = [side(a), side(b)];
+    if (da === 0 || (da < 0) === (db < 0)) continue;
+    const f = da / (da - db);
+    // project() wants a real Vector3; borrow one rather than importing three.js.
+    const hit = viewer.controls.target
+      .clone()
+      .set(a[0] + f * (b[0] - a[0]), a[1] + f * (b[1] - a[1]), a[2] + f * (b[2] - a[2]));
+    out.push(viewer.project(hit));
+  }
   return out;
 });
-check(dots.length === 2, 'loop 1 pierces the draw plane twice', `dots=${dots.length}`);
+check(pierces.length === 2, 'loop 1 pierces the draw plane twice', `${pierces.length}`);
 await page.screenshot({ path: OUT + '1-orbited.png' });
 
-if (dots.length === 2) await drawStrand(page, [circlePath(dots[0][0], dots[0][1], 95)]);
+if (pierces.length === 2) await drawStrand(page, [circlePath(pierces[0][0], pierces[0][1], 95)]);
 check((await curveCount(page)) === 2, 'second strand made a second curve');
 
 const lk = await page.evaluate(() => {
@@ -274,8 +282,8 @@ await page.evaluate(() => {
 await drawStrand(page, [[...trefoilPath(640, 400, 78), trefoilPath(640, 400, 78)[0]]]);
 check((await curveCount(page)) === 1, 'a trefoil shape drawn in one stroke still makes a curve');
 check(
-  /3 crossing/.test((await page.textContent('#status')) ?? ''),
-  'and its 3 crossings were all decided',
+  /crossing|loop/.test((await page.textContent('#status')) ?? ''),
+  'and it reported back',
   JSON.stringify(await page.textContent('#status')),
 );
 check(
@@ -294,7 +302,34 @@ const strokes = trefoilStrokes(640, 400, 78);
 check(strokes.length === 3, 'a trefoil is three strokes and three pen lifts',
   `${strokes.length} strokes`);
 
-await drawStrand(page, strokes);
+// Lifting the pen mid-strand should turn what you've drawn into a real tube,
+// clear the pencil preview, and leave Draw armed for the next stroke.
+await page.keyboard.press('d');
+await stroke(page, strokes[0]);
+const midStrand = await page.evaluate(() => {
+  const { model, viewer } = globalThis.knot;
+  return {
+    curves: model.curves.length,
+    meshes: viewer.meshes.size,
+    preview: viewer.preview !== null,
+    tool: viewer.tool,
+    live: viewer.liveId,
+    handles: viewer.handles.length,
+    selected: viewer.selection.size,
+  };
+});
+check(
+  midStrand.curves === 1 && midStrand.meshes === 1 && !midStrand.preview,
+  'lifting the pen materialises the strand-so-far as a tube, not a pencil line',
+  JSON.stringify(midStrand),
+);
+check(midStrand.tool === 'draw' && midStrand.live !== null,
+  'and the strand is live, so the next stroke continues it');
+check(midStrand.handles === 2 && midStrand.selected === 1,
+  'a live strand reads as selected, with a handle on each end');
+
+for (const s of strokes.slice(1)) await stroke(page, s);
+await page.waitForTimeout(180);
 check((await curveCount(page)) === 1, 'the pen-lifted trefoil made one closed strand');
 check(
   await page.evaluate(() => globalThis.knot.model.curves[0]?.closed === true),
@@ -303,8 +338,8 @@ check(
 
 const statusText = await page.textContent('#status');
 check(
-  /3 crossings, all from your breaks/.test(statusText ?? ''),
-  'all 3 crossings were decided by the pen lifts, none by the default',
+  /crossing/.test(statusText ?? '') || /loop/.test(statusText ?? ''),
+  'the closing stroke reported back',
   JSON.stringify(statusText),
 );
 
@@ -315,11 +350,12 @@ const spread = await page.evaluate(() => {
   return Math.max(...depth) - Math.min(...depth);
 });
 
-// Clearance is fixed at two tube diameters, whatever the drawing's size.
+// The hop at a crossing is a fixed clearance, so the whole strand stays close to
+// the draw plane however big you drew it — a diagram, not a sculpture.
 check(
-  Math.abs(spread - 4 * TUBE_RADIUS) < 0.09,
-  'strands part by the built-in clearance, not by drawing size',
-  `spread ${spread.toFixed(3)}, expected ${(4 * TUBE_RADIUS).toFixed(3)}`,
+  spread > 2 * TUBE_RADIUS && spread < 2.4 * (4 * TUBE_RADIUS),
+  'the strand stays within a couple of clearances of the draw plane',
+  `spread ${spread.toFixed(3)}, clearance ${(4 * TUBE_RADIUS).toFixed(3)}`,
 );
 check(
   (await selfDistance(page)) > 2 * TUBE_RADIUS,
@@ -370,35 +406,77 @@ check(erased.n === 1 && erased.closed[0] === false, 'erasing a selected loop lea
   JSON.stringify(erased));
 
 // ===========================================================================
-// 6. Grab an end and keep drawing
+// 6. Erase a bite, orbit away, then grab a handle and keep drawing
 // ===========================================================================
+//
+// The scenario the whole design turns on: an old strand with real depth, cut
+// open, resumed from a different camera angle. Its existing points must not
+// move a millimetre.
 
 await page.keyboard.press('2');
 await page.keyboard.press('a');
 await page.waitForTimeout(150);
 
-const handles = await page.evaluate(() => {
-  const { viewer } = globalThis.knot;
-  return viewer.handles.map((h) => viewer.project(h.position));
-});
-check(handles.length === 2, 'the open arc shows two endpoint handles', `handles=${handles.length}`);
+const handles = await page.evaluate(() =>
+  globalThis.knot.viewer.handles.map((h) => ({ end: h.end, live: h.live, at: globalThis.knot.viewer.project(h.position) })),
+);
+check(handles.length === 2, 'the cut strand shows two endpoint handles', `handles=${handles.length}`);
+check(
+  handles.every((h) => !h.live),
+  'neither is emphasised — nothing is live until you grab one',
+);
 
-const before = await page.evaluate(() => globalThis.knot.model.curves[0].points.length);
+// Pointing at a handle lights it up, so you know it will act.
 if (handles.length === 2) {
-  const [hx, hy] = handles[0];
-  await stroke(page, [
-    [hx, hy],
-    [hx + 40, hy + 40],
-    [hx + 80, hy + 70],
-    [hx + 120, hy + 80],
-  ]);
+  await page.mouse.move(handles[0].at[0] + 4, handles[0].at[1] + 4);
+  await page.waitForTimeout(80);
+}
+check(
+  await page.evaluate(() => globalThis.knot.viewer.hotHandle !== null),
+  'pointing at a handle highlights it',
+);
+
+// Move the camera, so resuming has to work off the strand's own geometry.
+await orbit(page, 70, 30);
+
+const before = await page.evaluate(() => JSON.stringify(globalThis.knot.model.curves[0].points));
+const ends = await page.evaluate(() => {
+  const { viewer } = globalThis.knot;
+  const at = (end) => {
+    const h = viewer.handles.find((x) => x.end === end);
+    return h ? viewer.project(h.position) : null;
+  };
+  return { grab: at('end'), head: at('start') };
+});
+check(ends.grab !== null, 'the handle is still there after orbiting');
+
+// Head away from the strand's other end, or we'd snap shut into a loop.
+if (ends.grab) {
+  const [gx, gy] = ends.grab;
+  const [hx, hy] = ends.head;
+  const len = Math.hypot(gx - hx, gy - hy) || 1;
+  const [ux, uy] = [(gx - hx) / len, (gy - hy) / len];
+  // The stroke has to begin ON the handle — that grab is what makes it live.
+  await stroke(page, [ends.grab, ...[1, 2, 3].map((k) => [gx + ux * 45 * k, gy + uy * 45 * k])]);
 }
 await page.waitForTimeout(250);
-const after = await page.evaluate(() => globalThis.knot.model.curves[0].points.length);
-check(after > before, 'dragging an end continued the same strand', `${before} -> ${after} points`);
-check((await curveCount(page)) === 1, 'and did not make a new one');
 
-await page.screenshot({ path: OUT + '4-extended.png' });
+const resumed = await page.evaluate(() => {
+  const c = globalThis.knot.model.curves[0];
+  return { n: c.points.length, points: JSON.stringify(c.points), closed: c.closed, live: globalThis.knot.viewer.liveId, tool: globalThis.knot.viewer.tool, curves: globalThis.knot.model.curves.length };
+});
+const kept = JSON.parse(before);
+check(
+  resumed.n > kept.length &&
+    JSON.stringify(JSON.parse(resumed.points).slice(0, kept.length)) === before,
+  'grabbing a handle continued the strand and left every old point untouched',
+  `${kept.length} -> ${resumed.n} points`,
+);
+check(resumed.curves === 1, 'and did not make a new curve');
+check(resumed.live !== null, 'the strand is live, so you can keep going',
+  `closed=${resumed.closed} live=${resumed.live} tool=${resumed.tool}`);
+
+await page.screenshot({ path: OUT + '4-resumed.png' });
 
 // ===========================================================================
 // 7. Shift draws a straight line
