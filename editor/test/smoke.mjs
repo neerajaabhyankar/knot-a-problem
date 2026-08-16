@@ -7,7 +7,7 @@
 
 import { firefox } from 'playwright';
 import { mkdir } from 'node:fs/promises';
-import { assignAlternating, findSelfCrossings } from '../src/crossings.js';
+import { trefoilPath, trefoilStrokes } from './trefoil.mjs';
 
 const APP_URL = process.env.URL ?? 'http://localhost:5173/';
 const OUT = new URL('./out/', import.meta.url).pathname;
@@ -52,6 +52,46 @@ async function orbit(page, dx, dy = 0) {
 
 const curveCount = (page) => page.evaluate(() => globalThis.knot.model.curves.length);
 
+/**
+ * Closest the first curve comes to itself, in world units. Points that are
+ * neighbours *along* the curve are excluded — a tight bend is the tube curving,
+ * not two strands meeting — so anything under a tube diameter is a real
+ * self-intersection.
+ */
+const selfDistance = (page) =>
+  page.evaluate(() => {
+    const c = globalThis.knot.model.curves[0];
+    const n = 500;
+    const pts = Array.from({ length: n }, (_, i) => {
+      const t = (i / n) * c.points.length;
+      const a = c.points[Math.floor(t) % c.points.length];
+      const b = c.points[(Math.floor(t) + 1) % c.points.length];
+      const f = t - Math.floor(t);
+      return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+    });
+
+    const cum = [0];
+    for (let i = 1; i <= n; i++) {
+      const a = pts[i - 1];
+      const b = pts[i % n];
+      cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]));
+    }
+    const EXCLUDE = 0.45; // world units of arclength — six tube radii
+
+    let best = Infinity;
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const along = cum[j] - cum[i];
+        if (Math.min(along, cum[n] - along) < EXCLUDE) continue;
+        best = Math.min(
+          best,
+          Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1], pts[i][2] - pts[j][2]),
+        );
+      }
+    }
+    return best;
+  });
+
 // ---------- shapes ----------
 
 const circlePath = (cx, cy, r, steps = 64) =>
@@ -59,55 +99,6 @@ const circlePath = (cx, cy, r, steps = 64) =>
     const t = (i / steps) * Math.PI * 2;
     return [cx + r * Math.cos(t), cy + r * Math.sin(t)];
   });
-
-const trefoilPoint = (cx, cy, s, t) => [
-  cx + s * (Math.sin(t) + 2 * Math.sin(2 * t)),
-  cy + s * (Math.cos(t) - 2 * Math.cos(2 * t)),
-];
-
-/**
- * A trefoil split into pen-down strokes, with the pen lifted across exactly the
- * three crossings that should pass underneath. Which three those are is worked
- * out with the same alternating logic the app uses, so this really is "draw it
- * the way you would on paper".
- */
-function trefoilWithPenLifts(cx, cy, s, n = 240, halfGap = 26) {
-  const pts = Array.from({ length: n }, (_, i) => trefoilPoint(cx, cy, s, (i / n) * Math.PI * 2));
-
-  const cum = [0];
-  for (let i = 0; i < n; i++) {
-    const a = pts[i];
-    const b = pts[(i + 1) % n];
-    cum.push(cum[i] + Math.hypot(b[0] - a[0], b[1] - a[1]));
-  }
-  const total = cum[n];
-
-  const under = assignAlternating(findSelfCrossings(pts, true))
-    .filter((e) => e.sign === -1)
-    .map((e) => e.s);
-
-  const lifted = pts.map((_, i) =>
-    under.some((u) => {
-      const d = Math.abs(cum[i] - u);
-      return Math.min(d, total - d) < halfGap;
-    }),
-  );
-
-  // Index 0 is left pen-down, so the last run ends adjacent to the first run's
-  // start — which is what closes the strand.
-  const strokes = [];
-  let run = [];
-  for (let i = 0; i < n; i++) {
-    if (lifted[i]) {
-      if (run.length > 1) strokes.push(run);
-      run = [];
-    } else {
-      run.push(pts[i]);
-    }
-  }
-  if (run.length > 1) strokes.push(run);
-  return { strokes, underCount: under.length };
-}
 
 // ---------- run ----------
 
@@ -279,73 +270,61 @@ await page.evaluate(() => {
 // 4. Pen lifts decide over and under
 // ===========================================================================
 
-const { strokes, underCount } = trefoilWithPenLifts(640, 400, 78);
-check(underCount === 3, 'the trefoil has 3 under-passes to lift the pen for');
-check(strokes.length >= 3, 'that splits the drawing into strokes', `${strokes.length} strokes`);
+// First without lifting the pen at all: rule 2 has to keep the geometry valid.
+await drawStrand(page, [[...trefoilPath(640, 400, 78), trefoilPath(640, 400, 78)[0]]]);
+check((await curveCount(page)) === 1, 'a trefoil shape drawn in one stroke still makes a curve');
+check(
+  /3 crossing/.test((await page.textContent('#status')) ?? ''),
+  'and its 3 crossings were all decided',
+  JSON.stringify(await page.textContent('#status')),
+);
+check(
+  (await selfDistance(page)) > 2 * TUBE_RADIUS,
+  'nothing intersects — the later strand simply passed over',
+  `min separation ${(await selfDistance(page)).toFixed(3)}`,
+);
+
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+
+// Now with three breaks, which is what actually makes it a trefoil.
+const strokes = trefoilStrokes(640, 400, 78);
+check(strokes.length === 3, 'a trefoil is three strokes and three pen lifts',
+  `${strokes.length} strokes`);
 
 await drawStrand(page, strokes);
 check((await curveCount(page)) === 1, 'the pen-lifted trefoil made one closed strand');
 check(
   await page.evaluate(() => globalThis.knot.model.curves[0]?.closed === true),
-  'and it closed',
+  'and the third lift closed it',
 );
 
 const statusText = await page.textContent('#status');
 check(
-  /3 crossing/.test(statusText ?? '') && !/ambiguous/.test(statusText ?? ''),
-  'all 3 crossings were decided by the pen lifts, none guessed',
+  /3 crossings, all from your breaks/.test(statusText ?? ''),
+  'all 3 crossings were decided by the pen lifts, none by the default',
   JSON.stringify(statusText),
 );
 
-const geom = await page.evaluate(() => {
+const spread = await page.evaluate(() => {
   const c = globalThis.knot.model.curves[0];
-  const { viewer } = globalThis.knot;
-  const plane = viewer.drawPlaneObject();
+  const plane = globalThis.knot.viewer.drawPlaneObject();
   const depth = c.points.map(([x, y, z]) => plane.normal.dot({ x, y, z }) + plane.constant);
-
-  const n = 500;
-  const pts = [];
-  for (let i = 0; i < n; i++) {
-    const t = (i / n) * c.points.length;
-    const a = c.points[Math.floor(t) % c.points.length];
-    const b = c.points[(Math.floor(t) + 1) % c.points.length];
-    const f = t - Math.floor(t);
-    pts.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]);
-  }
-  // Closest approach between points that are far apart *along* the curve. The
-  // exclusion has to be by arclength, not by index: neighbouring samples are
-  // always close, and a tight bend is the tube curving, not two strands meeting.
-  const cum = [0];
-  for (let i = 1; i <= n; i++) {
-    const a = pts[i - 1];
-    const b = pts[i % n];
-    cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]));
-  }
-  const total = cum[n];
-  const EXCLUDE = 0.45; // world units of arclength — six tube radii
-
-  let sep = Infinity;
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const along = cum[j] - cum[i];
-      if (Math.min(along, total - along) < EXCLUDE) continue;
-      const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1], pts[i][2] - pts[j][2]);
-      if (d < sep) sep = d;
-    }
-  }
-  return { spread: Math.max(...depth) - Math.min(...depth), sep, total };
+  return Math.max(...depth) - Math.min(...depth);
 });
 
 // Clearance is fixed at two tube diameters, whatever the drawing's size.
 check(
-  Math.abs(geom.spread - 4 * TUBE_RADIUS) < 0.09,
+  Math.abs(spread - 4 * TUBE_RADIUS) < 0.09,
   'strands part by the built-in clearance, not by drawing size',
-  `spread ${geom.spread.toFixed(3)}, expected ${(4 * TUBE_RADIUS).toFixed(3)}`,
+  `spread ${spread.toFixed(3)}, expected ${(4 * TUBE_RADIUS).toFixed(3)}`,
 );
 check(
-  geom.sep > 2 * TUBE_RADIUS,
+  (await selfDistance(page)) > 2 * TUBE_RADIUS,
   'the tubes do not intersect',
-  `min separation ${geom.sep.toFixed(3)} vs tube diameter ${(2 * TUBE_RADIUS).toFixed(3)}`,
+  `min separation ${(await selfDistance(page)).toFixed(3)} vs tube diameter ${(2 * TUBE_RADIUS).toFixed(3)}`,
 );
 
 await orbit(page, 150, 55);

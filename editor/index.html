@@ -48,7 +48,7 @@
         <div class="row"><kbd>scroll</kbd><span>zoom</span></div>
         <div id="sc-draw" hidden>
           <div class="row"><kbd>⇧ drag</kbd><span>straight line</span></div>
-          <div class="row"><kbd>lift pen</kbd><span>go under</span></div>
+          <div class="row"><kbd>lift pen</kbd><span>break = under</span></div>
           <div class="row"><kbd>Enter</kbd><span>finish open</span></div>
         </div>
         <div id="sc-erase" hidden>
@@ -84,15 +84,25 @@
 
       <h2>Over and under: lift the pen</h2>
       <p>
-        Draw the way you would on paper. Keep the pen down and the strand passes
-        <b>over</b>; <b>lift the pen</b> across a crossing and the gap is bridged by
-        an arc that dips <b>under</b>. So a trefoil is three strokes with three
-        lifts.
+        Every crossing has one strand over and one under. Two rules decide
+        which, in this order:
       </p>
+      <ol>
+        <li>
+          <b>Lift the pen</b> across a crossing and that strand goes
+          <b>under</b>, exactly as a break means on paper. The gap that closes
+          the loop counts too.
+        </li>
+        <li>
+          Otherwise the strand you drew <b>later</b> goes over &mdash; ink drawn
+          later sits on top of ink already on the page.
+        </li>
+      </ol>
       <p class="warn">
-        Leave a crossing ambiguous &mdash; both passes drawn with the pen down &mdash;
-        and those crossings are made alternating instead, so the result is still a
-        genuine knot. The status line tells you when that happened.
+        Rule 2 always applies, so nothing ever passes through itself. But it also
+        means a shape drawn <b>without any pen lifts is always an unknot</b>,
+        however tangled it looks. Breaks are what make a real knot: a trefoil is
+        three breaks.
       </p>
 
       <h2>Linking two loops</h2>

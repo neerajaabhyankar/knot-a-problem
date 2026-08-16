@@ -14,11 +14,14 @@ TODO (neeraja): verify the following and continue fixes along these lines...
 
   5. Eraser is scoped to the selection — with nothing selected it does nothing and the cursor goes dashed to show it's inert.
 
-  6. Pen lifts. You were right, and this replaced the alternating scheme as the primary mechanism. Draw now stays armed across pen lifts until a stroke ends back at the strand's start (or
-  Enter finishes it open). Pen down = over; the gap where you lifted becomes a bridge that dips under. A trefoil is four strokes with three lifts.
+  6. Crossings. Alternating is gone entirely — nothing is guessed. Two rules, applied in order, in `src/crossings.js`:
 
-  Alternating survives only as the fallback for crossings you leave ambiguous — both passes drawn pen-down. The status line tells you when that happened, so you know the tool guessed. Worth
-  keeping precisely because the naive alternative ("first pass goes over") produces a descending diagram, which is always the unknot.
+       1. a pen lift across a crossing sends that strand under;
+       2. otherwise the strand drawn later goes over.
+
+  Rule 2 always applies, so every crossing is decided and the tubes never intersect. It also means a shape drawn with no pen lifts is a descending diagram — a valid curve, but always the
+  unknot. That is correct and intended: breaks are what make a knot. A trefoil is three breaks, either as three strokes or one stroke with three lifts. The gap that closes the loop counts as
+  a break like any other, which is what makes three strokes enough (it used to demand four).
 
   7. Shift while drawing gives a straight line (and works while extending too).
 

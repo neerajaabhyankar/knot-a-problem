@@ -26,7 +26,7 @@ index.html              toolbar, shortcut hints, help, confirm dialog
 src/main.js             glue: tools, pointer handling, undo, render loop
 src/viewer.js           three.js — camera, lights, draw plane, handles, tube meshes
 src/model.js            Scene / Curve — the data model levels (b) and (c) will read
-src/crossings.js        pen lifts + alternating fallback → depth (the lift)
+src/crossings.js        strokes + pen lifts → depth (the lift)
 src/eraser.js           rub-to-erase, splitting strands into surviving runs
 src/simplify.js         screen-space polyline maths (dedupe, RDP, loop closing)
 test/crossings.test.mjs unit tests for the lift — no browser needed
@@ -81,30 +81,29 @@ Draw a self-crossing curve and it can't stay flat — flat, the strands genuinel
 intersect, which is not a knot. So crossings are detected and the strands pushed
 apart in depth.
 
-**Which strand goes over? You decide, by lifting the pen.** Keep the pen down
-and the strand passes over; lift it across a crossing and the gap is bridged by
-an arc that dips under. That's the convention every hand-drawn knot diagram
-uses, so the tool never has to guess what you meant. Draw is therefore *not* a
-one-shot tool: it stays armed across pen lifts until a stroke ends back at the
-strand's start, which closes it (or Enter finishes it open).
+**Which strand goes under? You decide, by lifting the pen.** Lift the pen across
+a crossing and the gap is bridged by an arc that dips under. That's the
+convention every hand-drawn knot diagram uses, so the tool never has to guess
+what you meant. Draw is therefore *not* a one-shot tool: it stays armed across
+pen lifts until a stroke ends near the strand's start, which closes it (or Enter
+finishes it open). The closing gap is a break like any other, so a trefoil is
+three breaks — three strokes, or one stroke with the pen lifted three times.
 
 **How far apart?** A fixed clearance, `4 × tube radius` centre-to-centre — the
 strands clear each other by one full strand thickness. Deliberately *not* scaled
 to how big you drew: a knot diagram is flat apart from a small hop at each
 crossing, and the hop should read the same at any size or zoom.
 
-**Fallback for crossings you left ambiguous** (both passes drawn pen-down): those
-are made **alternating** — over, under, over, under along the curve. Always
-possible for a closed plane curve, and the reason is worth writing down: a
-realizable Gauss code has an even number of crossing-encounters between the two
-visits to any crossing, so the visits land on opposite parities, and labelling by
-parity gives every crossing exactly one over and one under. One pass, no search.
-(`test/crossings.test.mjs` asserts the parity property on a trefoil.)
+**Crossings you didn't break** (both passes drawn pen-down): the strand drawn
+*later* goes over, the way ink drawn later sits on top of ink already on the
+page. This rule always applies, so every crossing is always decided and the
+tubes never intersect — there is no ambiguous case and nothing is guessed.
 
-It matters that the fallback is *alternating* rather than something simpler like
-"whoever came first goes over" — resolving every crossing by traversal order
-gives a *descending* diagram, and those are always the unknot however tangled the
-picture looks.
+The consequence is worth writing down: resolving every crossing by traversal
+order gives a *descending* diagram, and those are always the unknot however
+tangled the picture looks. So a shape drawn without a single pen lift is a valid
+curve but a trivial one. That is the honest answer — breaks are what make a
+knot — and the status line says how many crossings fell through to the default.
 
 Not yet done: **flipping an individual crossing after the fact**. Pen lifts cover
 it while drawing, but there's no way to change your mind afterwards.

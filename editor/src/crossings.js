@@ -1,24 +1,20 @@
 // Lifting a flat drawing into a real knot.
 //
-// You draw a self-crossing curve on the draw plane. On its own that is a
-// singular curve, not a knot — the strands genuinely intersect in 3D. This
-// module finds those crossings and pushes the strands apart in depth.
+// A crossing needs one strand over and one under. Two rules decide which, in
+// this order:
 //
-// Which strand goes over is decided the way it is on paper: **you lift the
-// pen**. A strand drawn continuously stays on top; the gap where you lifted is
-// bridged by an arc that dips underneath. That's the convention every knot
-// diagram in every textbook uses, and it means the drawing tool doesn't have to
-// guess what you meant.
+//   1. If you lifted the pen across one of the two passes, that pass goes
+//      UNDER. That is what a break means on paper.
+//   2. Otherwise the pass you drew earlier goes under — ink drawn later sits
+//      on top of ink already on the page.
 //
-// If you leave a crossing ambiguous — both passes drawn with the pen down, so
-// neither is marked as going under — we fall back to making those crossings
-// **alternating** (over, under, over, under along the curve). That fallback is
-// always consistent for a closed curve: a realizable Gauss code has an even
-// number of encounters between the two visits to a crossing, so the visits land
-// on opposite parities. It also matters that the fallback is alternating rather
-// than something simpler like "whoever came first goes over" — resolving every
-// crossing by traversal order gives a descending diagram, and those are always
-// the unknot however tangled the picture looks.
+// Rule 2 always applies, so every crossing is always decided and the tubes
+// never intersect. It also means a stroke drawn without a single pen lift is a
+// descending diagram: a perfectly valid curve, but always an unknot however
+// tangled it looks. Breaks are how you make a real knot. A trefoil is three
+// breaks — as three strokes, or as one stroke with the pen lifted three times.
+
+import { dedupe, simplifyStroke } from './simplify.js';
 
 /**
  * Intersection of segments p1->p2 and p3->p4.
@@ -49,14 +45,20 @@ function arcLengths(pts, closed) {
   return { cum, total: cum[cum.length - 1] };
 }
 
+/** Shortest distance between two positions along the curve. */
+function paramDistance(a, b, total, closed) {
+  const d = Math.abs(a - b);
+  return closed ? Math.min(d, total - d) : d;
+}
+
 /**
- * Every place the polyline crosses itself, as a pair of arclength positions.
- * Adjacent segments are skipped — they share an endpoint, they don't cross.
+ * Every place the polyline crosses itself, as the two arclength positions where
+ * it passes through: `first` is the pass drawn earlier. Adjacent segments are
+ * skipped — they share an endpoint, they don't cross.
  */
 export function findSelfCrossings(pts, closed) {
   const { cum } = arcLengths(pts, closed);
   const nSeg = closed ? pts.length : pts.length - 1;
-  const segLen = (i) => cum[i + 1] - cum[i];
   const out = [];
 
   for (let i = 0; i < nSeg; i++) {
@@ -65,139 +67,118 @@ export function findSelfCrossings(pts, closed) {
       const hit = segmentCross(pts[i], pts[(i + 1) % pts.length], pts[j], pts[(j + 1) % pts.length]);
       if (!hit) continue;
       out.push({
-        sA: cum[i] + hit.t * segLen(i),
-        sB: cum[j] + hit.u * segLen(j),
-        x: pts[i][0] + hit.t * (pts[(i + 1) % pts.length][0] - pts[i][0]),
-        y: pts[i][1] + hit.t * (pts[(i + 1) % pts.length][1] - pts[i][1]),
+        first: cum[i] + hit.t * (cum[i + 1] - cum[i]),
+        second: cum[j] + hit.u * (cum[j + 1] - cum[j]),
       });
     }
   }
   return out;
 }
 
-/**
- * Walk the curve and alternate over/under at each crossing encountered.
- * Returns a flat list of encounters: {s, id, sign} with +1 over, -1 under.
- */
-export function assignAlternating(crossings) {
-  const encounters = [];
-  crossings.forEach((c, id) => {
-    encounters.push({ s: c.sA, id });
-    encounters.push({ s: c.sB, id });
-  });
-  encounters.sort((a, b) => a.s - b.s);
-
-  const assigned = new Map();
-  encounters.forEach((e, i) => {
-    const prior = assigned.get(e.id);
-    e.sign = prior === undefined ? (i % 2 === 0 ? 1 : -1) : -prior;
-    assigned.set(e.id, e.sign);
-  });
-  return encounters;
-}
-
-/** Shortest distance between two positions along the curve. */
-function paramDistance(a, b, total, closed) {
-  const d = Math.abs(a - b);
-  return closed ? Math.min(d, total - d) : d;
-}
-
-/** Raised cosine: 1 at the centre, easing to 0 at the window edge. */
-function bump(u) {
-  return Math.abs(u) >= 1 ? 0 : 0.5 * (1 + Math.cos(Math.PI * u));
-}
-
-/** Is `s` inside the span, and if not, how far outside? */
-function distanceOutsideSpan(s, span, total, closed) {
-  const { s0, s1 } = span;
-  if (s >= s0 && s <= s1) return 0;
-  return Math.min(paramDistance(s, s0, total, closed), paramDistance(s, s1, total, closed));
-}
-
 /** Contiguous runs of pen-up points, as arclength intervals. */
-function bridgeSpans(isBridge, cum, closed) {
+function penUpSpans(isBridge, cum, closed) {
   const spans = [];
   const n = isBridge.length;
   let start = null;
   for (let i = 0; i < n; i++) {
     if (isBridge[i] && start === null) start = i;
     if (!isBridge[i] && start !== null) {
-      spans.push({ s0: cum[start], s1: cum[i] });
+      spans.push([cum[start], cum[i]]);
       start = null;
     }
   }
-  if (start !== null) spans.push({ s0: cum[start], s1: cum[closed ? n : n - 1] });
+  if (start !== null) spans.push([cum[start], cum[closed ? n : n - 1]]);
   return spans;
+}
+
+/**
+ * Splice pen-down strokes into one path, remembering which points are bridges.
+ *
+ * Strokes are simplified individually — simplifying the concatenation would
+ * smooth the bridges away, and the bridges are the whole point. A gap shorter
+ * than `minGap` is a wobble rather than a break, so those strokes just join.
+ * Closing the loop uses the same rule: a real gap at the seam is a break too.
+ */
+export function assembleStrokes(strokes, { closed = false, minGap = 0 } = {}) {
+  const pts = [];
+  const isBridge = [];
+  const push = (p, bridge) => {
+    pts.push(p);
+    isBridge.push(bridge);
+  };
+
+  /** Interior points of a straight run across a gap; none if the gap is tiny. */
+  const bridge = (from, to) => {
+    const dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
+    if (dist < minGap) return;
+    const steps = Math.max(4, Math.ceil(dist / 12));
+    for (let i = 1; i < steps; i++) {
+      const f = i / steps;
+      push([from[0] + f * (to[0] - from[0]), from[1] + f * (to[1] - from[1])], true);
+    }
+  };
+
+  for (const raw of strokes) {
+    const simplified = simplifyStroke(dedupe(raw, 2), 6, 4);
+    if (!simplified.length) continue;
+    if (pts.length) bridge(pts[pts.length - 1], simplified[0]);
+    for (const p of simplified) push(p, false);
+  }
+  if (closed && pts.length) bridge(pts[pts.length - 1], pts[0]);
+
+  return { pts, isBridge };
 }
 
 /**
  * Turn a flat drawing into a lifted one.
  *
  * @param pts       2D screen points of the whole strand, bridges included.
- * @param isBridge  per-point flag: true where the pen was up.
+ * @param isBridge  per-point flag: true where the pen was up. May be null.
  * @param closed    does the strand close into a loop?
- * @param options   { height } — half the depth separation, in pixels.
+ * @param options   { separation } — depth gap between over and under, in pixels.
  *
- * Returns { points: [[x, y, depth]], crossings, guessed } where depth is in the
- * same pixel units, positive meaning toward the viewer. Points are inserted
- * near crossings and bridge edges so the spline can actually follow the lift.
+ * Returns { points: [[x, y, depth]], crossings, broken } where depth is in the
+ * same pixel units, positive meaning toward the viewer, and `broken` counts the
+ * crossings a pen lift decided rather than rule 2.
  */
 export function liftPath(pts, isBridge, closed, options = {}) {
-  const crossings = findSelfCrossings(pts, closed);
-  const spans = [];
   const { cum, total } = arcLengths(pts, closed);
-  if (isBridge) spans.push(...bridgeSpans(isBridge, cum, closed));
+  const separation = options.separation ?? 60;
+  const ramp = options.ramp ?? separation;
 
-  if (crossings.length === 0 && spans.length === 0) {
-    return { points: pts.map(([x, y]) => [x, y, 0]), crossings: 0, guessed: 0 };
-  }
+  const spans = isBridge ? penUpSpans(isBridge, cum, closed) : [];
+  const penUp = (s) => spans.some(([s0, s1]) => s >= s0 && s <= s1);
 
-  const height = options.height ?? 30;
-  const ramp = options.window ?? Math.min(70, Math.max(24, total / 14));
+  // The one decision per crossing: where along the strand it dives.
+  const crossings = findSelfCrossings(pts, closed);
+  let broken = 0;
+  const dives = crossings.map(({ first, second }) => {
+    if (penUp(first) === penUp(second)) return first; // rule 2
+    broken++;
+    return penUp(first) ? first : second; // rule 1
+  });
 
-  // A pen-up bridge dips a full separation below the strands it passes under.
-  const baseDepth = (s) => {
-    let deepest = 0;
-    for (const span of spans) {
-      deepest = Math.max(deepest, bump(distanceOutsideSpan(s, span, total, closed) / ramp));
-    }
-    return -2 * height * deepest;
-  };
-
-  // A crossing whose two passes are already well separated needs no help.
-  // Whatever is left over was never disambiguated — make those alternating.
-  const ambiguous = crossings.filter(
-    (c) => Math.abs(baseDepth(c.sA) - baseDepth(c.sB)) < 1.2 * height,
-  );
-  const corrections = assignAlternating(ambiguous).map((e) => ({ s: e.s, amp: e.sign * height }));
-
+  // Each dive is a smooth hollow one separation deep; everything else is flat.
   const depthAt = (s) => {
-    let d = baseDepth(s);
-    for (const c of corrections) {
-      d += c.amp * bump(paramDistance(s, c.s, total, closed) / ramp);
+    let deepest = 0;
+    for (const d of dives) {
+      const u = paramDistance(s, d, total, closed) / ramp;
+      if (u < 1) deepest = Math.max(deepest, 0.5 * (1 + Math.cos(Math.PI * u)));
     }
-    return d;
+    return -separation * deepest;
   };
 
-  // Subdivide only where it matters: near a crossing or a bridge edge.
-  const marks = corrections.map((c) => c.s);
-  for (const span of spans) marks.push(span.s0, span.s1);
+  // Subdivide only where the depth actually moves, so the spline can follow it.
+  const nearDive = (s) => dives.some((d) => paramDistance(s, d, total, closed) < ramp);
+  const maxStep = ramp / 5;
 
-  const maxStep = ramp / 4;
   const nSeg = closed ? pts.length : pts.length - 1;
   const out = [];
-
   for (let i = 0; i < nSeg; i++) {
     const a = pts[i];
     const b = pts[(i + 1) % pts.length];
-    const s0 = cum[i];
-    const s1 = cum[i + 1];
-
-    const near = marks.some(
-      (m) =>
-        paramDistance(s0, m, total, closed) < ramp || paramDistance(s1, m, total, closed) < ramp,
-    );
-    const steps = near ? Math.max(1, Math.ceil((s1 - s0) / maxStep)) : 1;
+    const [s0, s1] = [cum[i], cum[i + 1]];
+    const steps = nearDive(s0) || nearDive(s1) ? Math.max(1, Math.ceil((s1 - s0) / maxStep)) : 1;
 
     for (let k = 0; k < steps; k++) {
       const f = k / steps;
@@ -207,10 +188,5 @@ export function liftPath(pts, isBridge, closed, options = {}) {
   }
   if (!closed) out.push([...pts[pts.length - 1], depthAt(total)]);
 
-  return { points: out, crossings: crossings.length, guessed: ambiguous.length };
-}
-
-/** A single pen-down stroke — no bridges, so every crossing is ambiguous. */
-export function liftStroke(pts, closed, options = {}) {
-  return liftPath(pts, null, closed, options);
+  return { points: out, crossings: crossings.length, broken };
 }

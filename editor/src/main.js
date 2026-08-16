@@ -3,7 +3,7 @@
 import { Scene } from './model.js';
 import { Viewer, TUBE_RADIUS, vec3 } from './viewer.js';
 import { EraseSession } from './eraser.js';
-import { liftPath } from './crossings.js';
+import { assembleStrokes, liftPath } from './crossings.js';
 import { dedupe, simplifyStroke } from './simplify.js';
 
 const canvas = document.getElementById('view');
@@ -26,7 +26,6 @@ let downAt = null; // to tell a click apart from an orbit drag
 let eraserRadius = 20;
 
 const CLICK_SLOP = 5; // px of movement still counted as a click
-const CLOSE_SLOP = 26; // px from the strand's start that counts as closing it
 const MIN_STROKE = 7; // px of travel before a drag counts as a stroke at all
 
 // How far apart strands sit at a crossing, in world units. Fixed, not scaled to
@@ -35,9 +34,23 @@ const MIN_STROKE = 7; // px of travel before a drag counts as a stroke at all
 // tube diameters, so the strands clear each other by a full strand thickness.
 const CROSSING_CLEARANCE = 4 * TUBE_RADIUS;
 
-/** Half the clearance, converted to the pixel units the lift works in. */
-function liftHeight() {
-  return CROSSING_CLEARANCE / 2 / viewer.worldPerPixel();
+/** The clearance, converted to the pixel units the lift works in. */
+function separationPx() {
+  return CROSSING_CLEARANCE / viewer.worldPerPixel();
+}
+
+/** Below this the pen-up gap is a wobble, not a break, so the strand just joins. */
+function minGapPx() {
+  return separationPx() / 2;
+}
+
+/**
+ * How close to the strand's start a stroke has to end to close it. The seam is
+ * just one more break, so the tolerance is measured in breaks: a gap wider than
+ * a couple of strand separations doesn't read as a break in the first place.
+ */
+function closeSlopPx() {
+  return 2.5 * separationPx();
 }
 
 /** Total travel of a screen-space polyline. */
@@ -140,8 +153,8 @@ function updateStatus() {
   if (tool === 'draw') {
     const k = draft?.strokes.length ?? 0;
     hint = k
-      ? `<b>${k}</b> stroke${k === 1 ? '' : 's'} · lift the pen to go under · finish at the start to close`
-      : 'draw · lift the pen where the strand goes under';
+      ? `<b>${k}</b> stroke${k === 1 ? '' : 's'} · every gap goes under · finish near the start to close`
+      : 'draw · break the strand wherever it passes under';
   } else if (tool === 'erase') {
     hint = selection.size
       ? `rub to erase from <b>${selection.size}</b> selected · size <b>${eraserRadius}</b>px`
@@ -169,49 +182,19 @@ function flashStatus(html) {
 
 // ---------- drawing: many strokes, one strand ----------
 //
-// Each pen-down stroke is one piece of the strand. The gap where you lifted the
-// pen becomes a bridge that dips underneath whatever it crosses. The strand is
-// finished when a stroke ends back at the very start.
+// Each pen-down stroke is one piece of the strand and stays on top. Every gap
+// where you lifted the pen becomes a bridge that dips underneath — including
+// the gap that closes the loop. So a trefoil is three strokes and three lifts,
+// one break per undercrossing.
 
-/** Straight run of points across a pen-up gap. */
-function bridgePoints(from, to) {
-  const dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
-  const steps = Math.max(4, Math.ceil(dist / 12));
-  return Array.from({ length: steps - 1 }, (_, i) => {
-    const f = (i + 1) / steps;
-    return [from[0] + f * (to[0] - from[0]), from[1] + f * (to[1] - from[1])];
-  });
-}
-
-/**
- * Splice the strokes into one path, remembering which points are bridges.
- * Strokes are simplified individually — simplifying the concatenation would
- * smooth the bridges away, and the bridges are the whole point.
- */
-function assemble(strokes, includeCurrent = null) {
-  const all = includeCurrent ? [...strokes, includeCurrent] : strokes;
-  const pts = [];
-  const isBridge = [];
-
-  all.forEach((raw, i) => {
-    const simplified = simplifyStroke(dedupe(raw, 2), 6, 4);
-    if (i > 0 && pts.length) {
-      for (const b of bridgePoints(pts[pts.length - 1], simplified[0])) {
-        pts.push(b);
-        isBridge.push(true);
-      }
-    }
-    for (const p of simplified) {
-      pts.push(p);
-      isBridge.push(false);
-    }
-  });
-
-  return { pts, isBridge };
+/** Everything drawn so far as one path. */
+function assemble({ closed = false, current = null } = {}) {
+  const strokes = current ? [...draft.strokes, current] : draft.strokes;
+  return assembleStrokes(strokes, { closed, minGap: minGapPx() });
 }
 
 function draftPreview() {
-  const { pts } = assemble(draft.strokes, draft.current);
+  const { pts } = assemble({ current: draft.current });
   if (pts.length < 2) return;
   const world = pts.map(([x, y]) => viewer.unproject(x, y)).filter(Boolean);
   viewer.showPreview(world, false);
@@ -233,10 +216,11 @@ function endStrokePiece() {
 
   draft.strokes.push(raw);
 
-  // Finished when the strand comes back to where it started.
+  // Finished when the strand comes back to where it started — whether you drew
+  // right up to the start or stopped a break short of it.
   const start = draft.strokes[0][0];
   const here = raw[raw.length - 1];
-  if (draft.strokes.length > 0 && Math.hypot(here[0] - start[0], here[1] - start[1]) < CLOSE_SLOP) {
+  if (Math.hypot(here[0] - start[0], here[1] - start[1]) < closeSlopPx()) {
     commitDraft(true);
   } else {
     draftPreview();
@@ -246,20 +230,15 @@ function endStrokePiece() {
 
 function commitDraft(closed) {
   if (!draft?.strokes.length) return;
-  const { pts, isBridge } = assemble(draft.strokes);
+  const { pts, isBridge } = assemble({ closed });
 
-  // Drop the duplicated seam point on a closed strand.
-  if (closed && pts.length > 3) {
-    pts.pop();
-    isBridge.pop();
-  }
   if (pts.length < (closed ? 3 : 2)) {
     cancelDraft();
     setTool('select');
     return;
   }
 
-  const lifted = liftPath(pts, isBridge, closed, { height: liftHeight() });
+  const lifted = liftPath(pts, isBridge, closed, { separation: separationPx() });
 
   const points3 = padToThree(
     lifted.points
@@ -277,11 +256,11 @@ function commitDraft(closed) {
   refresh();
 
   if (lifted.crossings) {
-    const guessed = lifted.guessed
-      ? ` (<b>${lifted.guessed}</b> left ambiguous — made alternating)`
-      : '';
+    const { crossings: n, broken } = lifted;
     flashStatus(
-      `<b>${lifted.crossings}</b> crossing${lifted.crossings === 1 ? '' : 's'}${guessed} — orbit to check`,
+      broken === n
+        ? `<b>${n}</b> crossing${n === 1 ? '' : 's'}, all from your breaks — orbit to check`
+        : `<b>${n}</b> crossing${n === 1 ? '' : 's'}, <b>${n - broken}</b> unbroken so the later strand went over — break the strand to flip one`,
     );
   }
 }
@@ -333,7 +312,7 @@ function endExtend() {
     return;
   }
 
-  const lifted = liftPath(tail, null, false, { height: liftHeight() });
+  const lifted = liftPath(tail, null, false, { separation: separationPx() });
   const added = lifted.points
     .map(([x, y, d]) => viewer.unproject(x, y, d, anchor))
     .filter(Boolean)
@@ -351,7 +330,7 @@ function endExtend() {
   const otherEnd = end === 'end' ? curve.points[0] : curve.points[curve.points.length - 1];
   const [ox, oy] = viewer.project(vec3(otherEnd));
   const [nx, ny] = raw[raw.length - 1];
-  if (Math.hypot(ox - nx, oy - ny) < CLOSE_SLOP) {
+  if (Math.hypot(ox - nx, oy - ny) < closeSlopPx()) {
     curve.closed = true;
     if (end === 'end') curve.points.pop();
     else curve.points.shift();
