@@ -232,6 +232,22 @@ restore, so selections survive.
 - Lighting: broad neutral ambient + one key with soft shadows. Coloured rim
   lights tint the strands and fight the palette.
 - Chrome: minimal. Vertical rail on the left, shortcut hints beneath it.
+- Type: **Overpass** and **Overpass Mono**, self-hosted in `src/fonts` — 52KB
+  total, no CDN, no network at runtime. Overpass is a **variable** font, so one
+  file covers every weight; naming three static weights fetched identical bytes
+  three times, which Vite then deduplicated. Overpass is
+  drawn from Highway Gothic, so the personality is signage rather than styling,
+  which suits a drawing instrument. Mono is reserved for one job: marking a key
+  you press. That is why the legend's key column is monospace and its action
+  column is not.
+- **Four type sizes and only four** — `--t-label: 11` for rails and uppercase
+  labels, `--t-body: 13` for everything readable, `--t-lead: 16` for the one
+  question that has to land, `--t-title: 20` for the dialogue title. Everything
+  else is weight, case, tracking and colour. There were seven before, doing
+  redundant work.
+- Neutrals are **warm** (hue ~15°, 4–6% saturation) so the greys sit with the
+  red accent instead of against it. They are luminance-matched to the cool greys
+  they replaced, so contrast never changed — only temperature.
 
 ## Risks / things I expect to bite
 
@@ -250,7 +266,20 @@ restore, so selections survive.
 
 ## Next (do not start these yet)
 
-- **Pen lifts across other strands**, not just self-crossings.
+- **`U` as a second way to go under.** Hold `U` while drawing through a crossing
+  and that pass goes *under* without lifting the pen — no break in the ink, same
+  result. Two ways to say the same thing: lift the pen, or hold `U`. Everything
+  not marked either way keeps rule 2, later goes over.
+
+  Cheap to build: the lift already takes a per-point flag (`isFill`) saying "this
+  bit goes under", and `U` would just set the same flag from the keyboard instead
+  of from a gap. The generalisation is to rename it — it stops being about fills.
+
+  The thing to decide first is what it *looks* like. Geometrically the tube still
+  has to dip, but the flat drawing has no gap, so the projection shows two
+  strands crossing with nothing marking which is which — the one convention every
+  knot diagram relies on. Held-down or a toggle is the smaller question.
+
 - **Click a crossing to flip it** after the fact.
 - Save / load — the `Scene` JSON above, plus import of standard knot formats.
 - Drag control points; points move in the screen plane, depth preserved.

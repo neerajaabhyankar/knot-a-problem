@@ -115,6 +115,7 @@ page.on('console', (m) => {
 });
 
 await page.goto(APP_URL, { waitUntil: 'networkidle' });
+await page.screenshot({ path: OUT + '0-help.png' });
 await page.click('#help-close');
 await page.waitForTimeout(300);
 
@@ -167,6 +168,53 @@ check(
   ['S', 'D', 'E'].every((k) => legend.sections[0].rows.some((r) => r[1] === k)),
   'the mode keys are listed',
   JSON.stringify(legend.sections[0].rows),
+);
+
+// The bug that wasted an afternoon: a font that silently falls back looks fine
+// until you measure it. Same string, two families — if the widths match, the
+// webfont never loaded.
+const fonts = await page.evaluate(async () => {
+  await document.fonts.ready;
+  const measure = (family) => {
+    const el = document.createElement('span');
+    el.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${/px/.test(family) ? family : '13px ' + family}`;
+    el.textContent = 'The quick brown fox jumps over the lazy dog';
+    document.body.appendChild(el);
+    const w = el.getBoundingClientRect().width;
+    el.remove();
+    return w;
+  };
+  return {
+    files: [...document.fonts].length,
+    body: getComputedStyle(document.body).fontFamily,
+    // Compare each face against a generic that looks nothing like it: if the
+    // webfont failed, the width collapses onto the generic exactly.
+    sans: measure("'Overpass', monospace"),
+    sansFallback: measure('monospace'),
+    mono: measure("'Overpass Mono', serif"),
+    monoFallback: measure('serif'),
+    // Overpass is variable — one file, every weight. Check the axis actually
+    // moves, or 500 and 600 would silently render as 400.
+    w400: measure("400 13px 'Overpass', monospace"),
+    w600: measure("600 13px 'Overpass', monospace"),
+  };
+});
+check(fonts.files === 2, 'two font faces — one variable sans, one mono', `${fonts.files} faces`);
+check(/Overpass/.test(fonts.body), 'the app is set in Overpass', fonts.body);
+check(
+  Math.abs(fonts.sans - fonts.sansFallback) > 1,
+  'Overpass really renders — it is not silently falling back',
+  `${fonts.sans.toFixed(1)}px vs ${fonts.sansFallback.toFixed(1)}px if it had failed`,
+);
+check(
+  fonts.w600 > fonts.w400 + 1,
+  'the variable weight axis works — 600 is heavier than 400',
+  `${fonts.w400.toFixed(1)}px at 400, ${fonts.w600.toFixed(1)}px at 600`,
+);
+check(
+  Math.abs(fonts.mono - fonts.monoFallback) > 1,
+  'Overpass Mono really renders too',
+  `${fonts.mono.toFixed(1)}px vs ${fonts.monoFallback.toFixed(1)}px if it had failed`,
 );
 
 const cursorNow = () => page.evaluate(() => getComputedStyle(document.getElementById('view')).cursor);
@@ -502,7 +550,30 @@ if (handles.length === 2) {
 }
 check(
   await page.evaluate(() => globalThis.knot.viewer.hotHandle !== null),
-  'pointing at a handle highlights it',
+  'pointing at a handle marks it hot',
+);
+if (handles.length === 2) {
+  const [hx, hy] = handles[0].at;
+  await page.screenshot({
+    path: OUT + '0-focus-ring.png',
+    clip: { x: Math.max(0, hx - 90), y: Math.max(0, hy - 90), width: 180, height: 180 },
+  });
+}
+check(
+  await page.evaluate(() => {
+    const { viewer } = globalThis.knot;
+    const hot = viewer.handles.find((h) => `${h.curveId}:${h.end}` === viewer.hotHandle);
+    const ring = viewer._focusRing;
+    return ring.visible && ring.position.distanceTo(hot.position) < 1e-6;
+  }),
+  'and a focus ring closes around that handle',
+);
+check(
+  await page.evaluate(() => {
+    const { viewer } = globalThis.knot;
+    return viewer.handleGroup.children.every((m) => m.scale.x <= 1.0001);
+  }),
+  'while the ball itself does not grow',
 );
 
 // Move the camera, so resuming has to work off the strand's own geometry.

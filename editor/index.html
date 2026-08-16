@@ -91,83 +91,46 @@
       <h1>Knot Editor</h1>
       <p class="lede">Paint, but for knots in 3D space.</p>
 
-      <h2>Getting around</h2>
-      <p>
-        Left-drag orbits and scroll zooms. Hold <kbd>⌘</kbd> (or <kbd>Ctrl</kbd>)
-        while dragging to pan &mdash; the cursor turns into a hand to tell you.
-        <kbd>F</kbd> frames everything you've drawn, and clicking without dragging
-        selects a strand.
+      <p class="lede2">
+        Press <kbd>D</kbd> and drag to draw a strand. <b>Lift the pen</b> wherever
+        it should pass under, then carry on &mdash; the gap gets filled in for
+        you. Come back near where you started to close the loop.
+      </p>
+      <p class="lede2">
+        Left-drag orbits, so you can see the depth you just made. Everything else
+        is in the panel on the left.
       </p>
 
-      <h2>Drawing: the live strand</h2>
-      <p>
-        One strand at a time is <b>live</b> &mdash; the next stroke continues it.
-        A live strand glows like a selected one and shows a ball on each end; the
-        brighter ball is where your next stroke will attach. Your stroke lands on
-        the <b>draw plane</b>, the faint grid facing you through the orbit centre.
-        Hold <kbd>⇧</kbd> for a straight line.
-      </p>
-      <p>
-        Wherever you put the pen down next, it <b>continues from the live end</b>
-        &mdash; the gap between is filled in for you. You never have to aim.
-      </p>
-      <p>
-        Finish with <kbd>Enter</kbd>, <kbd>Esc</kbd>, a click on empty space, or
-        by ending a stroke back near the strand's other end, which closes the
-        loop. Finishing hands you back to <b>Select</b> so you can orbit and look.
-      </p>
-      <p>
-        <b>Grab a handle to keep drawing</b> &mdash; on the strand you just made
-        or one from an hour ago, from any camera angle. What you already drew
-        never moves. To reopen a closed loop, erase a bite out of it first.
-      </p>
+      <details>
+        <summary>Over and under</summary>
+        <p>
+          Lift the pen across a crossing and that strand goes <b>under</b>. With
+          the pen down, the strand you drew <b>later</b> goes over.
+        </p>
+        <p class="warn">
+          So a shape drawn without any pen lifts is never really knotted, however
+          tangled it looks. The breaks are what tie it.
+        </p>
+      </details>
 
-      <h2>Over and under: lift the pen</h2>
-      <p>
-        Every crossing has one strand over and one under. Two rules decide
-        which, in this order:
-      </p>
-      <ol>
-        <li>
-          <b>Lift the pen</b> across a crossing and that strand goes
-          <b>under</b>, exactly as a break means on paper. The gap that closes
-          the loop counts too.
-        </li>
-        <li>
-          Otherwise the strand you drew <b>later</b> goes over &mdash; ink drawn
-          later sits on top of ink already on the page.
-        </li>
-      </ol>
-      <p class="warn">
-        Rule 2 always applies, so nothing ever passes through itself. But it also
-        means a shape drawn <b>without any pen lifts is always an unknot</b>,
-        however tangled it looks. Breaks are what make a real knot: a trefoil is
-        three breaks.
-      </p>
+      <details>
+        <summary>Continuing a strand</summary>
+        <p>
+          One strand at a time is <b>live</b>: it glows, and a ball marks the end
+          your next stroke joins. Grab either ball to keep going &mdash; on this
+          strand or one from an hour ago, from any angle. What you already drew
+          never moves.
+        </p>
+        <p>Erase a bite out of a closed loop to open it up again.</p>
+      </details>
 
-      <h2>Linking two loops</h2>
-      <ol>
-        <li>Draw a loop.</li>
-        <li>Orbit about 90&deg;, so the loop goes edge-on and reads as a line.</li>
-        <li>Arm <b>Draw</b> and sweep a second loop around <b>one</b> side of that
-          line. That's a Hopf link.</li>
-      </ol>
-      <p>
-        The two rules apply between <b>different</b> strands as well, so lifting
-        the pen makes your stroke pass under another loop. Strands that are
-        already clear of each other in depth are left alone.
-      </p>
-
-      <h2>Editing</h2>
-      <p>
-        <b>Erase</b> rubs away part of the strands you've <b>selected</b>, and only
-        those. A bite out of a loop makes it an open arc; a rub through the middle of
-        an arc splits it in two. <kbd>[</kbd> and <kbd>]</kbd> change the size.
-      </p>
-      <p>
-        <kbd>⌘Z</kbd> undoes <b>one stroke at a time</b>, so a bad arc can go back
-        without taking the rest of the strand with it.
-      </p>
+      <details>
+        <summary>Editing</summary>
+        <p>
+          <b>Erase</b> only touches strands you've selected. <kbd>⌘Z</kbd> undoes
+          one stroke at a time.
+        </p>
+      </details>
 
       <button id="help-close">Got it</button>
     </div>

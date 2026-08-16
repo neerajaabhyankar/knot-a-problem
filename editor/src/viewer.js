@@ -161,9 +161,8 @@ export class Viewer {
 
   _setupHandles() {
     // Grabbable ends of an open strand. Drawn on top of everything so you can
-    // always get hold of one. Three looks, and they mean three different things:
-    // the end your next stroke attaches to, an end you could grab instead, and
-    // an end the pointer is close enough to act on.
+    // always get hold of one. Two looks: the end your next stroke attaches to,
+    // and an end you could grab instead.
     this.handleGroup = new THREE.Group();
     this.scene.add(this.handleGroup);
     this.handles = [];
@@ -171,14 +170,30 @@ export class Viewer {
     this.liveId = null; // the strand the next stroke will continue
     this._handleGeom = new THREE.SphereGeometry(TUBE_RADIUS * 1.7, 20, 14);
     this._handleMats = {
-      idle: new THREE.MeshBasicMaterial({ color: 0x8b93a7, depthTest: false }),
-      live: new THREE.MeshBasicMaterial({ color: 0xf4f7ff, depthTest: false }),
-      hot: new THREE.MeshBasicMaterial({ color: 0x61afef, depthTest: false }),
+      idle: new THREE.MeshBasicMaterial({ color: 0x9a938d, depthTest: false }),
+      live: new THREE.MeshBasicMaterial({ color: 0xfaf6f3, depthTest: false }),
     };
+
+    // Close enough to act on? A reticle closes around the handle. The ball
+    // itself never moves, resizes or changes colour — the ring is drawn in the
+    // handle's own colour, so this stays neutral whatever the palette is.
+    this._focusRing = new THREE.Mesh(
+      new THREE.RingGeometry(TUBE_RADIUS * 2.9, TUBE_RADIUS * 3.3, 48),
+      new THREE.MeshBasicMaterial({
+        color: 0xfaf6f3,
+        transparent: true,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
+        depthTest: false,
+      }),
+    );
+    this._focusRing.renderOrder = 13;
+    this._focusRing.visible = false;
+    this.scene.add(this._focusRing);
   }
 
   /** Scale that goes with each handle look. */
-  static HANDLE_SCALE = { idle: 0.7, live: 1, hot: 1.45 };
+  static HANDLE_SCALE = { idle: 0.7, live: 1 };
 
   // ---------- tools ----------
 
@@ -321,12 +336,19 @@ export class Viewer {
         mesh.renderOrder = 12;
         this.handleGroup.add(mesh);
       }
-      const look = `${h.curveId}:${h.end}` === this.hotHandle ? 'hot' : h.live ? 'live' : 'idle';
+      const look = h.live ? 'live' : 'idle';
       mesh.material = this._handleMats[look];
       mesh.scale.setScalar(Viewer.HANDLE_SCALE[look]);
       mesh.position.copy(h.position);
       mesh.visible = true;
     });
+
+    const hot = this.handles.find((h) => `${h.curveId}:${h.end}` === this.hotHandle);
+    this._focusRing.visible = Boolean(hot);
+    if (hot) {
+      this._focusRing.position.copy(hot.position);
+      this._focusRing.material.color.copy(this._handleMats[hot.live ? 'live' : 'idle'].color);
+    }
   }
 
   /** The endpoint handle within `tol` pixels of the cursor, if any. */
@@ -467,6 +489,7 @@ export class Viewer {
   }
 
   render() {
+    if (this._focusRing.visible) this._focusRing.quaternion.copy(this.camera.quaternion);
     this.controls.update();
     this._syncDrawPlaneTransform();
     this.renderer.render(this.scene, this.camera);

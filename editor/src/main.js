@@ -170,7 +170,7 @@ function updateStatus() {
   } else if (n === 0) {
     hint = 'press <b>D</b> and sweep a loop';
   } else if (n === 1) {
-    hint = 'orbit 90&deg; so it goes edge-on, press <b>D</b>, then draw a loop around it';
+    hint = 'drag to orbit &mdash; you draw on the plane facing you';
   } else {
     hint = 'drag to orbit · click a strand to select';
   }

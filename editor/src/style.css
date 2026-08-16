@@ -1,12 +1,44 @@
+/* Overpass and Overpass Mono, self-hosted — no CDN, no network at runtime.
+   Overpass ships as a variable font, so one 39KB file covers every weight we
+   use; naming three static weights just fetched the same bytes three times.
+   `swap` rather than `block`: a brief reflow beats controls that are invisible
+   while a font loads. */
+@font-face {
+  font-family: 'Overpass';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./fonts/overpass.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Overpass Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/overpass-mono-400.woff2') format('woff2');
+}
+
 :root {
   --bg: #0a0b0e;
   --panel: rgba(22, 24, 30, 0.86);
   --border: rgba(255, 255, 255, 0.09);
-  --fg: #e8eaf0;
-  --dim: #878d9c;
-  --faint: #5c6373;
-  --accent: #61afef;
-  --danger: #e06c75;
+  --fg: #efeae8;
+  --body: #cec9c5;
+  --dim: #948e8a;
+  --faint: #6b6360;
+  --accent: #d14d4d;
+  --accent-rgb: 209, 77, 77;
+
+  --sans: 'Overpass', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+  --mono: 'Overpass Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Four sizes, and only four. Everything else is weight, case and colour.
+     11 labels and rails · 13 body · 16 the one question that must land · 20 title. */
+  --t-label: 11px;
+  --t-body: 13px;
+  --t-lead: 16px;
+  --t-title: 20px;
+  --danger: #960b2e;
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +49,7 @@ html, body {
   overflow: hidden;
   background: var(--bg);
   color: var(--fg);
-  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font: var(--t-body)/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -31,8 +63,8 @@ html, body {
 }
 
 kbd {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.92em;
+  font-family: var(--mono);
+  font-size: 0.9em;
   color: var(--fg);
 }
 
@@ -81,7 +113,7 @@ kbd {
 
 #toolbar .ico {
   width: 16px;
-  font-size: 14px;
+  font-size: var(--t-lead);
   text-align: center;
   flex: none;
 }
@@ -89,9 +121,9 @@ kbd {
 #toolbar button:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
 
 #toolbar button.active {
-  background: rgba(97, 175, 239, 0.15);
+  background: rgba(var(--accent-rgb), 0.15);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(97, 175, 239, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.3);
 }
 
 #toolbar button:disabled { opacity: 0.32; cursor: default; }
@@ -112,7 +144,7 @@ kbd {
   border-radius: 10px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  font-size: 10.5px;
+  font-size: var(--t-label);
   line-height: 1.5;
   /* Everything fits a normal window; a short one scrolls rather than spills. */
   min-height: 0;
@@ -128,7 +160,7 @@ kbd {
 
 #shortcuts h3 {
   margin: 0 0 1px;
-  font-size: 9.5px;
+  font-size: var(--t-label);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -181,7 +213,7 @@ kbd {
   -webkit-backdrop-filter: blur(12px);
   pointer-events: none;
   user-select: none;
-  font-size: 12px;
+  font-size: var(--t-body);
 }
 
 #status b { color: var(--fg); font-weight: 500; }
@@ -208,21 +240,39 @@ kbd {
 
 #help.hidden { display: none; }
 
-#help h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
-#help .lede { margin: 3px 0 20px; color: var(--dim); }
-#help h2 {
-  margin: 19px 0 6px;
-  font-size: 11px;
+#help h1 { margin: 0; font-size: var(--t-title); font-weight: 600; letter-spacing: -0.01em; }
+#help .lede { margin: 3px 0 18px; color: var(--dim); }
+#help .lede2 { margin: 0 0 12px; }
+#help p { margin: 6px 0; color: var(--body); line-height: 1.6; }
+#help b { color: var(--fg); font-weight: 600; }
+#help .warn { color: var(--dim); font-size: var(--t-label); line-height: 1.65; }
+
+/* Detail is there if you want it, folded away if you don't. */
+#help details {
+  border-top: 1px solid var(--border);
+}
+#help details:last-of-type { border-bottom: 1px solid var(--border); }
+
+#help summary {
+  padding: 9px 0;
+  font-size: var(--t-label);
   font-weight: 600;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--accent);
+  cursor: pointer;
+  list-style: none;
 }
-#help p { margin: 6px 0; color: #c3c8d4; }
-#help ol { margin: 6px 0; padding-left: 18px; color: #c3c8d4; }
-#help li { margin: 4px 0; }
-#help b { color: var(--fg); font-weight: 600; }
-#help .warn { color: var(--dim); font-size: 12px; }
+#help summary::-webkit-details-marker { display: none; }
+#help summary::after {
+  content: "+";
+  float: right;
+  font-size: var(--t-body);
+  line-height: 1;
+  opacity: 0.7;
+}
+#help details[open] summary::after { content: "\2212"; }
+#help details p { margin: 0 0 10px; }
 
 #help-close {
   display: block;
@@ -231,7 +281,7 @@ kbd {
   padding: 9px;
   font: inherit;
   font-weight: 500;
-  color: #04121a;
+  color: #1d0808;
   background: var(--accent);
   border: 0;
   border-radius: 9px;
@@ -264,7 +314,7 @@ kbd {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
 }
 
-#confirm p { margin: 0 0 18px; font-size: 14px; }
+#confirm p { margin: 0 0 18px; font-size: var(--t-lead); }
 #confirm .actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 #confirm button {
