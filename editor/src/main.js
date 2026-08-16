@@ -130,7 +130,6 @@ function setTool(next) {
   }
   btn('sc-erase').hidden = next !== 'erase';
   btn('sc-draw').hidden = next !== 'draw';
-  btn('sc-drag').textContent = next === 'select' ? 'orbit' : next;
   eraserCursor.hidden = next !== 'erase';
   eraserCursor.classList.toggle('disabled', next === 'erase' && selection.size === 0);
   updateStatus();
@@ -390,6 +389,7 @@ addEventListener(
 canvas.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0) return;
   downAt = [ev.clientX, ev.clientY];
+  viewer.setDragging(true);
   if (tool === 'draw') {
     pen = [[ev.clientX, ev.clientY]];
     canvas.setPointerCapture(ev.pointerId);
@@ -404,12 +404,7 @@ canvas.addEventListener('pointermove', (ev) => {
     eraserCursor.style.top = `${ev.clientY}px`;
   }
   // Light up the handle you are close enough to act on, in either mode.
-  if (tool !== 'erase') {
-    const hot = viewer.hitHandle(ev.clientX, ev.clientY, closeSlopPx());
-    if (viewer.setHotHandle(hot) && tool === 'select') {
-      canvas.style.cursor = hot ? 'grab' : 'default';
-    }
-  }
+  if (tool !== 'erase') viewer.setHotHandle(viewer.hitHandle(ev.clientX, ev.clientY, closeSlopPx()));
 
   if (pen) {
     // Shift collapses the stroke to a straight run from where it began.
@@ -421,6 +416,7 @@ canvas.addEventListener('pointermove', (ev) => {
 
 canvas.addEventListener('pointerup', (ev) => {
   if (ev.button !== 0) return;
+  viewer.setDragging(false);
   const moved = downAt && Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]);
   downAt = null;
 
@@ -444,6 +440,7 @@ canvas.addEventListener('pointerup', (ev) => {
 });
 
 canvas.addEventListener('pointercancel', () => {
+  viewer.setDragging(false);
   erase = null;
   downAt = null;
   pen = null;
@@ -528,8 +525,12 @@ btn('btn-clear').addEventListener('click', clearAll);
 btn('btn-help').addEventListener('click', () => helpEl.classList.toggle('hidden'));
 btn('help-close').addEventListener('click', () => helpEl.classList.add('hidden'));
 
+// ⌘, Ctrl or ⇧ with a drag pans instead of orbiting. three.js swaps that itself;
+// all we do is keep the cursor honest about it.
+const PAN_KEYS = new Set(['Meta', 'Control', 'Shift']);
+
 addEventListener('keydown', (ev) => {
-  if (ev.key === 'Shift') viewer.setPanModifier(true);
+  if (PAN_KEYS.has(ev.key)) viewer.setPanHint(true);
 
   if (ev.metaKey || ev.ctrlKey) {
     const k = ev.key.toLowerCase();
@@ -560,9 +561,9 @@ addEventListener('keydown', (ev) => {
     else setSelection([]);
   } else if (k === 'Enter') {
     finishStrand();
-  } else if (k === 'd' || k === 'D' || k === '1') setTool('draw');
-  else if (k === '2') setTool('select');
-  else if (k === 'e' || k === 'E' || k === '3') setTool('erase');
+  } else if (k === 'd' || k === 'D') setTool('draw');
+  else if (k === 's' || k === 'S') setTool('select');
+  else if (k === 'e' || k === 'E') setTool('erase');
   else if (k === 'f' || k === 'F') frameAll();
   else if (k === 'Delete' || k === 'Backspace') {
     ev.preventDefault();
@@ -574,11 +575,14 @@ addEventListener('keydown', (ev) => {
 });
 
 addEventListener('keyup', (ev) => {
-  if (ev.key === 'Shift') viewer.setPanModifier(false);
+  if (PAN_KEYS.has(ev.key)) viewer.setPanHint(false);
 });
-addEventListener('blur', () => viewer.setPanModifier(false));
+addEventListener('blur', () => viewer.setPanHint(false));
 
 // ---------- go ----------
+
+// The pan modifier is ⌘ on a Mac and Ctrl everywhere else.
+if (!/Mac/i.test(navigator.platform || '')) btn('sc-pan').textContent = 'Ctrl drag';
 
 setEraserRadius(eraserRadius);
 setTool('select');

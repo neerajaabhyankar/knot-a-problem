@@ -13,7 +13,7 @@
 
     <div id="rail">
       <div id="toolbar">
-        <button class="tool" data-tool="select" title="Select — click a strand (2)">
+        <button class="tool" data-tool="select" title="Select — click a strand (S)">
           <span class="ico">↖</span><span class="lbl">Select</span>
         </button>
         <button class="tool" data-tool="draw" title="Draw a strand (D)">
@@ -42,23 +42,46 @@
         </button>
       </div>
 
+      <!-- Left column is what happens, right column is what you do. -->
       <div id="shortcuts">
-        <div class="row"><kbd>drag</kbd><span id="sc-drag">orbit</span></div>
-        <div class="row"><kbd>right-drag</kbd><span>pan</span></div>
-        <div class="row"><kbd>scroll</kbd><span>zoom</span></div>
-        <div id="sc-draw" hidden>
-          <div class="row"><kbd>⇧ drag</kbd><span>straight line</span></div>
-          <div class="row"><kbd>lift pen</kbd><span>break = under</span></div>
-          <div class="row"><kbd>Enter</kbd><span>finish open</span></div>
-          <div class="row"><kbd>grab end</kbd><span>keep drawing</span></div>
-        </div>
-        <div id="sc-erase" hidden>
-          <div class="row"><kbd>[ ]</kbd><span>eraser size</span></div>
-        </div>
-        <div class="row"><kbd>⇧ click</kbd><span>add to selection</span></div>
-        <div class="row"><kbd>⌘Z</kbd><span>undo</span></div>
-        <div class="row"><kbd>F</kbd><span>frame all</span></div>
-        <div class="row"><kbd>Esc</kbd><span>cancel</span></div>
+        <section>
+          <h3>Mode</h3>
+          <div class="row"><span>Select</span><kbd>S</kbd></div>
+          <div class="row"><span>Draw</span><kbd>D</kbd></div>
+          <div class="row"><span>Erase</span><kbd>E</kbd></div>
+        </section>
+
+        <section>
+          <h3>View</h3>
+          <div class="row"><span>Orbit</span><kbd>drag</kbd></div>
+          <div class="row"><span>Pan</span><kbd id="sc-pan">⌘ drag</kbd></div>
+          <div class="row"><span>Zoom</span><kbd>scroll</kbd></div>
+          <div class="row"><span>Frame all</span><kbd>F</kbd></div>
+        </section>
+
+        <section id="sc-draw" hidden>
+          <h3>Draw</h3>
+          <div class="row"><span>Go under</span><kbd>lift pen</kbd></div>
+          <div class="row"><span>Straight line</span><kbd>⇧ drag</kbd></div>
+          <div class="row"><span>Continue</span><kbd>grab an end</kbd></div>
+          <div class="row"><span>Finish</span><kbd>Enter</kbd></div>
+        </section>
+
+        <section id="sc-erase" hidden>
+          <h3>Erase</h3>
+          <div class="row"><span>Brush size</span><kbd>[ ]</kbd></div>
+        </section>
+
+        <section>
+          <h3>Edit</h3>
+          <div class="row"><span>Undo</span><kbd>⌘Z</kbd></div>
+          <div class="row"><span>Redo</span><kbd>⇧⌘Z</kbd></div>
+          <div class="row"><span>Delete</span><kbd>Del</kbd></div>
+          <div class="row"><span>Select all</span><kbd>A</kbd></div>
+          <div class="row"><span>Add to selection</span><kbd>⇧ click</kbd></div>
+          <div class="row"><span>Cancel</span><kbd>Esc</kbd></div>
+          <div class="row"><span>Help</span><kbd>?</kbd></div>
+        </section>
       </div>
     </div>
 
@@ -70,8 +93,10 @@
 
       <h2>Getting around</h2>
       <p>
-        Left-drag orbits, right-drag pans, scroll zooms. <kbd>F</kbd> frames
-        everything you've drawn. Clicking without dragging selects a strand.
+        Left-drag orbits and scroll zooms. Hold <kbd>⌘</kbd> (or <kbd>Ctrl</kbd>)
+        while dragging to pan &mdash; the cursor turns into a hand to tell you.
+        <kbd>F</kbd> frames everything you've drawn, and clicking without dragging
+        selects a strand.
       </p>
 
       <h2>Drawing: the live strand</h2>

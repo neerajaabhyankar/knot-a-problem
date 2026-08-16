@@ -128,6 +128,75 @@ check(
 );
 
 // ===========================================================================
+// 0. The legend and the cursor
+// ===========================================================================
+
+const legend = await page.evaluate(() => {
+  const rail = document.getElementById('shortcuts');
+  return {
+    sections: [...rail.querySelectorAll('section')].map((sec) => ({
+      title: sec.querySelector('h3').textContent,
+      hidden: sec.hidden,
+      rows: [...sec.querySelectorAll('.row')].map((r) => [
+        r.querySelector('span').textContent,
+        r.querySelector('kbd').textContent,
+      ]),
+    })),
+    text: rail.textContent,
+  };
+});
+check(
+  legend.sections.map((s) => s.title).join('/') === 'Mode/View/Draw/Erase/Edit',
+  'the legend is grouped into sections',
+  legend.sections.map((s) => s.title).join('/'),
+);
+check(
+  legend.sections.every((s) => s.rows.every(([action, key]) => action && key)),
+  'every row reads action-then-key',
+);
+check(
+  !/right-drag/.test(legend.text) && /drag/.test(legend.text),
+  'right-drag is gone from the legend',
+);
+check(
+  legend.sections.find((s) => s.title === 'Draw').hidden &&
+    legend.sections.find((s) => s.title === 'Erase').hidden,
+  'mode-specific sections are hidden until you are in that mode',
+);
+check(
+  ['S', 'D', 'E'].every((k) => legend.sections[0].rows.some((r) => r[1] === k)),
+  'the mode keys are listed',
+  JSON.stringify(legend.sections[0].rows),
+);
+
+const cursorNow = () => page.evaluate(() => getComputedStyle(document.getElementById('view')).cursor);
+check((await cursorNow()) === 'all-scroll', 'Select shows the orbit cursor', await cursorNow());
+
+await page.keyboard.down('Meta');
+await page.waitForTimeout(60);
+check((await cursorNow()) === 'grab', 'holding the pan modifier shows the hand', await cursorNow());
+await page.keyboard.up('Meta');
+await page.waitForTimeout(60);
+check((await cursorNow()) === 'all-scroll', 'and it goes back on release', await cursorNow());
+
+await page.keyboard.press('d');
+await page.waitForTimeout(60);
+check((await cursorNow()) === 'crosshair', 'Draw shows a crosshair', await cursorNow());
+check(
+  await page.evaluate(() => !document.getElementById('sc-draw').hidden),
+  'and the Draw section of the legend appears',
+);
+// Draw mode is the tallest the rail ever gets; it still has to fit on screen.
+const railFit = await page.evaluate(() => {
+  const r = document.getElementById('rail').getBoundingClientRect();
+  return { bottom: Math.round(r.bottom), viewport: innerHeight };
+});
+check(railFit.bottom < railFit.viewport, 'the rail fits on screen with every section open',
+  `${railFit.bottom}px of ${railFit.viewport}px`);
+await page.screenshot({ path: OUT + '0-legend.png', clip: { x: 0, y: 0, width: 200, height: railFit.viewport } });
+await page.keyboard.press('s');
+
+// ===========================================================================
 // 1. Hopf link — two plain loops on perpendicular planes
 // ===========================================================================
 
@@ -388,7 +457,7 @@ check(
   'with nothing selected the eraser does nothing',
 );
 
-await page.keyboard.press('2'); // back to Select
+await page.keyboard.press('s'); // back to Select
 await page.keyboard.press('a');
 await page.keyboard.press('e');
 await stroke(page, [
@@ -413,7 +482,7 @@ check(erased.n === 1 && erased.closed[0] === false, 'erasing a selected loop lea
 // open, resumed from a different camera angle. Its existing points must not
 // move a millimetre.
 
-await page.keyboard.press('2');
+await page.keyboard.press('s');
 await page.keyboard.press('a');
 await page.waitForTimeout(150);
 

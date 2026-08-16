@@ -159,22 +159,35 @@ Camera-first, like Plotly 3D or a map. You are never in a mode that stops you
 looking around.
 
 ```
-left-drag     orbit (turntable)      ← always, unless a stroke tool is armed
-right-drag    pan                    ← always
-⇧ left-drag   pan                    ← in Select; trackpads hate right-drag
-scroll        zoom, toward cursor    ← always
-click         select   (⇧ click extends the selection)
-F             frame everything
+                        ACTION            HOW
 
-D             draw — stays armed until the strand is finished
-⇧ while drawing   straight line
-Enter         finish the strand open
-E             eraser · [ ] size · only touches the selection
-A             select all
-Del           delete selection — asks first if more than one
-⌘Z / ⇧⌘Z     undo / redo
-Esc           cancel / back to Select
+  view                  orbit             left-drag
+                        pan               ⌘/Ctrl/⇧ + left-drag, or right-drag
+                        zoom, to cursor   scroll
+                        frame all         F
+
+  mode                  select            S      ← home; the only mode that orbits
+                        draw              D
+                        erase             E
+
+  draw                  straight line     ⇧ while drawing
+                        go under          lift the pen
+                        continue a strand grab an end handle
+                        finish            Enter, Esc, or a click on empty space
+
+  edit                  undo / redo       ⌘Z / ⇧⌘Z      (one stroke at a time)
+                        delete            Del           (asks first if >1)
+                        select all        A
+                        add to selection  ⇧ click
+                        eraser size       [ ]
+                        help              ?
 ```
+
+Modifier panning is three.js's own: a `MOUSE.ROTATE` binding becomes a pan while
+⌘/Ctrl/⇧ is held. We don't reimplement it — an earlier attempt to swap the
+binding ourselves cancelled it out, since three then inverted `MOUSE.PAN` back to
+rotate. The cursor follows: `all-scroll` for orbit, `grab` once a pan modifier is
+down, `crosshair` to draw.
 
 Select is the resting state. Right-drag panning means the context menu must be
 suppressed on the canvas.

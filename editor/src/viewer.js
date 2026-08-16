@@ -40,9 +40,9 @@ export class Viewer {
     this.controls.maxDistance = 40;
     this.controls.screenSpacePanning = true;
     this.controls.zoomToCursor = true; // zoom goes where you point, like a map
-    // Plotly-style turntable: left orbits, right pans, wheel zooms. The left
-    // button is taken away only while a stroke tool is armed, and swapped to
-    // pan while Shift is held (see setPanModifier).
+    // Plotly-style turntable: left orbits, wheel zooms, and ⌘/Ctrl/⇧ with a
+    // left-drag pans — three.js swaps that one itself. The left button is taken
+    // away only while a stroke tool is armed.
     this.controls.mouseButtons = {
       LEFT: THREE.MOUSE.ROTATE,
       MIDDLE: THREE.MOUSE.PAN,
@@ -62,7 +62,8 @@ export class Viewer {
     this.preview = null;
     this.selection = new Set();
     this.tool = 'select';
-    this.shift = false;
+    this.panHint = false;
+    this.dragging = false;
 
     this.raycaster = new THREE.Raycaster();
     this._plane = new THREE.Plane();
@@ -186,23 +187,31 @@ export class Viewer {
     const armed = tool === 'draw';
     this._planeFill.opacity = armed ? 0.035 : 0.015;
     this._planeGrid.opacity = armed ? 0.15 : 0.05;
-    this._applyLeftButton();
-    this.canvas.style.cursor = armed ? 'crosshair' : tool === 'erase' ? 'none' : 'default';
+    // three.js turns a ROTATE binding into a pan by itself while ⌘/Ctrl/⇧ is
+    // held, so the only binding we own is whether left-drag belongs to the
+    // camera at all. A stroke tool takes it.
+    this.controls.mouseButtons.LEFT = armed || tool === 'erase' ? null : THREE.MOUSE.ROTATE;
+    this._applyCursor();
   }
 
-  /** Shift swaps left-drag from orbit to pan — the usual trackpad-friendly out. */
-  setPanModifier(down) {
-    this.shift = down;
-    this._applyLeftButton();
+  /** Is a pan modifier held? Cosmetic only — three.js does the actual swap. */
+  setPanHint(down) {
+    this.panHint = down;
+    this._applyCursor();
   }
 
-  _applyLeftButton() {
-    this.controls.mouseButtons.LEFT =
-      this.tool === 'select'
-        ? this.shift
-          ? THREE.MOUSE.PAN
-          : THREE.MOUSE.ROTATE
-        : null;
+  setDragging(down) {
+    this.dragging = down;
+    this._applyCursor();
+  }
+
+  _applyCursor() {
+    this.canvas.style.cursor =
+      this.tool === 'erase' ? 'none'
+      : this.tool === 'draw' ? 'crosshair'
+      : this.dragging && this.panHint ? 'grabbing'
+      : this.panHint || this.hotHandle ? 'grab'
+      : 'all-scroll'; // the camera is what a drag moves
   }
 
   // ---------- draw plane math ----------
@@ -299,6 +308,7 @@ export class Viewer {
     if (id === this.hotHandle) return false;
     this.hotHandle = id;
     this._drawHandles();
+    this._applyCursor();
     return true;
   }
 
