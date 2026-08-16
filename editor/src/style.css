@@ -29,6 +29,25 @@
   --accent: #d14d4d;
   --accent-rgb: 209, 77, 77;
 
+  /* Strand colours. Every one is the accent's own saturation and lightness
+     rotated in hue, which is what lets the picker be a single hue strip and
+     still guarantee the result belongs: pick a colour we didn't think of, but
+     never a muddy or a neon one. Read by src/theme.js — this file is the
+     single place a stylistic choice lives. */
+  --strand-s: 60;
+  --strand-l: 56;
+  --strand-1: #d2784b; /* ember   20° */
+  --strand-2: #d2d24b; /* citron  60° */
+  --strand-3: #78d24b; /* fern   100° */
+  --strand-4: #4bd278; /* jade   140° */
+  --strand-5: #4bd2d2; /* cyan   180° */
+  --strand-6: #4b78d2; /* azure  220° */
+  --strand-7: #784bd2; /* indigo 260° */
+  --strand-8: #d24bd2; /* violet 300° */
+  --strand-9: #d24b78; /* rose   340° */
+  --strand-default: #d2d24b; /* citron — where the draw cycle starts */
+  --strand-radius: 0.075; /* tube radius in world units */
+
   --sans: 'Overpass', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
   --mono: 'Overpass Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -38,6 +57,11 @@
   --t-body: 13px;
   --t-lead: 16px;
   --t-title: 20px;
+
+  /* Height of a tool row, and therefore the side of a swatch square. Explicit
+     rather than derived: `aspect-ratio` against a stretched flex item resolves
+     to nothing in WebKit, which collapsed the squares to 2px wide. */
+  --tool-h: 34px;
   --danger: #960b2e;
 }
 
@@ -77,7 +101,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 172px;
+  width: 200px;
   max-height: calc(100vh - 32px);
   user-select: none;
 }
@@ -95,7 +119,106 @@ kbd {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
 }
 
-#toolbar button {
+/* A tool and its settings sit on one line; the swatches push to the right. */
+#toolbar .tool-row { display: flex; align-items: stretch; gap: 3px; height: var(--tool-h); }
+#toolbar .tool-row .tool { flex: 1; min-width: 0; }
+
+.swatch {
+  flex: none;
+  /* Exactly as tall as the tool button beside it, and square. */
+  width: var(--tool-h);
+  height: var(--tool-h);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.swatch[hidden] { display: none; }
+.swatch:hover { border-color: rgba(255, 255, 255, 0.3); }
+.swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.25); }
+.swatch:disabled { opacity: 0.3; cursor: default; }
+/* The size swatch previews its value as a dot that grows with the slider. */
+.swatch i { display: block; background: var(--dim); border-radius: 50%; }
+
+/* Panels float to the right of the rail, so opening one never reflows it. */
+.panel {
+  position: fixed;
+  left: 228px;
+  z-index: 8;
+  display: none;
+  flex-direction: column;
+  gap: 11px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+}
+.panel.open { display: flex; }
+
+.panel .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.panel .chip {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.panel .chip:hover { border-color: rgba(255, 255, 255, 0.4); }
+.panel .chip.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
+
+.panel .strip { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; }
+.panel .strip span {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.panel .strip output {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--fg);
+  text-align: right;
+}
+.panel .strip input { grid-column: 1 / -1; }
+
+.panel input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 108px;
+  height: 9px;
+  margin: 2px 0;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.panel input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  background: var(--fg);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.panel input[type='range']::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  background: var(--fg);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+#toolbar > button,
+#toolbar .tool {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -118,16 +241,17 @@ kbd {
   flex: none;
 }
 
-#toolbar button:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
+#toolbar > button:hover,
+#toolbar .tool:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
 
-#toolbar button.active {
+#toolbar .tool.active {
   background: rgba(var(--accent-rgb), 0.15);
   color: var(--accent);
   box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.3);
 }
 
-#toolbar button:disabled { opacity: 0.32; cursor: default; }
-#toolbar button:disabled:hover { background: transparent; color: var(--dim); }
+#toolbar > button:disabled { opacity: 0.32; cursor: default; }
+#toolbar > button:disabled:hover { background: transparent; color: var(--dim); }
 
 #toolbar .sep {
   height: 1px;

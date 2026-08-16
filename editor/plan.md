@@ -29,8 +29,11 @@ src/model.js            Scene / Curve — the data model levels (b) and (c) will
 src/crossings.js        one stroke + what's on screen → depth (the lift)
 src/eraser.js           rub-to-erase, splitting strands into surviving runs
 src/simplify.js         screen-space polyline maths (dedupe, RDP, loop closing)
+src/swatches.js         the colour / size squares and the panels they open
+src/theme.js            reads style.css back out — palette, radius, S/L
 test/crossings.test.mjs unit tests for the lift — no browser needed
 test/smoke.mjs          Playwright/Firefox end-to-end check
+test/browsers.mjs       layout + theme in Firefox *and* WebKit
 design-drawing.md       the drawing flow, written down
 ```
 
@@ -49,7 +52,12 @@ design-drawing.md       the drawing flow, written down
 - **three.js** for rendering. `TubeGeometry` over a `CatmullRomCurve3`.
 - **Vanilla JS/TS + plain DOM toolbar.** No React yet — the app is one canvas and five
   buttons. Revisit if the UI grows a properties panel, layer list, chat pane.
-- Tested in **Firefox and Safari**. Never Chrome.
+- Tested in **Firefox and Safari**. Never Chrome. `test/smoke.mjs` drives
+  Firefox only; `test/browsers.mjs` runs the engine-sensitive checks in both,
+  because Firefox-only coverage let a WebKit layout bug reach the user:
+  `aspect-ratio` on a stretched flex item resolves to nothing there, and the
+  swatch squares collapsed to 2px wide. Anything about box geometry or CSS
+  feature support belongs in `browsers.mjs`.
 
 ## The central problem: 2D mouse → 3D curve
 
@@ -90,10 +98,13 @@ pen lifts until a stroke ends near the strand's start, which closes it (or Enter
 finishes it open). The closing gap is a break like any other, so a trefoil is
 three breaks — three strokes, or one stroke with the pen lifted three times.
 
-**How far apart?** A fixed clearance, `4 × tube radius` centre-to-centre — the
-strands clear each other by one full strand thickness. Deliberately *not* scaled
-to how big you drew: a knot diagram is flat apart from a small hop at each
-crossing, and the hop should read the same at any size or zoom.
+**How far apart?** `4 × the strand's own radius` centre-to-centre — they clear
+each other by one full strand thickness. Deliberately *not* scaled to how big you
+drew: a knot diagram is flat apart from a small hop at each crossing, and the hop
+should read the same at any size or zoom. It *does* follow thickness, because a
+fat strand needs a bigger hop. Since geometry is immutable, a strand keeps the
+clearance it was drawn with — which is why the thickness slider caps at 2×, past
+which a tube would reach across its own gap and touch itself.
 
 **Crossings you didn't break** (both passes drawn pen-down): the strand drawn
 *later* goes over, the way ink drawn later sits on top of ink already on the
@@ -124,7 +135,8 @@ The one thing that must not be sloppy, because levels (b) and (c) build on it.
 Curve = {
   id: string,
   name: string,
-  color: string,
+  color: string,         // always the palette's S/L — only hue varies
+  radius: number,        // tube radius, world units
   closed: boolean,
   points: [x, y, z][],   // control points — the editable truth
 }
@@ -227,8 +239,20 @@ restore, so selections survive.
 - Tubes: `MeshStandardMaterial`, **metalness 0**, roughness 0.62, environment
   reflection at 0.16. Solid colour with a soft falloff. Higher metalness plus a
   strong env map gives a specular sweep that reads as cheap plastic.
-- Palette: muted, slightly desaturated. Saturated neon on black is the other
-  half of the plastic look.
+- Palette: nine strand colours that are **the accent's own saturation and
+  lightness (60% / 56%) rotated in hue**, 40° apart. That is what lets the picker
+  be a single hue strip and still guarantee the result belongs — you can choose a
+  colour we didn't think of, but not a muddy or a neon one. Being derived from
+  the accent is why they read as one family with the chrome.
+- **Every stylistic choice lives in `src/style.css`**, including the palette and
+  the default tube radius, as custom properties. `src/theme.js` reads them back
+  out with `getComputedStyle` so the app and the stylesheet cannot disagree.
+  Watch for undefined custom properties: `var(--typo)` invalidates the whole
+  declaration silently, which is how a selection ring once rendered as nothing.
+  The stylesheet is imported from `main.js` rather than linked from the HTML, so
+  the module graph guarantees it is applied before `theme.js` reads a token —
+  otherwise the tokens come back empty and every strand renders white. `theme.js`
+  now throws on an empty token instead of letting that happen quietly.
 - Lighting: broad neutral ambient + one key with soft shadows. Coloured rim
   lights tint the strands and fight the palette.
 - Chrome: minimal. Vertical rail on the left, shortcut hints beneath it.

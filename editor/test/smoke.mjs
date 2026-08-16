@@ -217,6 +217,51 @@ check(
   `${fonts.mono.toFixed(1)}px vs ${fonts.monoFallback.toFixed(1)}px if it had failed`,
 );
 
+// A swatch that escapes the rail means a cascade collision — the base
+// `#toolbar button` rule outranks `.swatch` unless it is scoped away from it.
+await page.keyboard.press('d');
+await page.waitForTimeout(120);
+const swatches = await page.evaluate(() => {
+  const rail = document.getElementById('rail').getBoundingClientRect();
+  const tool = document.querySelector('[data-tool="draw"]').getBoundingClientRect();
+  return ['sw-draw-color', 'sw-draw-size'].map((id) => {
+    const b = document.getElementById(id).getBoundingClientRect();
+    return {
+      id,
+      w: Math.round(b.width),
+      h: Math.round(b.height),
+      square: Math.abs(b.width - b.height) < 1.5,
+      matchesButton: Math.abs(b.height - tool.height) < 1.5,
+      inside: b.right <= rail.right + 1,
+    };
+  });
+});
+// An undefined custom property invalidates the whole declaration, so a ring
+// that is meant to mark the current colour can vanish without a peep.
+await page.click('#sw-draw-color');
+await page.waitForTimeout(200);
+const chip = await page.evaluate(() => {
+  const on = document.querySelector('.panel.open .chip.on');
+  return { found: !!on, ring: on ? getComputedStyle(on).boxShadow : 'none' };
+});
+check(
+  chip.found && chip.ring !== 'none',
+  'the current colour is ringed in the picker',
+  JSON.stringify(chip),
+);
+await page.keyboard.press('Escape');
+
+check(
+  swatches.every((s) => s.square && s.matchesButton && s.inside),
+  'the Draw swatches are square, match the button height, and stay inside the rail',
+  JSON.stringify(swatches),
+);
+check(
+  await page.evaluate(() => document.getElementById('sw-erase-size').hidden),
+  "and a tool's swatches are hidden while another tool is active",
+);
+await page.keyboard.press('s');
+
 const cursorNow = () => page.evaluate(() => getComputedStyle(document.getElementById('view')).cursor);
 check((await cursorNow()) === 'all-scroll', 'Select shows the orbit cursor', await cursorNow());
 
@@ -619,7 +664,82 @@ check(resumed.live !== null, 'the strand is live, so you can keep going',
 await page.screenshot({ path: OUT + '4-resumed.png' });
 
 // ===========================================================================
-// 7. Shift draws a straight line
+// 7. Colour and thickness
+// ===========================================================================
+
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+await drawStrand(page, [circlePath(640, 400, 150)]);
+await drawStrand(page, [circlePath(640, 400, 90)]);
+
+const drawn = await page.evaluate(() => globalThis.knot.model.curves.map((c) => c.color));
+check(drawn[0] !== drawn[1], 'each new strand takes the next preset colour', JSON.stringify(drawn));
+check(
+  await page.evaluate(() => globalThis.knot.model.curves.every((c) => c.radius > 0)),
+  'and carries its own tube radius',
+);
+
+// Recolour a selection from the panel.
+await page.keyboard.press('s');
+await page.keyboard.press('a');
+await page.waitForTimeout(200);
+await page.click('#sw-sel-color');
+await page.waitForTimeout(200);
+const target = await page.evaluate(() => {
+  const chips = [...document.querySelectorAll('.panel.open .chip')];
+  return chips[chips.length - 1].dataset.color;
+});
+await page.click(`.panel.open .chip[data-color="${target}"]`);
+await page.waitForTimeout(250);
+check(
+  await page.evaluate((c) => globalThis.knot.model.curves.every((x) => x.color === c), target),
+  'picking a preset recolours every selected strand',
+  target,
+);
+
+await page.keyboard.press('Control+z');
+await page.waitForTimeout(200);
+check(
+  await page.evaluate((c) => globalThis.knot.model.curves.some((x) => x.color !== c), target),
+  'and the recolour is undoable',
+);
+
+// Thicken a selection from the slider.
+await page.keyboard.press('a');
+await page.waitForTimeout(150);
+await page.click('#sw-sel-size');
+await page.waitForTimeout(200);
+const thicker = await page.evaluate(() => {
+  const input = document.querySelector('.panel.open input[type=range]');
+  input.value = input.max;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  return globalThis.knot.model.curves.map((c) => c.radius);
+});
+await page.waitForTimeout(250);
+check(
+  thicker.every((r) => r > 0.075),
+  'the size slider thickens every selected strand',
+  JSON.stringify(thicker.map((r) => r.toFixed(3))),
+);
+check(
+  await page.evaluate(() => {
+    const c = globalThis.knot.model.curves[0];
+    const mesh = globalThis.knot.viewer.meshes.get(c.id);
+    return mesh && mesh.userData.stamp.includes(String(c.radius));
+  }),
+  'and the tube mesh was rebuilt at the new radius',
+);
+
+await page.keyboard.press('Escape');
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+
+// ===========================================================================
+// 8. Shift draws a straight line
 // ===========================================================================
 
 await page.evaluate(() => {

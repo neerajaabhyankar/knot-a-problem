@@ -1,10 +1,17 @@
 // Glue: tools, pointer handling, keyboard, undo, render loop.
+//
+// The stylesheet is imported here rather than linked from index.html: theme.js
+// reads the palette back out of it, so it has to be applied before any module
+// body runs. Through the module graph that ordering is guaranteed.
+import './style.css';
 
 import { Scene } from './model.js';
-import { Viewer, TUBE_RADIUS, vec3 } from './viewer.js';
+import { DEFAULT_COLOR, DEFAULT_RADIUS, PALETTE } from './theme.js';
+import { Viewer, vec3 } from './viewer.js';
 import { EraseSession } from './eraser.js';
 import { fillRun, liftStroke } from './crossings.js';
 import { dedupe, simplifyStroke } from './simplify.js';
+import { closeSwatch, colorSwatch, sizeSwatch } from './swatches.js';
 
 const canvas = document.getElementById('view');
 const statusEl = document.getElementById('status');
@@ -24,6 +31,8 @@ let selection = new Set();
 // only ever one direction to think about. See design-drawing.md.
 let live = null; // curve id, or null
 let pen = null; // [[px, py]] while the pointer is down
+let drawColor = DEFAULT_COLOR; // what the next strand gets
+let drawRadius = DEFAULT_RADIUS;
 let erase = null;
 let downAt = null; // to tell a click apart from an orbit drag
 let eraserRadius = 20;
@@ -31,15 +40,21 @@ let eraserRadius = 20;
 const CLICK_SLOP = 5; // px of movement still counted as a click
 const MIN_STROKE = 7; // px of travel before a drag counts as a stroke at all
 
-// How far apart strands sit at a crossing, in world units. Fixed, not scaled to
-// how big you drew: a knot diagram is flat apart from a small hop at each
-// crossing, and the hop should always read the same. Centre-to-centre is two
-// tube diameters, so the strands clear each other by a full strand thickness.
-const CROSSING_CLEARANCE = 4 * TUBE_RADIUS;
+// How far apart strands sit at a crossing: four times the strand's own radius,
+// so they clear each other by a full strand thickness. Not scaled to how big you
+// drew — a knot diagram is flat apart from a small hop at each crossing, and the
+// hop should read the same at any size or zoom. A thick strand needs a bigger
+// hop, which is why this follows the radius rather than being a constant.
+const clearance = (radius) => 4 * radius;
+
+/** The radius the next stroke will use — the live strand's, or the Draw swatch. */
+function strokeRadius() {
+  return liveCurve()?.radius ?? drawRadius;
+}
 
 /** The clearance, converted to the pixel units the lift works in. */
 function separationPx() {
-  return CROSSING_CLEARANCE / viewer.worldPerPixel();
+  return clearance(strokeRadius()) / viewer.worldPerPixel();
 }
 
 /** Below this the pen-up gap is a wobble, not a break, so the strand just joins. */
@@ -121,6 +136,7 @@ function updateHistoryButtons() {
 
 function setTool(next) {
   pen = null;
+  closeSwatch();
   viewer.clearPreview();
   endLive();
   tool = next;
@@ -132,6 +148,7 @@ function setTool(next) {
   btn('sc-draw').hidden = next !== 'draw';
   eraserCursor.hidden = next !== 'erase';
   eraserCursor.classList.toggle('disabled', next === 'erase' && selection.size === 0);
+  showSwatches();
   updateStatus();
 }
 
@@ -142,7 +159,48 @@ function setSelection(ids) {
   viewer.updateHandles(model);
   btn('btn-delete').disabled = selection.size === 0;
   eraserCursor.classList.toggle('disabled', tool === 'erase' && selection.size === 0);
+  showSwatches();
   updateStatus();
+}
+
+// ---------- colour and thickness ----------
+//
+// Each tool shows only its own settings. Draw's decide what the next strand
+// gets; Select's edit the strands you have picked.
+
+/** Reveal the swatches belonging to the current tool, and nothing else. */
+function showSwatches() {
+  const picked = [...selection].map((id) => model.get(id)).filter(Boolean);
+  for (const [id, on] of [
+    ['sw-draw-color', tool === 'draw'],
+    ['sw-draw-size', tool === 'draw'],
+    ['sw-sel-color', tool === 'select' && picked.length > 0],
+    ['sw-sel-size', tool === 'select' && picked.length > 0],
+    ['sw-erase-size', tool === 'erase'],
+  ]) {
+    btn(id).hidden = !on;
+  }
+  // Opening on a selection should show what that selection already is.
+  if (picked.length) {
+    selColor.set(picked[0].color);
+    selSize.set(picked[0].radius ?? DEFAULT_RADIUS);
+  }
+}
+
+/** Step to the next preset once a strand is finished, the way it used to cycle. */
+function advanceDrawColor() {
+  const i = PALETTE.indexOf(drawColor);
+  if (i >= 0) drawColorSwatch.set(PALETTE[(i + 1) % PALETTE.length]);
+  drawColor = drawColorSwatch.get();
+}
+
+/** Apply an edit to every selected strand. */
+function editSelection(change) {
+  const picked = [...selection].map((id) => model.get(id)).filter(Boolean);
+  if (!picked.length) return;
+  record();
+  for (const curve of picked) Object.assign(curve, change);
+  refresh();
 }
 
 /** Rebuild meshes and handles after any change to the model. */
@@ -222,6 +280,7 @@ function endLive() {
  * look at what you just made, and Draw holds the left button hostage.
  */
 function finishStrand() {
+  if (live) advanceDrawColor();
   endLive();
   if (tool !== 'select') setTool('select');
   else updateStatus();
@@ -300,7 +359,11 @@ function addStroke(stroke) {
     curve.points.push(...added);
     curve.closed = closing;
   } else {
-    live = model.addCurve(padToThree(added), { closed: closing }).id;
+    live = model.addCurve(padToThree(added), {
+      closed: closing,
+      color: drawColor,
+      radius: drawRadius,
+    }).id;
   }
   viewer.clearPreview();
   refresh();
@@ -505,6 +568,7 @@ function setEraserRadius(r) {
   eraserRadius = Math.max(6, Math.min(90, r));
   eraserCursor.style.width = `${eraserRadius * 2}px`;
   eraserCursor.style.height = `${eraserRadius * 2}px`;
+  eraseSizeSwatch?.set(eraserRadius);
   updateStatus();
 }
 
@@ -580,6 +644,39 @@ addEventListener('keyup', (ev) => {
 addEventListener('blur', () => viewer.setPanHint(false));
 
 // ---------- go ----------
+
+// ---------- swatches ----------
+//
+// Thickness is capped at twice the default: a strand keeps the crossing
+// separation it was drawn with, and past 2x its own tube would reach across that
+// gap and touch itself.
+const MAX_RADIUS = DEFAULT_RADIUS * 2;
+const RADIUS_STEP = DEFAULT_RADIUS / 20;
+const asWeight = (r) => `${(r / DEFAULT_RADIUS).toFixed(2)}×`;
+
+const drawColorSwatch = colorSwatch(btn('sw-draw-color'), (c) => {
+  drawColor = c;
+});
+const drawSizeSwatch = sizeSwatch(
+  btn('sw-draw-size'),
+  { min: DEFAULT_RADIUS / 2, max: MAX_RADIUS, step: RADIUS_STEP, value: DEFAULT_RADIUS, format: asWeight },
+  (r) => {
+    drawRadius = r;
+  },
+);
+
+const selColor = colorSwatch(btn('sw-sel-color'), (c) => editSelection({ color: c }));
+const selSize = sizeSwatch(
+  btn('sw-sel-size'),
+  { min: DEFAULT_RADIUS / 2, max: MAX_RADIUS, step: RADIUS_STEP, value: DEFAULT_RADIUS, format: asWeight },
+  (r) => editSelection({ radius: r }),
+);
+
+const eraseSizeSwatch = sizeSwatch(
+  btn('sw-erase-size'),
+  { min: 6, max: 90, step: 2, value: eraserRadius, format: (r) => `${r}px` },
+  (r) => setEraserRadius(r),
+);
 
 // The pan modifier is ⌘ on a Mac and Ctrl everywhere else.
 if (!/Mac/i.test(navigator.platform || '')) btn('sc-pan').textContent = 'Ctrl drag';

@@ -4,8 +4,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { DEFAULT_RADIUS } from './theme.js';
 
-const TUBE_RADIUS = 0.075;
+// Handles and the focus ring are chrome, not strand: they stay one size however
+// thick the strand under them happens to be.
+const TUBE_RADIUS = DEFAULT_RADIUS;
 const GROUND_Y = -3;
 const PLANE_HALF = 3.2; // draw-plane indicator half-width, world units
 const GRID_STEP = 0.8;
@@ -504,7 +507,7 @@ const vec = vec3;
 
 function stampOf(curve) {
   const p = curve.points;
-  return `${curve.closed}|${curve.color}|${p.length}|${p[0]?.join(',')}|${p[p.length - 1]?.join(',')}`;
+  return `${curve.closed}|${curve.color}|${curve.radius}|${p.length}|${p[0]?.join(',')}|${p[p.length - 1]?.join(',')}`;
 }
 
 /** Curve record -> smooth three.js curve. Centripetal avoids cusps and loops. */
@@ -522,7 +525,8 @@ export function sampleCurve(curve, n) {
 function buildTubeMesh(curve) {
   const spline = toSpline(curve);
   const segments = Math.max(120, curve.points.length * 12);
-  const geom = new THREE.TubeGeometry(spline, segments, TUBE_RADIUS, 16, curve.closed);
+  const radius = curve.radius ?? DEFAULT_RADIUS;
+  const geom = new THREE.TubeGeometry(spline, segments, radius, 16, curve.closed);
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(curve.color),
     roughness: 0.62,

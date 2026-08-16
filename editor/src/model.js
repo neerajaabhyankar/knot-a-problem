@@ -1,17 +1,11 @@
 // The data model. `points` is the only state that matters; every mesh in the
 // viewer is derived from it. Levels (b) and (c) will read exactly this shape,
 // so keep it plain and serializable.
+//
+// Colours and the default radius come from style.css by way of theme.js, so
+// there is one place to change how the app looks.
 
-// Muted and a little desaturated on purpose: saturated neon plus a specular
-// highlight is what makes a tube read as cheap plastic.
-export const PALETTE = [
-  '#61afef', // azure
-  '#e06c75', // rose
-  '#e5c07b', // sand
-  '#98c379', // sage
-  '#c678dd', // orchid
-  '#56b6c2', // teal
-];
+import { DEFAULT_RADIUS, PALETTE } from './theme.js';
 
 let nextId = 1;
 
@@ -21,11 +15,12 @@ export class Scene {
     this.curves = [];
   }
 
-  addCurve(points, { closed = true, color = null, name = null } = {}) {
+  addCurve(points, { closed = true, color = null, name = null, radius = DEFAULT_RADIUS } = {}) {
     const curve = {
       id: `c${nextId++}`,
       name: name ?? `curve ${this.curves.length + 1}`,
       color: color ?? PALETTE[this.curves.length % PALETTE.length],
+      radius,
       closed,
       points, // [x, y, z][]
     };
