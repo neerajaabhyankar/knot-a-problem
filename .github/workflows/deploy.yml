@@ -1,0 +1,86 @@
+# Build the editor, test the thing that will actually ship, and push it into the
+# blog's deployed repo. One-time setup is in ReadMe.md under Deployment.
+name: deploy editor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'editor/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: # deploy by hand from the Actions tab
+
+# Never let two deploys race for the same destination.
+concurrency:
+  group: deploy-editor
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+
+      - name: Install
+        working-directory: editor
+        run: npm ci
+
+      - name: Unit tests
+        working-directory: editor
+        run: node test/crossings.test.mjs
+
+      - name: Build
+        working-directory: editor
+        run: npm run build
+
+      # Test the built artifact rather than the dev server: that is what ships,
+      # and a WebKit-only layout bug has slipped past Firefox-only testing here
+      # before.
+      - name: Install browsers
+        working-directory: editor
+        run: npx playwright install --with-deps firefox webkit
+
+      - name: End-to-end tests
+        working-directory: editor
+        run: |
+          npm run preview -- --port 4173 &
+          for i in $(seq 30); do
+            curl -sf http://localhost:4173/ > /dev/null && break
+            sleep 1
+          done
+          URL=http://localhost:4173/ node test/smoke.mjs
+          URL=http://localhost:4173/ node test/browsers.mjs
+
+      - name: Authorise the push
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.WLOG_DEPLOY_KEY }}
+
+      - name: Publish to the live site
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch master \
+            git@github.com:neerajaabhyankar/wlog-the-blog.git site
+
+          # Replace, never merge: Vite fingerprints filenames, so copying over
+          # the top would accumulate every asset from every past build.
+          rm -rf site/knot-and-link-editor
+          mkdir -p site/knot-and-link-editor
+          cp -R editor/dist/. site/knot-and-link-editor/
+
+          cd site
+          git config user.name "knot-a-problem deploy"
+          git config user.email "actions@github.com"
+          git add knot-and-link-editor
+          if git diff --cached --quiet; then
+            echo "no change to publish"
+            exit 0
+          fi
+          git commit -m "editor: deploy ${GITHUB_SHA:0:7}"
+          git push origin master
