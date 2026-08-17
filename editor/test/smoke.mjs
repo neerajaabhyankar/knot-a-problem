@@ -739,7 +739,78 @@ await page.evaluate(() => {
 });
 
 // ===========================================================================
-// 8. Shift draws a straight line
+// 8. Holding U goes under without lifting the pen
+// ===========================================================================
+//
+// One scalar decides it: a stroke crossing an existing flat strand goes over by
+// rule 2 (depth above the draw plane) and under when marked (depth below).
+
+// Slanted, and deliberately not symmetric: a crossing that lands exactly on a
+// shared vertex of both polylines is rejected by design, since an intersection
+// at a segment endpoint would otherwise be counted twice.
+const across = [
+  [600, 300],
+  [625, 355],
+  [650, 410],
+  [675, 465],
+  [700, 520],
+];
+const along = [
+  [500, 400],
+  [650, 400],
+  [800, 400],
+];
+
+/** Depth of the most recent strand, in pixels; positive is toward the viewer. */
+const lastDepths = (page) =>
+  page.evaluate(() => {
+    const { model, viewer } = globalThis.knot;
+    const c = model.curves[model.curves.length - 1];
+    const v = viewer.controls.target.clone();
+    return c.points.map((p) => viewer.depthOf(v.set(p[0], p[1], p[2])));
+  });
+
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+await drawStrand(page, [along]);
+await drawStrand(page, [across]);
+const over = await lastDepths(page);
+check(
+  Math.max(...over) > 1 && Math.min(...over) > -1,
+  'pen down, the crossing stroke passes over',
+  `depth ${Math.min(...over).toFixed(1)} .. ${Math.max(...over).toFixed(1)}px`,
+);
+
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+await drawStrand(page, [along]);
+await page.keyboard.press('d');
+await page.keyboard.down('u');
+await stroke(page, across);
+await page.keyboard.up('u');
+await page.waitForTimeout(250);
+const under = await lastDepths(page);
+check(
+  Math.min(...under) < -1 && Math.max(...under) < 1,
+  'holding U, the same stroke passes under instead',
+  `depth ${Math.min(...under).toFixed(1)} .. ${Math.max(...under).toFixed(1)}px`,
+);
+check(
+  await page.evaluate(() => globalThis.knot.model.curves.length === 2),
+  'and it is still one unbroken strand — no pen lift involved',
+);
+
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+
+// ===========================================================================
+// 9. Shift draws a straight line
 // ===========================================================================
 
 await page.evaluate(() => {

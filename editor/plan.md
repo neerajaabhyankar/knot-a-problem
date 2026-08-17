@@ -90,10 +90,15 @@ Draw a self-crossing curve and it can't stay flat — flat, the strands genuinel
 intersect, which is not a knot. So crossings are detected and the strands pushed
 apart in depth.
 
-**Which strand goes under? You decide, by lifting the pen.** Lift the pen across
-a crossing and the gap is bridged by an arc that dips under. That's the
-convention every hand-drawn knot diagram uses, so the tool never has to guess
-what you meant. Draw is therefore *not* a one-shot tool: it stays armed across
+**Which strand goes under? You decide.** Two ways to say it, and they raise the
+same per-point flag: lift the pen across the crossing, which bridges the gap with
+an arc that dips under — the convention every hand-drawn knot diagram uses — or
+hold **U** while drawing through it, which does the same without breaking the
+ink. Either way the tool never has to guess what you meant.
+
+`U` is held, not toggled, like ⇧ for a straight line. Nothing marks it in the
+flat drawing while you're mid-stroke; you read the crossing off the 3D once the
+stroke materialises, which is the same moment a pen lift becomes legible. Draw is therefore *not* a one-shot tool: it stays armed across
 pen lifts until a stroke ends near the strand's start, which closes it (or Enter
 finishes it open). The closing gap is a break like any other, so a trefoil is
 three breaks — three strokes, or one stroke with the pen lifted three times.
@@ -289,20 +294,6 @@ restore, so selections survive.
   "close curve" affordance later.
 
 ## Next (do not start these yet)
-
-- **`U` as a second way to go under.** Hold `U` while drawing through a crossing
-  and that pass goes *under* without lifting the pen — no break in the ink, same
-  result. Two ways to say the same thing: lift the pen, or hold `U`. Everything
-  not marked either way keeps rule 2, later goes over.
-
-  Cheap to build: the lift already takes a per-point flag (`isFill`) saying "this
-  bit goes under", and `U` would just set the same flag from the keyboard instead
-  of from a gap. The generalisation is to rename it — it stops being about fills.
-
-  The thing to decide first is what it *looks* like. Geometrically the tube still
-  has to dip, but the flat drawing has no gap, so the projection shows two
-  strands crossing with nothing marking which is which — the one convention every
-  knot diagram relies on. Held-down or a toggle is the smaller question.
 
 - **Click a crossing to flip it** after the fact.
 - Save / load — the `Scene` JSON above, plus import of standard knot formats.

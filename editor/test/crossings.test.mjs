@@ -209,6 +209,82 @@ check(
   'a crossing that already clears in depth is left flat',
 );
 
+// --- rule 1 without a pen lift: holding U -------------------------------------
+
+// A single unbroken stroke that crosses itself. Rule 2 alone sends the *earlier*
+// pass under. Marking the later pass instead — which is what holding U does —
+// has to override that, with no gap anywhere in the ink.
+const figureEight = Array.from({ length: 120 }, (_, i) => {
+  const t = (i / 119) * Math.PI * 2;
+  const d = 1 + Math.sin(t) ** 2;
+  return [(200 * Math.cos(t)) / d, (200 * Math.sin(t) * Math.cos(t)) / d];
+});
+const [{ first, second }] = findSelfCrossings(figureEight, false);
+
+const plain = liftStroke(figureEight, null, { separation: SEPARATION });
+check(
+  plain.crossings === 1 && plain.under === 0,
+  'unmarked: one crossing, decided by rule 2',
+  `${plain.under}/${plain.crossings}`,
+);
+check(
+  overUnderWalk(plain.points, false) === 'UO',
+  'and the earlier pass is the one that dives',
+  overUnderWalk(plain.points, false),
+);
+
+// Mark only the half of the stroke carrying the later pass.
+const cum = [0];
+for (let i = 1; i < figureEight.length; i++) {
+  const [a, b] = [figureEight[i - 1], figureEight[i]];
+  cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+}
+const held = cum.map((s) => s > (first + second) / 2);
+
+const marked = liftStroke(figureEight, held, { separation: SEPARATION });
+check(
+  marked.crossings === 1 && marked.under === 1,
+  'holding U marks the crossing as decided',
+  `${marked.under}/${marked.crossings}`,
+);
+check(
+  overUnderWalk(marked.points, false) === 'OU',
+  'and it flips which pass dives — no gap in the ink',
+  overUnderWalk(marked.points, false),
+);
+check(
+  Math.min(...marked.points.map((p) => p[2])) < -SEPARATION / 2,
+  'the strand really dips, it is not just relabelled',
+  `${Math.min(...marked.points.map((p) => p[2])).toFixed(1)}px`,
+);
+
+// Marking both passes says nothing, so it must fall back to rule 2 rather than
+// sending both under and leaving them at the same depth.
+const both = liftStroke(figureEight, figureEight.map(() => true), { separation: SEPARATION });
+check(
+  overUnderWalk(both.points, false) === 'UO' && both.under === 0,
+  'marking both passes says nothing, so rule 2 decides',
+  overUnderWalk(both.points, false),
+);
+
+// --- a crossing in the middle of a long segment -------------------------------
+
+// Two points is a legal stroke — Shift draws exactly that. If the crossing falls
+// between them, the segment still has to be subdivided or the dip never happens.
+const straight = liftStroke(
+  [[-200, 0], [200, 0]],
+  null,
+  {
+    separation: SEPARATION,
+    obstacles: [[[0, -100, 0], [0, 100, 0]]],
+  },
+);
+check(
+  straight.crossings === 1 && Math.max(...straight.points.map((p) => p[2])) > SEPARATION / 2,
+  'a crossing mid-segment still lifts the stroke',
+  `${straight.points.length} points, peak ${Math.max(...straight.points.map((p) => p[2])).toFixed(1)}px`,
+);
+
 // --- plain loops are untouched -----------------------------------------------
 
 const flat = draw([circle()], { closed: true });

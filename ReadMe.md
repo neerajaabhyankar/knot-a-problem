@@ -20,3 +20,4 @@ I'd like to make a "smart" knot editor. Capabilities included, but not limited t
 - And more...
 
 Basically, the user should feel like they have actual gravity-free strings in their hands.
+

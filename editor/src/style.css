@@ -58,10 +58,10 @@
   --t-lead: 16px;
   --t-title: 20px;
 
-  /* Height of a tool row, and therefore the side of a swatch square. Explicit
-     rather than derived: `aspect-ratio` against a stretched flex item resolves
-     to nothing in WebKit, which collapsed the squares to 2px wide. */
-  --tool-h: 34px;
+  /* Height of every toolbar button, and therefore the side of a swatch square.
+     Explicit rather than derived: `aspect-ratio` against a stretched flex item
+     resolves to nothing in WebKit, which collapsed the squares to 2px wide. */
+  --tool-h: 30px;
   --danger: #960b2e;
 }
 
@@ -223,7 +223,8 @@ kbd {
   align-items: center;
   gap: 9px;
   width: 100%;
-  padding: 5px 10px;
+  height: var(--tool-h); /* one height for the whole toolbar */
+  padding: 0 10px;
   font: inherit;
   color: var(--dim);
   background: transparent;
@@ -269,7 +270,7 @@ kbd {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   font-size: var(--t-label);
-  line-height: 1.5;
+  line-height: 1.45;
   /* Everything fits a normal window; a short one scrolls rather than spills. */
   min-height: 0;
   overflow-y: auto;

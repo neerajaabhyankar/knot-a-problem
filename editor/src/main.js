@@ -31,6 +31,10 @@ let selection = new Set();
 // only ever one direction to think about. See design-drawing.md.
 let live = null; // curve id, or null
 let pen = null; // [[px, py]] while the pointer is down
+// Points drawn with U held. `dedupe` and `rdp` return the very same point
+// objects rather than copies, so membership survives simplification untouched.
+let penUnder = new Set();
+let underHeld = false;
 let drawColor = DEFAULT_COLOR; // what the next strand gets
 let drawRadius = DEFAULT_RADIUS;
 let erase = null;
@@ -216,9 +220,9 @@ function updateStatus() {
 
   let hint;
   if (tool === 'draw') {
-    hint = live
-      ? 'continuing · every gap you leave goes under · come back to the other end to close'
-      : 'draw · lift the pen wherever the strand passes under';
+    if (underHeld) hint = '<b>under</b> &mdash; this stretch dives beneath whatever it crosses';
+    else if (live) hint = 'continuing · every gap you leave goes under · come back to the other end to close';
+    else hint = 'draw · lift the pen, or hold <b>U</b>, wherever the strand passes under';
   } else if (tool === 'erase') {
     hint = selection.size
       ? `rub to erase from <b>${selection.size}</b> selected · size <b>${eraserRadius}</b>px`
@@ -304,6 +308,13 @@ function penPoints() {
   return raw.length < 2 || pathLength(raw) < MIN_STROKE ? null : simplifyStroke(raw, 6, 4);
 }
 
+/** One pen sample, remembering whether U was held as it was made. */
+function mark(ev) {
+  const p = [ev.clientX, ev.clientY];
+  if (underHeld) penUnder.add(p);
+  return p;
+}
+
 function showPen() {
   const raw = dedupe(pen ?? [], 2);
   if (raw.length < 2) return viewer.clearPreview();
@@ -315,21 +326,23 @@ function showPen() {
  * Add one finished stroke to the live strand — or start a new strand with it.
  * The strand's existing points are never touched; this only ever appends.
  */
-function addStroke(stroke) {
+function addStroke(stroke, marked = new Set()) {
   const curve = liveCurve();
   // The far end of the strand — for a brand-new one, where this stroke began.
   const head = curve ? viewer.project(vec3(curve.points[0])) : stroke[0];
 
   // Splice the stroke onto the live end, filling the pen-up gap.
+  // A stretch goes under either because you lifted the pen across it, or because
+  // you held U while drawing it. Same flag, two ways to raise it.
   let pts = stroke;
-  let isFill = stroke.map(() => false);
+  let isUnder = stroke.map((p) => marked.has(p));
   let startDepth = 0;
 
   if (curve) {
     const tail = vec3(curve.points[curve.points.length - 1]);
     const fill = fillRun(viewer.project(tail), stroke[0], minGapPx());
     pts = [...fill, ...stroke];
-    isFill = [...fill.map(() => true), ...stroke.map(() => false)];
+    isUnder = [...fill.map(() => true), ...isUnder];
     startDepth = viewer.depthOf(tail);
   }
 
@@ -340,10 +353,10 @@ function addStroke(stroke) {
   if (closing) {
     const back = fillRun(last, head, minGapPx());
     pts = [...pts, ...back];
-    isFill = [...isFill, ...back.map(() => true)];
+    isUnder = [...isUnder, ...back.map(() => true)];
   }
 
-  const lifted = liftStroke(pts, isFill, {
+  const lifted = liftStroke(pts, isUnder, {
     startDepth,
     separation: separationPx(),
     obstacles: obstacles(),
@@ -388,11 +401,13 @@ function report({ crossings: n, under }, closed) {
 
 function endPenStroke() {
   const stroke = penPoints();
+  const marked = penUnder;
   pen = null;
+  penUnder = new Set();
   viewer.clearPreview();
   // Too short to be a stroke: that was a click, which finishes the strand.
   if (!stroke) return finishStrand();
-  addStroke(stroke);
+  addStroke(stroke, marked);
 }
 
 // ---------- erasing ----------
@@ -443,7 +458,7 @@ addEventListener(
     setTool('draw');
     setLive(handle.curveId, handle.end);
     downAt = [ev.clientX, ev.clientY];
-    pen = [[ev.clientX, ev.clientY]];
+    pen = [mark(ev)];
     canvas.setPointerCapture(ev.pointerId);
   },
   true,
@@ -454,7 +469,7 @@ canvas.addEventListener('pointerdown', (ev) => {
   downAt = [ev.clientX, ev.clientY];
   viewer.setDragging(true);
   if (tool === 'draw') {
-    pen = [[ev.clientX, ev.clientY]];
+    pen = [mark(ev)];
     canvas.setPointerCapture(ev.pointerId);
   } else if (tool === 'erase') {
     beginErase(ev);
@@ -471,8 +486,8 @@ canvas.addEventListener('pointermove', (ev) => {
 
   if (pen) {
     // Shift collapses the stroke to a straight run from where it began.
-    if (ev.shiftKey) pen = [pen[0], [ev.clientX, ev.clientY]];
-    else pen.push([ev.clientX, ev.clientY]);
+    if (ev.shiftKey) pen = [pen[0], mark(ev)];
+    else pen.push(mark(ev));
     showPen();
   } else if (erase) extendErase(ev);
 });
@@ -595,6 +610,10 @@ const PAN_KEYS = new Set(['Meta', 'Control', 'Shift']);
 
 addEventListener('keydown', (ev) => {
   if (PAN_KEYS.has(ev.key)) viewer.setPanHint(true);
+  if (ev.key === 'u' || ev.key === 'U') {
+    underHeld = true;
+    updateStatus();
+  }
 
   if (ev.metaKey || ev.ctrlKey) {
     const k = ev.key.toLowerCase();
@@ -640,8 +659,15 @@ addEventListener('keydown', (ev) => {
 
 addEventListener('keyup', (ev) => {
   if (PAN_KEYS.has(ev.key)) viewer.setPanHint(false);
+  if (ev.key === 'u' || ev.key === 'U') {
+    underHeld = false;
+    updateStatus();
+  }
 });
-addEventListener('blur', () => viewer.setPanHint(false));
+addEventListener('blur', () => {
+  viewer.setPanHint(false);
+  underHeld = false;
+});
 
 // ---------- go ----------
 

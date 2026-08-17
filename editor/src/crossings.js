@@ -3,8 +3,10 @@
 // A crossing needs one strand over and one under. Two rules decide which, in
 // this order:
 //
-//   1. Where you lifted the pen, the gap is FILLED with a straight run, and that
-//      fill goes UNDER. That is what a break means on paper.
+//   1. A stretch of strand can be marked to go UNDER. Two ways to mark it, and
+//      they mean exactly the same thing: lift the pen — the gap gets filled with
+//      a straight run, which is the break convention on paper — or hold U while
+//      drawing through the crossing.
 //   2. Otherwise the strand drawn later goes over — ink drawn later sits on top
 //      of ink already on the page.
 //
@@ -103,6 +105,7 @@ function crossingsWith(pts, cum, obstacle) {
 /**
  * Interior points of the straight run that fills a pen-up gap. A gap shorter
  * than `minGap` is a wobble rather than a break, so the strokes just join.
+ * Every point of a fill is marked under — that is what the break means.
  */
 export function fillRun(from, to, minGap = 0) {
   const dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
@@ -118,7 +121,8 @@ export function fillRun(from, to, minGap = 0) {
  * Give one new stroke its depth.
  *
  * @param pts       2D screen points of the new part — gap fill included.
- * @param isFill    per-point flag: true where this is a pen-up gap fill.
+ * @param isUnder   per-point flag: true where this stretch should pass under,
+ *                  whether that came from a pen lift or from holding U.
  * @param options
  *   separation  depth gap between over and under, in pixels
  *   startDepth  depth of the end this stroke grows from; it eases back to the
@@ -127,10 +131,10 @@ export function fillRun(from, to, minGap = 0) {
  *               finished part and every other curve
  *
  * Returns { points: [[x, y, depth]], crossings, under } — `under` counts the
- * crossings this stroke dives beneath, i.e. the ones your pen lift decided.
+ * crossings this stroke dives beneath, i.e. the ones you marked.
  * Depth is in pixels, positive toward the viewer.
  */
-export function liftStroke(pts, isFill, options = {}) {
+export function liftStroke(pts, isUnder, options = {}) {
   const { startDepth = 0, obstacles = [], separation = 60 } = options;
   const ramp = options.ramp ?? separation;
   const { cum, total } = arcLengths(pts, false);
@@ -138,52 +142,54 @@ export function liftStroke(pts, isFill, options = {}) {
   // The stroke lands on the draw plane, easing off the depth it grew from.
   const base = (s) => (startDepth ? startDepth * falloff(s / ramp) : 0);
 
-  // Pen-up gaps, as arclength intervals. A gap dives across its whole width,
-  // not just at the crossing: the two stroke ends that flank a break sit right
-  // beside the strand being crossed, and they have to clear it too.
-  const spans = [];
+  // The stretches marked under, as arclength intervals. A run dives across its
+  // whole width rather than only at the crossing: with a pen lift the two stroke
+  // ends flanking the gap sit right beside the strand being crossed and have to
+  // clear it too, and with U held the dip should span what you marked.
+  const runs = [];
   for (let i = 0; i < pts.length; i++) {
-    if (!isFill?.[i]) continue;
-    const last = spans[spans.length - 1];
+    if (!isUnder?.[i]) continue;
+    const last = runs[runs.length - 1];
     if (last && last[1] === cum[i - 1]) last[1] = cum[i];
-    else spans.push([cum[Math.max(0, i - 1)], cum[i]]);
+    else runs.push([cum[Math.max(0, i - 1)], cum[i]]);
   }
-  const spanAt = (seg) => spans.find(([s0, s1]) => cum[seg] >= s0 && cum[seg + 1] <= s1) ?? null;
+  const runAt = (seg) => runs.find(([s0, s1]) => cum[seg] >= s0 && cum[seg + 1] <= s1) ?? null;
 
   const constraints = [];
   let crossings = 0;
   let under = 0;
 
   /** A hollow (or hump) holding the strand at `depth` across `[s0, s1]`. */
-  const hold = (span, s, depth) => {
-    const [s0, s1] = span ?? [s, s];
+  const hold = (run, s, depth) => {
+    const [s0, s1] = run ?? [s, s];
     constraints.push({ s0, s1, depth, base: base((s0 + s1) / 2) });
   };
 
   // Against everything already drawn. We are the later strand, so rule 2 puts us
-  // over — unless this bit is a gap fill, and then rule 1 puts us under.
+  // over — unless this stretch is marked, and then rule 1 puts us under.
   for (const obstacle of obstacles) {
     for (const c of crossingsWith(pts, cum, obstacle)) {
       crossings++;
-      const span = spanAt(c.seg);
-      if (span) under++;
+      const run = runAt(c.seg);
+      if (run) under++;
       // Already clear of it in depth? Then it isn't really a crossing to fix.
       if (Math.abs(base(c.s) - c.depth) >= separation) continue;
-      hold(span, c.s, c.depth + (span ? -separation : separation));
+      hold(run, c.s, c.depth + (run ? -separation : separation));
     }
   }
 
-  // Against itself. Same two rules, read along the stroke.
+  // Against itself. Same two rules, read along the stroke. Marking both passes
+  // says nothing, so those fall through to rule 2 like an unmarked crossing.
   for (const c of findSelfCrossings(pts, false)) {
     crossings++;
-    const firstSpan = spanAt(c.firstSeg);
-    const secondSpan = spanAt(c.secondSeg);
-    let [dive, span] = [c.first, null]; // rule 2: the earlier pass goes under
-    if (Boolean(firstSpan) !== Boolean(secondSpan)) {
+    const firstRun = runAt(c.firstSeg);
+    const secondRun = runAt(c.secondSeg);
+    let [dive, run] = [c.first, null]; // rule 2: the earlier pass goes under
+    if (Boolean(firstRun) !== Boolean(secondRun)) {
       under++;
-      [dive, span] = firstSpan ? [c.first, firstSpan] : [c.second, secondSpan]; // rule 1
+      [dive, run] = firstRun ? [c.first, firstRun] : [c.second, secondRun]; // rule 1
     }
-    hold(span, dive, base(dive) - separation);
+    hold(run, dive, base(dive) - separation);
   }
 
   // Each constraint pulls the stroke off its base, easing back over one ramp.
@@ -199,23 +205,27 @@ export function liftStroke(pts, isFill, options = {}) {
   };
 
   // Subdivide only where the depth actually moves, so the spline can follow it.
+  // The test is against the whole segment, not its endpoints: a long straight
+  // run can have a crossing in its middle and two ends nowhere near it, and
+  // checking endpoints alone left that segment flat.
   const marks = constraints.flatMap((c) => [c.s0, c.s1]);
   if (startDepth) marks.push(0);
-  const nearMark = (s) => marks.some((m) => Math.abs(s - m) < ramp);
+  const touchesMark = (s0, s1) => marks.some((m) => m > s0 - ramp && m < s1 + ramp);
   const maxStep = ramp / 5;
 
   const out = [];
   for (let i = 0; i < pts.length - 1; i++) {
     const [a, b] = [pts[i], pts[i + 1]];
     const [s0, s1] = [cum[i], cum[i + 1]];
-    const steps = nearMark(s0) || nearMark(s1) ? Math.max(1, Math.ceil((s1 - s0) / maxStep)) : 1;
+    const steps = touchesMark(s0, s1) ? Math.max(1, Math.ceil((s1 - s0) / maxStep)) : 1;
     for (let k = 0; k < steps; k++) {
       const f = k / steps;
       const s = s0 + f * (s1 - s0);
       out.push([a[0] + f * (b[0] - a[0]), a[1] + f * (b[1] - a[1]), depthAt(s)]);
     }
   }
-  out.push([...pts[pts.length - 1], depthAt(total)]);
+  const end = pts[pts.length - 1];
+  out.push([end[0], end[1], depthAt(total)]);
 
   return { points: out, crossings, under };
 }
