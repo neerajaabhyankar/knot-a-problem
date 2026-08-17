@@ -10,6 +10,14 @@ import { mkdir } from 'node:fs/promises';
 import { trefoilPath, trefoilStrokes } from './trefoil.mjs';
 
 const APP_URL = process.env.URL ?? 'http://localhost:5173/';
+// Linux CI has no GPU. Firefox then refuses a WebGL context and the app throws
+// on startup, so say plainly that software rendering is fine.
+const FIREFOX_WEBGL = {
+  'webgl.force-enabled': true,
+  'webgl.disabled': false,
+  'webgl.disable-fail-if-major-performance-caveat': true,
+};
+
 const OUT = new URL('./out/', import.meta.url).pathname;
 const TUBE_RADIUS = 0.075;
 
@@ -105,7 +113,7 @@ const circlePath = (cx, cy, r, steps = 64) =>
 
 await mkdir(OUT, { recursive: true });
 
-const browser = await firefox.launch();
+const browser = await firefox.launch({ firefoxUserPrefs: FIREFOX_WEBGL });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
 const errors = [];

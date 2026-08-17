@@ -10,6 +10,14 @@
 import { firefox, webkit } from 'playwright';
 
 const APP_URL = process.env.URL ?? 'http://localhost:5173/';
+// Linux CI has no GPU. Firefox then refuses a WebGL context and the app throws
+// on startup, so say plainly that software rendering is fine.
+const FIREFOX_WEBGL = {
+  'webgl.force-enabled': true,
+  'webgl.disabled': false,
+  'webgl.disable-fail-if-major-performance-caveat': true,
+};
+
 
 const problems = [];
 function check(engine, ok, label, detail = '') {
@@ -18,7 +26,9 @@ function check(engine, ok, label, detail = '') {
 }
 
 for (const [name, engine] of [['firefox', firefox], ['webkit', webkit]]) {
-  const browser = await engine.launch();
+  const browser = await engine.launch(
+    name === 'firefox' ? { firefoxUserPrefs: FIREFOX_WEBGL } : {},
+  );
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
