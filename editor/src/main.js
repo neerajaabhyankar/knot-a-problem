@@ -7,10 +7,11 @@ import './style.css';
 
 import { Scene } from './model.js';
 import { DEFAULT_COLOR, DEFAULT_RADIUS, PALETTE } from './theme.js';
-import { Viewer, vec3 } from './viewer.js';
+import { Viewer, sampleCurve, vec3 } from './viewer.js';
 import { EraseSession } from './eraser.js';
 import { fillRun, liftStroke } from './crossings.js';
 import { dedupe, simplifyStroke } from './simplify.js';
+import { smooth } from './smooth.js';
 import { closeSwatch, colorSwatch, sizeSwatch } from './swatches.js';
 
 const canvas = document.getElementById('view');
@@ -37,6 +38,11 @@ let penUnder = new Set();
 let underHeld = false;
 let drawColor = DEFAULT_COLOR; // what the next strand gets
 let drawRadius = DEFAULT_RADIUS;
+let smoothAmount = 0.06; // how much of a strand the Smooth dial irons out
+// The strands Smooth is currently working on, and how they looked before it
+// started. Everything the dial does is recomputed from that, never stacked on
+// top of the last go — see smoothen.md.
+let smoothing = null;
 let erase = null;
 let downAt = null; // to tell a click apart from an orbit drag
 let eraserRadius = 20;
@@ -99,6 +105,7 @@ const HISTORY_LIMIT = 80;
 
 /** Snapshot the model *before* mutating it. */
 function record() {
+  smoothing = null; // any other edit ends the smoothing session
   past.push(model.toJSON());
   if (past.length > HISTORY_LIMIT) past.shift();
   future.length = 0;
@@ -122,6 +129,7 @@ function redo() {
 /** A strand that survived the step stays live, so you can undo a bad stroke and
  *  simply draw it again. */
 function afterHistory(label) {
+  smoothing = null; // the baseline it held no longer describes anything
   pen = null;
   viewer.clearPreview();
   if (live && !model.get(live)) live = null;
@@ -140,6 +148,7 @@ function updateHistoryButtons() {
 
 function setTool(next) {
   pen = null;
+  smoothing = null;
   closeSwatch();
   viewer.clearPreview();
   endLive();
@@ -160,8 +169,12 @@ function setSelection(ids) {
   selection = new Set(ids);
   viewer.setSelection(selection);
   selection = viewer.selection; // viewer drops ids that no longer exist
+  // Picking something else ends the smoothing session; re-selecting the same
+  // strands does not, because that is all `refresh()` does.
+  if (smoothing && !sameStrands(selection, smoothing.ids)) smoothing = null;
   viewer.updateHandles(model);
   btn('btn-delete').disabled = selection.size === 0;
+  btn('btn-smooth').disabled = selection.size === 0;
   eraserCursor.classList.toggle('disabled', tool === 'erase' && selection.size === 0);
   showSwatches();
   updateStatus();
@@ -556,6 +569,140 @@ confirmEl.addEventListener('click', (ev) => {
 
 // ---------- commands ----------
 
+// ---------- smoothing ----------
+//
+// The heat equation along each strand's own arclength, with a guard that makes
+// it impossible to pull one strand through another — so the knot survives and
+// the depths never need recomputing. All of that lives in smooth.js; the two
+// impure halves are here. See smoothen.md.
+//
+// Smooth is a dial, not a ratchet. Pressing it remembers how the selected
+// strands looked and applies the current amount; moving the slider then
+// recomputes from that same memory, so the result depends only on where the
+// slider is and never on how you got there. Slide back to 0 and you have the
+// strands you drew. One press plus all the fiddling after it is one undo step.
+
+const SMOOTH_SAMPLES = 320;
+/**
+ * Obstacles are sampled far more coarsely than the strand being smoothed. The
+ * guard measures point-to-*segment*, so a coarser polyline costs only its
+ * sagitta — about 0.001 world units on a hand-drawn loop, against a minimum gap
+ * of 0.225 — while the cost of a round is dominated by exactly this number.
+ */
+const OBSTACLE_SAMPLES = 120;
+const SMOOTH_MAX = 0.4; // the top of the dial, and the one place that number lives
+
+/**
+ * How hard strands shove each other apart, ramped in with the dial. At the
+ * bottom this is 0 and Smooth is pure local tidying that leaves everything
+ * where you drew it. At the top the strands actively get out of each other's
+ * way, which is the only thing that can flatten a crossing — the hop *is* what
+ * holds two strands apart, so nothing can remove it until distance does that
+ * job instead. See smoothen.md.
+ *
+ * Squared rather than linear so the bottom of the dial stays honestly local —
+ * and cheap, since shoving costs two all-pairs distance sweeps per round.
+ */
+const spreadAt = (amount) => Math.min(1, Math.max(0, amount / SMOOTH_MAX)) ** 2;
+
+/**
+ * How close smoothing may bring two strand centre-lines. Tubes touch at 2× the
+ * radius and a crossing is drawn at 4×, so 3× leaves visible daylight in a
+ * crossing without freezing the flow the moment it meets one.
+ */
+const smoothGap = (radius) => 3 * radius;
+
+const sameStrands = (ids, list) => ids.size === list.length && list.every((id) => ids.has(id));
+
+/** A curve as smooth.js wants it: a dense world-space polyline off the spline
+ *  you are actually looking at, not its sparse control polygon. */
+function densePath(curve, samples = SMOOTH_SAMPLES) {
+  const pts = sampleCurve(curve, samples).map((v) => [v.x, v.y, v.z]);
+  if (curve.closed && pts.length) pts.push(pts[0]); // obstacles need the seam
+  return pts;
+}
+
+/** Take hold of the selection and put the dial where the user can reach it. */
+function beginSmooth() {
+  const picked = [...selection].map((id) => model.get(id)).filter(Boolean);
+  if (!picked.length) {
+    return flashStatus('select a strand first — smoothing works on what you pick');
+  }
+  record(); // clears any previous session, and makes this one a single undo step
+  smoothing = {
+    ids: picked.map((c) => c.id),
+    was: new Map(picked.map((c) => [c.id, structuredClone(c.points)])),
+  };
+  applySmooth();
+  smoothSwatch.show();
+}
+
+/** Rebuild the selection at the current amount, always from how it was. */
+function applySmooth() {
+  if (!smoothing) return;
+  for (const [id, points] of smoothing.was) {
+    const curve = model.get(id);
+    if (curve) curve.points = structuredClone(points);
+  }
+
+  const spread = spreadAt(smoothAmount);
+  // Strands are done one at a time, each against the others as they currently
+  // stand — so the first one moves before the others know about it. Once they
+  // are shoving each other that lopsidedness shows, and the fix is simply to go
+  // round again: the first strand gets its second go against neighbours that
+  // have now moved too. Three sweeps takes the linked-triangles case from
+  // "barely changed" to flat. Only worth paying for when there is shoving.
+  const sweeps = 1 + Math.round(2 * spread);
+
+  let held = 0;
+  let done = 0;
+  for (let sweep = 0; sweep < sweeps; sweep++) {
+    held = 0;
+    done = 0;
+    for (const id of smoothing.ids) {
+      const curve = model.get(id);
+      if (!curve || curve.points.length < 3 || smoothAmount <= 0) continue;
+      const dense = densePath(curve);
+      if (curve.closed) dense.pop(); // it is the strand now, not an obstacle
+      if (dense.length < 4) continue;
+
+      const result = smooth(dense, {
+        closed: curve.closed,
+        amount: smoothAmount,
+        obstacles: model.curves
+          .filter((c) => c !== curve)
+          .map((c) => densePath(c, OBSTACLE_SAMPLES))
+          .filter((p) => p.length > 1),
+        minGap: smoothGap(curve.radius ?? DEFAULT_RADIUS),
+        spread,
+      });
+      if (result.points.length >= (curve.closed ? 3 : 2)) curve.points = result.points;
+      held += result.blocked;
+      done++;
+    }
+  }
+
+  refresh();
+  const n = smoothing.ids.length;
+  const what = `<b>${n}</b> strand${n === 1 ? '' : 's'}`;
+  if (!done) return flashStatus(`${what} &nbsp;&middot;&nbsp; back to how you drew ${n === 1 ? 'it' : 'them'}`);
+  flashStatus(
+    `smoothed ${what} &nbsp;&middot;&nbsp; ${held ? 'held back where they cross' : 'slide to taste'}`,
+  );
+}
+
+// Rebuilding tube geometry is not free, and the slider fires all the way
+// through a drag; coalesce to one rebuild per frame, like the eraser does.
+let smoothQueued = false;
+function queueSmooth() {
+  if (!smoothing || smoothQueued) return;
+  smoothQueued = true;
+  requestAnimationFrame(() => {
+    smoothQueued = false;
+    applySmooth();
+  });
+}
+
 async function deleteSelected() {
   if (!selection.size) return;
   // One curve goes without ceremony; a bulk delete asks first.
@@ -599,6 +746,7 @@ for (const b of document.querySelectorAll('#toolbar .tool')) {
 
 btn('btn-undo').addEventListener('click', undo);
 btn('btn-redo').addEventListener('click', redo);
+btn('btn-smooth').addEventListener('click', beginSmooth);
 btn('btn-delete').addEventListener('click', deleteSelected);
 btn('btn-clear').addEventListener('click', clearAll);
 btn('btn-help').addEventListener('click', () => helpEl.classList.toggle('hidden'));
@@ -648,6 +796,7 @@ addEventListener('keydown', (ev) => {
   else if (k === 's' || k === 'S') setTool('select');
   else if (k === 'e' || k === 'E') setTool('erase');
   else if (k === 'f' || k === 'F') frameAll();
+  else if (k === 'm' || k === 'M') beginSmooth();
   else if (k === 'Delete' || k === 'Backspace') {
     ev.preventDefault();
     deleteSelected();
@@ -698,11 +847,36 @@ const selSize = sizeSwatch(
   (r) => editSelection({ radius: r }),
 );
 
+// The dose, as a fraction of the strand's own length — scale-free, so it means
+// the same thing however big you drew and whatever the zoom.
+const smoothSwatch = sizeSwatch(
+  btn('sw-smooth'),
+  {
+    min: 0, // all the way down is the strand exactly as it was drawn
+    max: SMOOTH_MAX,
+    step: 0.01,
+    value: smoothAmount,
+    label: 'Amount',
+    format: (v) => `${Math.round(v * 100)}%`,
+  },
+  (v) => {
+    smoothAmount = v;
+    queueSmooth();
+  },
+);
+
 const eraseSizeSwatch = sizeSwatch(
   btn('sw-erase-size'),
   { min: 6, max: 90, step: 2, value: eraserRadius, format: (r) => `${r}px` },
   (r) => setEraserRadius(r),
 );
+
+/** Move the dial from outside the panel — the keyboard, or a test. */
+function setSmooth(v) {
+  smoothSwatch.set(v);
+  smoothAmount = smoothSwatch.get();
+  applySmooth();
+}
 
 // The pan modifier is ⌘ on a Mac and Ctrl everywhere else.
 if (!/Mac/i.test(navigator.platform || '')) btn('sc-pan').textContent = 'Ctrl drag';
@@ -719,4 +893,4 @@ updateHistoryButtons();
 
 // Handy for poking at the model from the console, and a first sketch of the
 // tool surface that level (b)'s agent will eventually drive.
-globalThis.knot = { model, viewer, refresh, setTool, setSelection, undo, redo, frameAll };
+globalThis.knot = { model, viewer, refresh, setTool, setSelection, undo, redo, frameAll, smoothen: beginSmooth, setSmooth };

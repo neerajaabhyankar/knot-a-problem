@@ -537,6 +537,128 @@ await orbit(page, 150, 55);
 await page.screenshot({ path: OUT + '3-trefoil-pen-lifts.png' });
 
 // ===========================================================================
+// 4b. Smoothing is a dial, and it leaves the knot knotted
+// ===========================================================================
+//
+// The camera has been orbited away from the plane the trefoil was drawn on, so
+// this also checks that smoothing never looks at the camera.
+
+await page.keyboard.press('s');
+await page.waitForTimeout(80);
+check(
+  await page.evaluate(() => document.getElementById('btn-smooth').disabled),
+  'Smooth is off until something is selected',
+);
+
+await page.keyboard.press('a');
+await page.waitForTimeout(80);
+check(
+  await page.evaluate(() => !document.getElementById('btn-smooth').disabled),
+  'and on once a strand is picked',
+);
+
+/** Every control point, in one number — for "did this land in exactly the same
+ *  place" questions, where a tolerance would be lying. */
+const shape = () =>
+  page.evaluate(() => {
+    const p = globalThis.knot.model.curves[0].points;
+    return `${p.length}:${p.flat().reduce((a, v, i) => a + v * (i + 1), 0).toFixed(9)}`;
+  });
+
+/**
+ * Total turning: the sum of every turn the strand makes. Unlike the mean it
+ * doesn't move when the point count changes, and it has a floor — Fary-Milnor
+ * puts any knot above 4pi, so a strand that quietly untied itself would fall
+ * through it.
+ */
+const turning = () =>
+  page.evaluate(() => {
+    const p = globalThis.knot.model.curves[0].points;
+    let sum = 0;
+    for (let i = 0; i < p.length; i++) {
+      const a = p[(i - 1 + p.length) % p.length], b = p[i], c = p[(i + 1) % p.length];
+      const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+      const v = [c[0] - b[0], c[1] - b[1], c[2] - b[2]];
+      const du = Math.hypot(...u), dv = Math.hypot(...v);
+      if (!du || !dv) continue;
+      const dot = (u[0] * v[0] + u[1] * v[1] + u[2] * v[2]) / (du * dv);
+      sum += Math.acos(Math.max(-1, Math.min(1, dot)));
+    }
+    return sum;
+  });
+
+const dial = async (v) => {
+  await page.evaluate((x) => globalThis.knot.setSmooth(x), v);
+  await page.waitForTimeout(60);
+};
+
+const asDrawn = await shape();
+const turnBefore = await turning();
+
+await page.click('#btn-smooth');
+await page.waitForTimeout(200);
+check(
+  await page.evaluate(() => !!document.querySelector('.panel.open')),
+  'pressing Smooth leaves its dial open, ready to adjust',
+);
+
+const turnAfter = await turning();
+check(turnAfter < turnBefore, 'smoothing takes the kinks out',
+  `total turning ${turnBefore.toFixed(2)} → ${turnAfter.toFixed(2)} rad`);
+check(
+  turnAfter > 4 * Math.PI,
+  'and it still turns more than the 4\u03c0 a knot needs',
+  `${turnAfter.toFixed(2)} vs ${(4 * Math.PI).toFixed(2)}`,
+);
+check((await curveCount(page)) === 1, 'and leaves one strand, still closed');
+check(await page.evaluate(() => globalThis.knot.model.curves[0]?.closed === true), 'still a loop');
+check(
+  (await selfDistance(page)) > 2 * TUBE_RADIUS,
+  'the smoothed tubes still do not intersect',
+  `min separation ${(await selfDistance(page)).toFixed(3)} vs tube diameter ${(2 * TUBE_RADIUS).toFixed(3)}`,
+);
+
+// If it had quietly untied itself it would have flattened into a plain loop.
+const spreadAfter = await page.evaluate(() => {
+  const c = globalThis.knot.model.curves[0];
+  const plane = globalThis.knot.viewer.drawPlaneObject();
+  const d = c.points.map(([x, y, z]) => plane.normal.dot({ x, y, z }) + plane.constant);
+  return Math.max(...d) - Math.min(...d);
+});
+check(
+  spreadAfter > 2 * TUBE_RADIUS,
+  'and the crossings are still there — it did not untie itself',
+  `depth spread ${spreadAfter.toFixed(3)}`,
+);
+await page.screenshot({ path: OUT + '3b-trefoil-smoothed.png' });
+
+// The dial has to be a dial: where it points is the whole answer, and how it
+// got there is not part of it.
+await dial(0.3);
+const firstTime = await shape();
+for (const v of [0.01, 0.4, 0.12, 0.05, 0.3]) await dial(v);
+check(
+  (await shape()) === firstTime,
+  'the same amount gives the same strand however you got there',
+  firstTime.slice(0, 22),
+);
+
+await dial(0);
+check(
+  (await shape()) === asDrawn,
+  'and sliding back to 0 gives back exactly the strand that was drawn',
+  `${(await shape()).slice(0, 22)} vs ${asDrawn.slice(0, 22)}`,
+);
+
+await dial(0.25);
+await page.keyboard.press('Meta+z');
+await page.waitForTimeout(180);
+check(
+  (await shape()) === asDrawn,
+  'one undo clears the press and all the fiddling after it',
+);
+
+// ===========================================================================
 // 5. Eraser only touches the selection
 // ===========================================================================
 

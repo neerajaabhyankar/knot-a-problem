@@ -90,14 +90,15 @@ export function colorSwatch(swatch, onChange) {
 
 /**
  * A size swatch: a slider, and the square itself previews the size as a dot.
- * `format` turns the raw value into the caption.
+ * `format` turns the raw value into the caption; `label` names what is being
+ * set, since not every one of these is a size.
  */
-export function sizeSwatch(swatch, { min, max, step, value, format }, onChange) {
+export function sizeSwatch(swatch, { min, max, step, value, format, label = 'Size' }, onChange) {
   const el = document.createElement('div');
   el.className = 'panel';
   el.innerHTML = `
     <label class="strip">
-      <span>Size</span>
+      <span>${label}</span>
       <output></output>
       <input type="range" min="${min}" max="${max}" step="${step}" />
     </label>`;
@@ -129,5 +130,13 @@ export function sizeSwatch(swatch, { min, max, step, value, format }, onChange) 
   swatch.addEventListener('click', () => toggle(swatch, el));
 
   set(value, false);
-  return { get: () => current, set: (v) => set(v, false), el };
+  return {
+    get: () => current,
+    set: (v) => set(v, false),
+    // Open it without the toggle, for a command that wants its dial to hand.
+    show: () => {
+      if (openPanel?.swatch !== swatch) toggle(swatch, el);
+    },
+    el,
+  };
 }

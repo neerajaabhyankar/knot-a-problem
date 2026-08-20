@@ -42,6 +42,12 @@
           <span class="ico">↷</span><span class="lbl">Redo</span>
         </button>
         <div class="sep"></div>
+        <div class="tool-row">
+          <button id="btn-smooth" title="Iron the kinks out of the selected strands, then slide to taste (M)">
+            <span class="ico">≈</span><span class="lbl">Smooth</span>
+          </button>
+          <button id="sw-smooth" class="swatch" title="How much of the strand gets ironed out — slide to 0 for the strand as you drew it"></button>
+        </div>
         <button id="btn-delete" title="Delete selection (Del)">
           <span class="ico">✕</span><span class="lbl">Delete</span>
         </button>
@@ -89,6 +95,7 @@
           <h3>Edit</h3>
           <div class="row"><span>Undo</span><kbd>⌘Z</kbd></div>
           <div class="row"><span>Redo</span><kbd>⇧⌘Z</kbd></div>
+          <div class="row"><span>Smooth</span><kbd>M</kbd></div>
           <div class="row"><span>Delete</span><kbd>Del</kbd></div>
           <div class="row"><span>Select all</span><kbd>A</kbd></div>
           <div class="row"><span>Add to selection</span><kbd>⇧ click</kbd></div>
@@ -146,6 +153,23 @@
           beside <b>Select</b> change the strands you've picked. Nine presets, or
           slide the hue for anything in between &mdash; every colour sits at the
           same saturation, so none of them will fight the rest.
+        </p>
+      </details>
+
+      <details>
+        <summary>Smoothing</summary>
+        <p>
+          <b>Smooth</b> irons the kinks out of whatever you've selected, then
+          leaves its square open so you can <b>slide to taste</b> &mdash; a
+          little cleans up a shaky line, a lot rounds a polygon off into a
+          circle, and sliding back to <b>0</b> gives you the strand exactly as
+          you drew it. The slider always works from that, never from the last
+          go, so you can hunt for the right amount without it running away.
+        </p>
+        <p>
+          It can never pull a strand through another one, so a knot stays the
+          knot it was &mdash; it just goes slack where it's loose and holds
+          where it's tight.
         </p>
       </details>
 

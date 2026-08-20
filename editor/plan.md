@@ -14,7 +14,7 @@ out as an embedded curve with all three crossings decided by the lifts. Screensh
 land in `test/out/`.
 
 Since then: multi-stroke drawing with pen lifts, undo/redo, an eraser, endpoint
-extension, and straight lines.
+extension, straight lines, per-strand colour and thickness, and smoothing.
 
 Still not done: presets, save/load, dragging control points, projections, surfaces,
 mobile/touch.
@@ -29,12 +29,15 @@ src/model.js            Scene / Curve — the data model levels (b) and (c) will
 src/crossings.js        one stroke + what's on screen → depth (the lift)
 src/eraser.js           rub-to-erase, splitting strands into surviving runs
 src/simplify.js         screen-space polyline maths (dedupe, RDP, loop closing)
+src/smooth.js           the heat equation along a strand, with a collision guard
 src/swatches.js         the colour / size squares and the panels they open
 src/theme.js            reads style.css back out — palette, radius, S/L
 test/crossings.test.mjs unit tests for the lift — no browser needed
+test/smooth.test.mjs    unit tests for smoothing — no browser needed
 test/smoke.mjs          Playwright/Firefox end-to-end check
 test/browsers.mjs       layout + theme in Firefox *and* WebKit
 design-drawing.md       the drawing flow, written down
+smoothen.md             smoothing: why one slider covers it, why knots survive
 ```
 
 ## Decisions made
@@ -132,6 +135,66 @@ near an existing link would break it rather than draw it.
 Not yet done: **flipping an individual crossing after the fact**. Pen lifts cover
 it while drawing; afterwards you erase back to it and redraw.
 
+## Smoothing
+
+Select strands, press **Smooth**, and the kinks go. One slider, an amount
+expressed as a fraction of the strand's own length, because diffusion is a
+low-pass filter and `exp(-4k²a²)` separates hand tremor from shape hard enough
+that there is nothing else to tune.
+
+**Past halfway the strands also shove each other apart.** Smoothing alone can
+never take a crossing out — the hop *is* what holds two strands apart, so the
+guard stops the flow dead there and turning the dial up does nothing. The way
+out is distance: two flat triangles can be linked like two links of a chain if
+they sit in different planes. So at the top of the dial each strand gets a
+rigid drift and tilt away from whatever it is touching, which costs no shape at
+all, and a damped local push on top for knots that have to open themselves. The
+guard still forbids passing through, and a shove that walks a point into a third
+strand is rolled back, so the link type survives. What you cannot have is flat
+*and* still a polygon — see `smoothen.md` §6b.
+
+**It is a dial, not a ratchet.** Pressing Smooth remembers how the strands
+looked, applies the current amount and leaves the square open; moving the slider
+recomputes from that memory rather than from the last result. So the amount you
+land on is the whole answer — the same number always gives the same strand, and
+sliding back to 0 gives back the control points you drew, exactly. The press and
+all the fiddling after it are one undo step. A session ends the moment you touch
+anything else.
+
+It cannot pull a strand through another one: every point's motion is rationed to
+45 % of its slack to the nearest thing it isn't continuous with, so two
+approaching strands close at most 90 % of the gap and never meet. That makes the
+knot and link type survive by construction, which is why smoothing never
+re-runs the lift — the crossings it had are the crossings it keeps. Loose parts
+go clean and round; tight crossings simply hold.
+
+Full reasoning, including the three ways the test fixture lied before it was
+fixed, in `smoothen.md`.
+
+**Built in this order** — all done:
+
+1. `smoothen.md` — pick the approach and argue it before writing any of it.
+2. `src/smooth.js` — pure polyline maths, no three.js, no DOM, no model.
+3. `test/smooth.test.mjs` — 27 checks in node, including a Hopf link that has to
+   still be a Hopf link afterwards.
+4. Wire it in last, once the maths was settled: one button, one square, `M`,
+   `beginSmooth()` / `applySmooth()` in `main.js` owning the two impure ends
+   (spline sample in, `record()` / `refresh()` out) and the remembered baseline
+   that makes the slider a dial.
+5. Browser coverage — a section in `smoke.mjs` that smooths the pen-lifted
+   trefoil and checks it stays knotted, and the new square added to
+   `browsers.mjs`'s cross-engine geometry check.
+
+Four things only measurement caught, each of which had looked fine:
+
+- the guard fired on a triangle's *corners* and throttled the whole flow — it is
+  off entirely when there is no `minGap` to hold;
+- open strands were getting a quarter of the dose they should, because an arc's
+  longest feature is two laps, not one;
+- decimating the output cost more clearance than it saved (see the risk below);
+- and three separate flaws in the test fixture itself, which is the part worth
+  re-reading in `smoothen.md` §6.
+
 ## Data model
 
 The one thing that must not be sloppy, because levels (b) and (c) build on it.
@@ -192,7 +255,8 @@ looking around.
                         continue a strand grab an end handle
                         finish            Enter, Esc, or a click on empty space
 
-  edit                  undo / redo       ⌘Z / ⇧⌘Z      (one stroke at a time)
+  edit                  smooth            M             (then slide to taste)
+                        undo / redo       ⌘Z / ⇧⌘Z      (one stroke at a time)
                         delete            Del           (asks first if >1)
                         select all        A
                         add to selection  ⇧ click
@@ -287,6 +351,12 @@ restore, so selections survive.
   camera. Alternating diagrams bounce between two levels and don't drift.
 - **No way to flip a crossing after drawing it.** Pen lifts are the only control,
   so fixing a mistake means redrawing the strand.
+- **Smoothing keeps every point it works with** — 48 to 240 per strand, against
+  the 30-odd a hand stroke simplifies to. Decimating them back down was tried
+  and removed: RDP chords across a crossing and the spline bulges outside the
+  control polygon it is checked on, so six presses walked a trefoil's tightest
+  crossing past the point where the tubes touch. Cheaper control points are not
+  worth clearance.
 - **Extending a strand is a single stroke** — no pen lifts while extending, so a
   continuation can't be told to pass under.
 - **Safari + WebGL2** quirks; check early, keep the render path boring.
@@ -301,4 +371,9 @@ restore, so selections survive.
 - Insert / delete points on an existing curve.
 - Projection views: snap camera to a nice minimal-crossing projection; 2D diagram mode.
 - Coloring, naming, per-component visibility.
-- Relaxation / energy minimization to clean up hand-drawn strands.
+- **Planarisation**: pull a strand onto its own best-fit plane, guard-limited.
+  The one thing that would give flat *and* still-a-polygon, since it flattens
+  without smoothing. Needs a decision first: it pulls the opposite way for a
+  self-crossing knot, which can never be planar.
+- Extend the dial idea to the other selection edits — colour and thickness are
+  still fire-and-forget.

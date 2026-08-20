@@ -46,7 +46,7 @@ for (const [name, engine] of [['firefox', firefox], ['webkit', webkit]]) {
     const rail = document.getElementById('rail').getBoundingClientRect();
     const tool = box('[data-tool="draw"]');
     return {
-      swatches: ['#sw-draw-color', '#sw-draw-size'].map(box),
+      swatches: ['#sw-draw-color', '#sw-draw-size', '#sw-smooth'].map(box),
       toolHeight: tool.h,
       railRight: rail.right,
     };
