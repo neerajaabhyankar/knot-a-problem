@@ -60,7 +60,7 @@ async function orbit(page, dx, dy = 0) {
   await page.waitForTimeout(400); // let damping settle
 }
 
-const curveCount = (page) => page.evaluate(() => globalThis.knot.model.curves.length);
+const curveCount = (page) => page.evaluate(() => globalThis.knot.internals.model.curves.length);
 
 /**
  * Closest the first curve comes to itself, in world units. Points that are
@@ -70,7 +70,7 @@ const curveCount = (page) => page.evaluate(() => globalThis.knot.model.curves.le
  */
 const selfDistance = (page) =>
   page.evaluate(() => {
-    const c = globalThis.knot.model.curves[0];
+    const c = globalThis.knot.internals.model.curves[0];
     const n = 500;
     const pts = Array.from({ length: n }, (_, i) => {
       const t = (i / n) * c.points.length;
@@ -129,11 +129,11 @@ await page.click('#help-close');
 await page.waitForTimeout(300);
 
 check(
-  await page.evaluate(() => !!globalThis.knot && !!globalThis.knot.viewer.renderer),
+  await page.evaluate(() => !!globalThis.knot && !!globalThis.knot.internals.viewer.renderer),
   'app booted, WebGL context created',
 );
 check(
-  await page.evaluate(() => globalThis.knot.viewer.tool === 'select'),
+  await page.evaluate(() => globalThis.knot.internals.viewer.tool === 'select'),
   'starts in Select mode',
 );
 
@@ -305,11 +305,11 @@ await page.keyboard.press('s');
 await drawStrand(page, [circlePath(640, 400, 170)]);
 check((await curveCount(page)) === 1, 'first strand made one curve');
 check(
-  await page.evaluate(() => globalThis.knot.model.curves[0].closed),
+  await page.evaluate(() => globalThis.knot.internals.model.curves[0].closed),
   'ending back at the start closed the loop',
 );
 check(
-  await page.evaluate(() => globalThis.knot.viewer.tool === 'select' && !globalThis.knot.viewer.liveId),
+  await page.evaluate(() => globalThis.knot.internals.viewer.tool === 'select' && !globalThis.knot.internals.viewer.liveId),
   'closing the strand releases it and hands the tool back to Select',
 );
 
@@ -319,7 +319,7 @@ await orbit(page, page.viewportSize().height / 4);
 // is what the second loop has to be drawn around, so the test works it out the
 // same way your eye does — the app itself no longer marks these.
 const pierces = await page.evaluate(() => {
-  const { viewer, model } = globalThis.knot;
+  const { viewer, model } = globalThis.knot.internals;
   const plane = viewer.drawPlaneObject();
   const pts = model.curves[0].points;
   const side = (p) => plane.normal.dot({ x: p[0], y: p[1], z: p[2] }) + plane.constant;
@@ -346,7 +346,7 @@ if (pierces.length === 2) await drawStrand(page, [circlePath(pierces[0][0], pier
 check((await curveCount(page)) === 2, 'second strand made a second curve');
 
 const lk = await page.evaluate(() => {
-  const { model } = globalThis.knot;
+  const { model } = globalThis.knot.internals;
   if (model.curves.length < 2) return null;
   const sample = (c) => {
     const p = c.points;
@@ -417,7 +417,7 @@ check((await curveCount(page)) === 2, 'redo brings the other back');
 
 await page.keyboard.press('a');
 check(
-  await page.evaluate(() => globalThis.knot.viewer.selection.size === 2),
+  await page.evaluate(() => globalThis.knot.internals.viewer.selection.size === 2),
   'select-all picks up both curves',
 );
 
@@ -441,8 +441,7 @@ await page.waitForTimeout(200);
 check((await curveCount(page)) === 2, 'delete is undoable');
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 
 // ===========================================================================
@@ -464,8 +463,7 @@ check(
 );
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 
 // Now with three breaks, which is what actually makes it a trefoil.
@@ -478,7 +476,7 @@ check(strokes.length === 3, 'a trefoil is three strokes and three pen lifts',
 await page.keyboard.press('d');
 await stroke(page, strokes[0]);
 const midStrand = await page.evaluate(() => {
-  const { model, viewer } = globalThis.knot;
+  const { model, viewer } = globalThis.knot.internals;
   return {
     curves: model.curves.length,
     meshes: viewer.meshes.size,
@@ -503,7 +501,7 @@ for (const s of strokes.slice(1)) await stroke(page, s);
 await page.waitForTimeout(180);
 check((await curveCount(page)) === 1, 'the pen-lifted trefoil made one closed strand');
 check(
-  await page.evaluate(() => globalThis.knot.model.curves[0]?.closed === true),
+  await page.evaluate(() => globalThis.knot.internals.model.curves[0]?.closed === true),
   'and the third lift closed it',
 );
 
@@ -515,8 +513,8 @@ check(
 );
 
 const spread = await page.evaluate(() => {
-  const c = globalThis.knot.model.curves[0];
-  const plane = globalThis.knot.viewer.drawPlaneObject();
+  const c = globalThis.knot.internals.model.curves[0];
+  const plane = globalThis.knot.internals.viewer.drawPlaneObject();
   const depth = c.points.map(([x, y, z]) => plane.normal.dot({ x, y, z }) + plane.constant);
   return Math.max(...depth) - Math.min(...depth);
 });
@@ -562,7 +560,7 @@ check(
  *  place" questions, where a tolerance would be lying. */
 const shape = () =>
   page.evaluate(() => {
-    const p = globalThis.knot.model.curves[0].points;
+    const p = globalThis.knot.internals.model.curves[0].points;
     return `${p.length}:${p.flat().reduce((a, v, i) => a + v * (i + 1), 0).toFixed(9)}`;
   });
 
@@ -574,7 +572,7 @@ const shape = () =>
  */
 const turning = () =>
   page.evaluate(() => {
-    const p = globalThis.knot.model.curves[0].points;
+    const p = globalThis.knot.internals.model.curves[0].points;
     let sum = 0;
     for (let i = 0; i < p.length; i++) {
       const a = p[(i - 1 + p.length) % p.length], b = p[i], c = p[(i + 1) % p.length];
@@ -589,7 +587,7 @@ const turning = () =>
   });
 
 const dial = async (v) => {
-  await page.evaluate((x) => globalThis.knot.setSmooth(x), v);
+  await page.evaluate((x) => globalThis.knot.internals.setSmooth(x), v);
   await page.waitForTimeout(60);
 };
 
@@ -612,7 +610,7 @@ check(
   `${turnAfter.toFixed(2)} vs ${(4 * Math.PI).toFixed(2)}`,
 );
 check((await curveCount(page)) === 1, 'and leaves one strand, still closed');
-check(await page.evaluate(() => globalThis.knot.model.curves[0]?.closed === true), 'still a loop');
+check(await page.evaluate(() => globalThis.knot.internals.model.curves[0]?.closed === true), 'still a loop');
 check(
   (await selfDistance(page)) > 2 * TUBE_RADIUS,
   'the smoothed tubes still do not intersect',
@@ -621,8 +619,8 @@ check(
 
 // If it had quietly untied itself it would have flattened into a plain loop.
 const spreadAfter = await page.evaluate(() => {
-  const c = globalThis.knot.model.curves[0];
-  const plane = globalThis.knot.viewer.drawPlaneObject();
+  const c = globalThis.knot.internals.model.curves[0];
+  const plane = globalThis.knot.internals.viewer.drawPlaneObject();
   const d = c.points.map(([x, y, z]) => plane.normal.dot({ x, y, z }) + plane.constant);
   return Math.max(...d) - Math.min(...d);
 });
@@ -664,8 +662,7 @@ check(
 // ===========================================================================
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 await drawStrand(page, [circlePath(640, 400, 170)]);
 await page.keyboard.press('Escape'); // clear selection
@@ -677,7 +674,7 @@ await stroke(page, [
   [810, 420],
 ]);
 check(
-  await page.evaluate(() => globalThis.knot.model.curves[0]?.closed === true),
+  await page.evaluate(() => globalThis.knot.internals.model.curves[0]?.closed === true),
   'with nothing selected the eraser does nothing',
 );
 
@@ -692,7 +689,7 @@ await stroke(page, [
 await page.waitForTimeout(300);
 
 const erased = await page.evaluate(() => {
-  const cs = globalThis.knot.model.curves;
+  const cs = globalThis.knot.internals.model.curves;
   return { n: cs.length, closed: cs.map((c) => c.closed) };
 });
 check(erased.n === 1 && erased.closed[0] === false, 'erasing a selected loop leaves an open arc',
@@ -711,7 +708,7 @@ await page.keyboard.press('a');
 await page.waitForTimeout(150);
 
 const handles = await page.evaluate(() =>
-  globalThis.knot.viewer.handles.map((h) => ({ end: h.end, live: h.live, at: globalThis.knot.viewer.project(h.position) })),
+  globalThis.knot.internals.viewer.handles.map((h) => ({ end: h.end, live: h.live, at: globalThis.knot.internals.viewer.project(h.position) })),
 );
 check(handles.length === 2, 'the cut strand shows two endpoint handles', `handles=${handles.length}`);
 check(
@@ -725,7 +722,7 @@ if (handles.length === 2) {
   await page.waitForTimeout(80);
 }
 check(
-  await page.evaluate(() => globalThis.knot.viewer.hotHandle !== null),
+  await page.evaluate(() => globalThis.knot.internals.viewer.hotHandle !== null),
   'pointing at a handle marks it hot',
 );
 if (handles.length === 2) {
@@ -737,7 +734,7 @@ if (handles.length === 2) {
 }
 check(
   await page.evaluate(() => {
-    const { viewer } = globalThis.knot;
+    const { viewer } = globalThis.knot.internals;
     const hot = viewer.handles.find((h) => `${h.curveId}:${h.end}` === viewer.hotHandle);
     const ring = viewer._focusRing;
     return ring.visible && ring.position.distanceTo(hot.position) < 1e-6;
@@ -746,7 +743,7 @@ check(
 );
 check(
   await page.evaluate(() => {
-    const { viewer } = globalThis.knot;
+    const { viewer } = globalThis.knot.internals;
     return viewer.handleGroup.children.every((m) => m.scale.x <= 1.0001);
   }),
   'while the ball itself does not grow',
@@ -755,9 +752,9 @@ check(
 // Move the camera, so resuming has to work off the strand's own geometry.
 await orbit(page, 70, 30);
 
-const before = await page.evaluate(() => JSON.stringify(globalThis.knot.model.curves[0].points));
+const before = await page.evaluate(() => JSON.stringify(globalThis.knot.internals.model.curves[0].points));
 const ends = await page.evaluate(() => {
-  const { viewer } = globalThis.knot;
+  const { viewer } = globalThis.knot.internals;
   const at = (end) => {
     const h = viewer.handles.find((x) => x.end === end);
     return h ? viewer.project(h.position) : null;
@@ -778,8 +775,8 @@ if (ends.grab) {
 await page.waitForTimeout(250);
 
 const resumed = await page.evaluate(() => {
-  const c = globalThis.knot.model.curves[0];
-  return { n: c.points.length, points: JSON.stringify(c.points), closed: c.closed, live: globalThis.knot.viewer.liveId, tool: globalThis.knot.viewer.tool, curves: globalThis.knot.model.curves.length };
+  const c = globalThis.knot.internals.model.curves[0];
+  return { n: c.points.length, points: JSON.stringify(c.points), closed: c.closed, live: globalThis.knot.internals.viewer.liveId, tool: globalThis.knot.internals.viewer.tool, curves: globalThis.knot.internals.model.curves.length };
 });
 const kept = JSON.parse(before);
 check(
@@ -799,16 +796,15 @@ await page.screenshot({ path: OUT + '4-resumed.png' });
 // ===========================================================================
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 await drawStrand(page, [circlePath(640, 400, 150)]);
 await drawStrand(page, [circlePath(640, 400, 90)]);
 
-const drawn = await page.evaluate(() => globalThis.knot.model.curves.map((c) => c.color));
+const drawn = await page.evaluate(() => globalThis.knot.internals.model.curves.map((c) => c.color));
 check(drawn[0] !== drawn[1], 'each new strand takes the next preset colour', JSON.stringify(drawn));
 check(
-  await page.evaluate(() => globalThis.knot.model.curves.every((c) => c.radius > 0)),
+  await page.evaluate(() => globalThis.knot.internals.model.curves.every((c) => c.radius > 0)),
   'and carries its own tube radius',
 );
 
@@ -825,7 +821,7 @@ const target = await page.evaluate(() => {
 await page.click(`.panel.open .chip[data-color="${target}"]`);
 await page.waitForTimeout(250);
 check(
-  await page.evaluate((c) => globalThis.knot.model.curves.every((x) => x.color === c), target),
+  await page.evaluate((c) => globalThis.knot.internals.model.curves.every((x) => x.color === c), target),
   'picking a preset recolours every selected strand',
   target,
 );
@@ -833,7 +829,7 @@ check(
 await page.keyboard.press('Control+z');
 await page.waitForTimeout(200);
 check(
-  await page.evaluate((c) => globalThis.knot.model.curves.some((x) => x.color !== c), target),
+  await page.evaluate((c) => globalThis.knot.internals.model.curves.some((x) => x.color !== c), target),
   'and the recolour is undoable',
 );
 
@@ -846,7 +842,7 @@ const thicker = await page.evaluate(() => {
   const input = document.querySelector('.panel.open input[type=range]');
   input.value = input.max;
   input.dispatchEvent(new Event('input', { bubbles: true }));
-  return globalThis.knot.model.curves.map((c) => c.radius);
+  return globalThis.knot.internals.model.curves.map((c) => c.radius);
 });
 await page.waitForTimeout(250);
 check(
@@ -856,8 +852,8 @@ check(
 );
 check(
   await page.evaluate(() => {
-    const c = globalThis.knot.model.curves[0];
-    const mesh = globalThis.knot.viewer.meshes.get(c.id);
+    const c = globalThis.knot.internals.model.curves[0];
+    const mesh = globalThis.knot.internals.viewer.meshes.get(c.id);
     return mesh && mesh.userData.stamp.includes(String(c.radius));
   }),
   'and the tube mesh was rebuilt at the new radius',
@@ -865,8 +861,7 @@ check(
 
 await page.keyboard.press('Escape');
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 
 // ===========================================================================
@@ -895,15 +890,14 @@ const along = [
 /** Depth of the most recent strand, in pixels; positive is toward the viewer. */
 const lastDepths = (page) =>
   page.evaluate(() => {
-    const { model, viewer } = globalThis.knot;
+    const { model, viewer } = globalThis.knot.internals;
     const c = model.curves[model.curves.length - 1];
     const v = viewer.controls.target.clone();
     return c.points.map((p) => viewer.depthOf(v.set(p[0], p[1], p[2])));
   });
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 await drawStrand(page, [along]);
 await drawStrand(page, [across]);
@@ -915,8 +909,7 @@ check(
 );
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 await drawStrand(page, [along]);
 await page.keyboard.press('d');
@@ -931,13 +924,12 @@ check(
   `depth ${Math.min(...under).toFixed(1)} .. ${Math.max(...under).toFixed(1)}px`,
 );
 check(
-  await page.evaluate(() => globalThis.knot.model.curves.length === 2),
+  await page.evaluate(() => globalThis.knot.internals.model.curves.length === 2),
   'and it is still one unbroken strand — no pen lift involved',
 );
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 
 // ===========================================================================
@@ -945,8 +937,7 @@ await page.evaluate(() => {
 // ===========================================================================
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 await page.keyboard.press('d');
 await stroke(page, [
@@ -958,7 +949,7 @@ await page.keyboard.press('Enter');
 await page.waitForTimeout(250);
 
 const straight = await page.evaluate(() => {
-  const c = globalThis.knot.model.curves[0];
+  const c = globalThis.knot.internals.model.curves[0];
   if (!c) return null;
   const p = c.points;
   const a = p[0];
@@ -993,8 +984,7 @@ check(
 // compares every control point rather than eyeballing a screenshot.
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 await page.keyboard.press('d');
 await stroke(page, circlePath(640, 400, 170));
@@ -1002,8 +992,8 @@ await page.keyboard.press('Enter');
 await page.waitForTimeout(220);
 
 const drawnScene = await page.evaluate(() => ({
-  points: globalThis.knot.model.curves.map((c) => c.points),
-  meta: globalThis.knot.model.curves.map((c) => [c.color, c.radius, c.closed]),
+  points: globalThis.knot.internals.model.curves.map((c) => c.points),
+  meta: globalThis.knot.internals.model.curves.map((c) => [c.color, c.radius, c.closed]),
 }));
 
 // Saving asks first — ⌘S is easy to hit by accident and the answer is a file on
@@ -1039,8 +1029,7 @@ check(savedJSON.format === 'knot-a-problem/scene' && savedJSON.version >= 1, 'ta
 check(!!savedJSON.camera, 'and it remembers the view it was saved from');
 
 await page.evaluate(() => {
-  globalThis.knot.model.clear();
-  globalThis.knot.refresh();
+  globalThis.knot.scene.clear();
 });
 await page.waitForTimeout(150);
 check((await curveCount(page)) === 0, 'the canvas is empty before loading it back');
@@ -1049,8 +1038,8 @@ await page.setInputFiles('#file-input', savedPath);
 await page.waitForTimeout(900);
 
 const reloaded = await page.evaluate(() => ({
-  points: globalThis.knot.model.curves.map((c) => c.points),
-  meta: globalThis.knot.model.curves.map((c) => [c.color, c.radius, c.closed]),
+  points: globalThis.knot.internals.model.curves.map((c) => c.points),
+  meta: globalThis.knot.internals.model.curves.map((c) => [c.color, c.radius, c.closed]),
 }));
 check(reloaded.points.length === drawnScene.points.length, 'every curve comes back', `${reloaded.points.length}`);
 check(JSON.stringify(reloaded.meta) === JSON.stringify(drawnScene.meta), 'with its colour, thickness and closedness');
@@ -1086,12 +1075,12 @@ check((await curveCount(page)) === beforeInsert + 2, 'inserting a Hopf link adds
 // been orbited all over the place by now, which is exactly the case worth
 // testing. Measure everything projected onto that axis.
 const placed = await page.evaluate(() => {
-  const right = globalThis.knot.viewer.right();
+  const right = globalThis.knot.internals.viewer.right();
   const on = (p) => p[0] * right[0] + p[1] * right[1] + p[2] * right[2];
-  const cs = globalThis.knot.model.curves;
+  const cs = globalThis.knot.internals.model.curves;
   const span = (c) => c.points.reduce((b, p) => [Math.min(b[0], on(p)), Math.max(b[1], on(p))], [1e9, -1e9]);
   const first = span(cs[0]);
-  const t = globalThis.knot.viewer.controls.target;
+  const t = globalThis.knot.internals.viewer.controls.target;
   return {
     clear: cs.slice(1).every((c) => span(c)[0] > first[1]),
     target: on([t.x, t.y, t.z]),
@@ -1105,8 +1094,8 @@ await page.screenshot({ path: OUT + '5-library.png' });
 
 check(
   await page.evaluate(() => {
-    globalThis.knot.undo();
-    return globalThis.knot.model.curves.length;
+    globalThis.knot.history.undo();
+    return globalThis.knot.internals.model.curves.length;
   }) === beforeInsert,
   'and one undo takes the whole insert back',
 );
@@ -1121,16 +1110,16 @@ await page.evaluate(() => {
       const t = (i / 60) * Math.PI * 2;
       return [cx + 0.6 * Math.cos(t), 0.6 * Math.sin(t), 0];
     });
-  globalThis.knot.model.clear();
-  for (const cx of [-2.4, 0, 2.4]) globalThis.knot.model.addCurve(loop(cx), { closed: true });
-  globalThis.knot.refresh();
-  globalThis.knot.viewer.setCamera({ position: [0, 0, 9], target: [0, 0, 0] });
-  globalThis.knot.setSelection([]);
+  globalThis.knot.internals.model.clear();
+  for (const cx of [-2.4, 0, 2.4]) globalThis.knot.internals.model.addCurve(loop(cx), { closed: true });
+  globalThis.knot.internals.refresh();
+  globalThis.knot.internals.viewer.setCamera({ position: [0, 0, 9], target: [0, 0, 0] });
+  globalThis.knot.select.set([]);
 });
 await page.waitForTimeout(350);
 
-const selected = () => page.evaluate(() => [...globalThis.knot.viewer.selection].length);
-const camAt = () => page.evaluate(() => globalThis.knot.viewer.camera.position.toArray());
+const selected = () => page.evaluate(() => [...globalThis.knot.internals.viewer.selection].length);
+const camAt = () => page.evaluate(() => globalThis.knot.internals.viewer.camera.position.toArray());
 const moved = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 await page.keyboard.press('Meta+a');
@@ -1153,6 +1142,131 @@ const orbitDrift = moved(camBefore, await camAt());
 check(orbitDrift > 0.5, 'a plain drag in Select orbits, always', `moved ${orbitDrift.toFixed(2)}`);
 
 check(await page.evaluate(() => !document.getElementById('btn-clear')), 'Clear is gone');
+
+// ===========================================================================
+// 10. The tool surface
+// ===========================================================================
+//
+// "Nothing the agent can do is something the UI can't, and nothing the UI can
+// do is something the agent can't." This drives a whole session through
+// `knot.*` alone — no clicks, no keys — and checks the result is the same kind
+// of thing a person would have produced by hand.
+
+await page.evaluate(() => globalThis.knot.scene.clear());
+await page.waitForTimeout(150);
+
+const api = (fn, arg) => page.evaluate(fn, arg);
+
+const surface = await api(() => Object.keys(globalThis.knot).sort());
+check(
+  ['edit', 'file', 'history', 'library', 'scene', 'select', 'tool', 'view'].every((k) => surface.includes(k)),
+  'the surface is namespaced, not a grab-bag',
+  surface.join(' '),
+);
+
+// Build something from nothing, the way an agent would.
+const built = await api(() => {
+  const k = globalThis.knot;
+  const ring = (cx) =>
+    Array.from({ length: 48 }, (_, i) => {
+      const t = (i / 48) * Math.PI * 2;
+      return [cx + Math.cos(t), Math.sin(t), 0.2 * Math.sin(3 * t)];
+    });
+  const a = k.scene.add(ring(-1.4), { name: 'left' });
+  const b = k.scene.add(ring(1.4), { name: 'right' });
+  k.scene.update(b, { color: '#4bd2d2', radius: 0.11 });
+  k.select.set([a, b]);
+  return { a, b, list: k.scene.list(), selected: k.select.get() };
+});
+check(built.list.length === 2, 'scene.add builds curves without touching the mouse');
+check(
+  built.list.find((c) => c.id === built.b).color === '#4bd2d2' &&
+    built.list.find((c) => c.id === built.b).radius === 0.11,
+  'scene.update changes colour and thickness',
+);
+check(built.selected.length === 2, 'select.set picks them');
+check(
+  built.list.every((c) => c.by === 'agent'),
+  'and every curve records that an agent made it',
+  built.list.map((c) => c.by).join(),
+);
+
+// The mesh really was rebuilt — an API call is not a model-only edit.
+check(
+  await api(() => globalThis.knot.internals.viewer.meshes.size) === 2,
+  'the view is in step with the model afterwards',
+);
+
+check(await api(() => globalThis.knot.edit.smooth(0.2)) === 2, 'edit.smooth runs the dial on the selection');
+check(
+  await api(() => globalThis.knot.library.list().length) >= 8,
+  'library.list enumerates the shipped shapes',
+);
+await api(() => globalThis.knot.library.load('trefoil'));
+await page.waitForTimeout(1600);
+check(await curveCount(page) === 3, 'library.load inserts one by name');
+
+check(
+  await api(() => globalThis.knot.view.moveTo(globalThis.knot.scene.list()[0].id)),
+  'view.moveTo glides to a strand',
+);
+
+// --- transactions ---
+//
+// The open question in plan.md: an agent makes a forty-step edit, is that one
+// undo entry or forty? It is one, and the agent says so.
+
+const txn = await api(() => {
+  const k = globalThis.knot;
+  const before = k.scene.list().length;
+  k.history.begin();
+  for (let i = 0; i < 5; i++) k.scene.add([[i, 0, 0], [i, 1, 0], [i, 1, 1]], { closed: false });
+  const during = k.scene.list().length;
+  k.history.commit();
+  k.history.undo();
+  return { before, during, after: k.scene.list().length };
+});
+check(txn.during === txn.before + 5, 'five scripted edits all land', `${txn.before} → ${txn.during}`);
+check(txn.after === txn.before, 'and one undo takes all five back, not one of them',
+  `${txn.during} → ${txn.after}`);
+
+const rolled = await api(() => {
+  const k = globalThis.knot;
+  const before = k.scene.list().length;
+  k.history.begin();
+  k.scene.add([[9, 9, 9], [9, 9, 8]], { closed: false });
+  k.scene.clear();
+  const wrecked = k.scene.list().length;
+  k.history.rollback();
+  return { before, wrecked, after: k.scene.list().length };
+});
+check(rolled.wrecked === 0 && rolled.after === rolled.before,
+  'and rollback abandons a half-finished batch',
+  `${rolled.before} → ${rolled.wrecked} → ${rolled.after}`);
+
+// --- parity, the other direction ---
+//
+// Everything the rail can do has a call. Checked by name, so adding a button
+// without adding a call trips this.
+const parity = await api(() => {
+  const k = globalThis.knot;
+  const has = (path) => path.split('.').reduce((o, p) => (o == null ? o : o[p]), k) !== undefined;
+  const buttons = [...document.querySelectorAll('#toolbar button')].map((b) => b.id || `tool-${b.dataset.tool}`);
+  return {
+    buttons,
+    missing: [
+      ['tool-select', 'tool.set'], ['tool-draw', 'tool.set'], ['tool-erase', 'tool.set'],
+      ['btn-undo', 'history.undo'], ['btn-redo', 'history.redo'],
+      ['btn-smooth', 'edit.smooth'], ['btn-delete', 'scene.remove'],
+      ['btn-library', 'library.load'], ['btn-open', 'scene.load'],
+      ['btn-save', 'file.save'], ['sw-export', 'file.export'],
+      ['sw-draw-color', 'tool.settings'], ['sw-draw-size', 'tool.settings'],
+      ['sw-sel-color', 'scene.update'], ['sw-sel-size', 'scene.update'],
+      ['sw-erase-size', 'tool.settings'], ['sw-smooth', 'edit.smooth'],
+    ].filter(([, call]) => !has(call)).map(([b, call]) => `${b}→${call}`),
+  };
+});
+check(parity.missing.length === 0, 'every control in the rail has a call behind it', parity.missing.join(' '));
 
 check(errors.length === 0, 'no console or page errors', errors.slice(0, 3).join(' | '));
 

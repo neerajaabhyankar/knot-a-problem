@@ -1,10 +1,10 @@
 {
   "format": "knot-a-problem/scene",
   "version": 1,
-  "saved": "2026-08-20T23:22:49.941Z",
+  "saved": "2026-08-21T01:13:22.931Z",
   "by": "library",
   "curves": [
-    { "name":"Figure eight","color":"#4b78d2","radius":0.075,"closed":true,
+    { "name":"Figure eight","color":"#4b78d2","radius":0.075,"closed":true,"by":"library",
       "points": [
       [1.49542,0,0],
       [1.49204,0.09387,0.04171],

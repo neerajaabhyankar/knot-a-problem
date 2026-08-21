@@ -46,6 +46,7 @@ export function serialize(curves, { camera = null, by = 'human' } = {}) {
       color: c.color,
       radius: round(c.radius),
       closed: !!c.closed,
+      by: c.by ?? 'human',
       points: c.points.map((p) => [round(p[0]), round(p[1]), round(p[2])]),
     })),
   };
@@ -55,7 +56,7 @@ export function serialize(curves, { camera = null, by = 'human' } = {}) {
 export function stringify(scene) {
   const body = scene.curves
     .map((c) => {
-      const head = JSON.stringify({ name: c.name, color: c.color, radius: c.radius, closed: c.closed });
+      const head = JSON.stringify({ name: c.name, color: c.color, radius: c.radius, closed: c.closed, by: c.by });
       const pts = c.points.map((p) => `      ${JSON.stringify(p)}`).join(',\n');
       return `    { ${head.slice(1, -1)},\n      "points": [\n${pts}\n      ]\n    }`;
     })
@@ -115,6 +116,7 @@ export function parse(text, { fallbackColor = '#d2d24b', defaultRadius = 0.075 }
       color: typeof c.color === 'string' && HEX.test(c.color) ? c.color : fallbackColor,
       radius: finite(c.radius) && c.radius > 0 ? c.radius : defaultRadius,
       closed: !!c.closed,
+      by: typeof c.by === 'string' ? c.by.slice(0, 40) : 'human',
       points,
     });
   });

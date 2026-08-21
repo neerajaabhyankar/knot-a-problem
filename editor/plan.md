@@ -137,8 +137,14 @@ a handle on an old strand and keep drawing from any camera angle. Guarded so
 that two strands already a separation apart in depth are left alone, or drawing
 near an existing link would break it rather than draw it.
 
-Not yet done: **flipping an individual crossing after the fact**. Pen lifts cover
-it while drawing; afterwards you erase back to it and redraw.
+Not yet done: **changing a crossing after the fact**. Pen lifts cover it while
+drawing; afterwards you erase back to it and redraw. Worth being precise about
+what that would even mean, because it is easy to get wrong: a crossing change is
+*not* an isotopy — it is the unknotting operation, and it changes the knot type.
+And a crossing is a feature of a **projection**, not of the curve, so there is
+nothing to click until a generic projection direction has been chosen. Two
+perpendicular circles viewed down one's axis have no crossings at all. Both of
+those make it a diagram-mode operation, which is level (c)'s ground.
 
 ## Smoothing
 
@@ -351,6 +357,38 @@ Snapshot-based, not a command stack: the model is small and wholly serializable,
 so `record()` pushes a deep copy before every mutation. Ids are preserved on
 restore, so selections survive.
 
+**Transactions** group edits: `begin()` takes one snapshot and suppresses the
+rest until `commit()`, so forty scripted edits collapse into one ⌘Z, and
+`rollback()` abandons a half-finished batch. This is what answers the open
+question in the top-level plan about an agent making a long edit — it makes one
+entry, and the caller says so rather than us guessing from timing.
+
+## The tool surface
+
+`globalThis.knot` is the editor's API, and the rule is
+**nothing the agent can do is something the UI can't, and nothing the UI can do
+is something the agent can't.** It is namespaced — `scene`, `select`, `tool`,
+`edit`, `history`, `view`, `library`, `file` — and every call routes through the
+same `record()` and `refresh()` the buttons use, so a scripted edit is undoable
+exactly like a drawn one.
+
+`test/smoke.mjs` §10 enforces the rule from both ends: it builds and smooths a
+scene through `knot.*` with no clicks at all, and it walks every control in the
+rail checking each has a call behind it. Adding a button without adding a call
+fails the suite.
+
+`knot.internals` exposes `model` and `viewer` for tests and the console.
+Reaching for them from level (b) means the surface is missing something.
+
+Known asymmetries, deliberate and recorded rather than papered over:
+
+| | |
+|---|---|
+| `scene.update(id, {name})` | no rename affordance in the UI |
+| `scene.update(id, {points})` | the UI only reshapes by drawing, erasing or smoothing — this is `smoothen.md` §8 |
+| `history.begin/commit` | the UI batches implicitly; there is no button for it |
+| erasing | a gesture with no direct call; its effect is `remove` plus `add` |
+
 ## Look and feel
 
 - Background: near-black, ground plane fogged out so there's no bright horizon.
@@ -414,7 +452,6 @@ restore, so selections survive.
 
 ## Next (do not start these yet)
 
-- **Click a crossing to flip it** after the fact.
 - **Curve editing** — reshape an existing strand: pull a corner back out of a
   smoothed circle, fold a planar loop out of plane. Requirements and the
   data-model question it raises are in `smoothen.md` §8.

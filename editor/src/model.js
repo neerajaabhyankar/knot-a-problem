@@ -15,13 +15,16 @@ export class Scene {
     this.curves = [];
   }
 
-  addCurve(points, { closed = true, color = null, name = null, radius = DEFAULT_RADIUS } = {}) {
+  addCurve(points, { closed = true, color = null, name = null, radius = DEFAULT_RADIUS, by = 'human' } = {}) {
     const curve = {
       id: `c${nextId++}`,
       name: name ?? `curve ${this.curves.length + 1}`,
       color: color ?? PALETTE[this.curves.length % PALETTE.length],
       radius,
       closed,
+      // Who last touched this. The top-level plan wants it once an agent can
+      // drive the editor, and a field is far cheaper now than a migration then.
+      by,
       points, // [x, y, z][]
     };
     this.curves.push(curve);

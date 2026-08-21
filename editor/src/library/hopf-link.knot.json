@@ -1,10 +1,10 @@
 {
   "format": "knot-a-problem/scene",
   "version": 1,
-  "saved": "2026-08-20T23:22:49.952Z",
+  "saved": "2026-08-21T01:13:22.942Z",
   "by": "library",
   "curves": [
-    { "name":"Hopf link 1","color":"#d24b78","radius":0.075,"closed":true,
+    { "name":"Hopf link 1","color":"#d24b78","radius":0.075,"closed":true,"by":"library",
       "points": [
       [0.35662,-0.07521,0.03358],
       [0.3535,-0.0452,0.04387],
@@ -188,7 +188,7 @@
       [0.35875,-0.10514,0.02278]
       ]
     },
-    { "name":"Hopf link 2","color":"#78d24b","radius":0.075,"closed":true,
+    { "name":"Hopf link 2","color":"#78d24b","radius":0.075,"closed":true,"by":"library",
       "points": [
       [1.16665,-0.15043,0.44901],
       [1.15166,-0.16093,0.47512],

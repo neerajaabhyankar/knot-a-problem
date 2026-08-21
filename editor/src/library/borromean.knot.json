@@ -1,10 +1,10 @@
 {
   "format": "knot-a-problem/scene",
   "version": 1,
-  "saved": "2026-08-20T23:22:49.974Z",
+  "saved": "2026-08-21T01:13:22.965Z",
   "by": "library",
   "curves": [
-    { "name":"Borromean rings 1","color":"#d2d24b","radius":0.075,"closed":true,
+    { "name":"Borromean rings 1","color":"#d2d24b","radius":0.075,"closed":true,"by":"library",
       "points": [
       [-0.31699,1.18301,0.86603],
       [-0.33179,1.16747,0.88056],
@@ -208,7 +208,7 @@
       [-0.30187,1.19739,0.85064]
       ]
     },
-    { "name":"Borromean rings 2","color":"#4bd2d2","radius":0.075,"closed":true,
+    { "name":"Borromean rings 2","color":"#4bd2d2","radius":0.075,"closed":true,"by":"library",
       "points": [
       [-0.86603,-0.86603,0.86603],
       [-0.84516,-0.87107,0.88056],
@@ -412,7 +412,7 @@
       [-0.88604,-0.86012,0.85064]
       ]
     },
-    { "name":"Borromean rings 3","color":"#d24bd2","radius":0.075,"closed":true,
+    { "name":"Borromean rings 3","color":"#d24bd2","radius":0.075,"closed":true,"by":"library",
       "points": [
       [1.18301,-0.31699,0.86603],
       [1.17695,-0.29639,0.88056],

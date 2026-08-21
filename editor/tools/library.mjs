@@ -233,6 +233,7 @@ for (const shape of SHAPES) {
     color: PALETTE[(i * 3 + SHAPES.indexOf(shape)) % PALETTE.length],
     radius: RADIUS,
     closed: true,
+    by: 'library',
     points,
   }));
 

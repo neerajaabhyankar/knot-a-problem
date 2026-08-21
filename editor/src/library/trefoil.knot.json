@@ -1,10 +1,10 @@
 {
   "format": "knot-a-problem/scene",
   "version": 1,
-  "saved": "2026-08-20T23:22:49.938Z",
+  "saved": "2026-08-21T01:13:22.928Z",
   "by": "library",
   "curves": [
-    { "name":"Trefoil","color":"#4bd2d2","radius":0.075,"closed":true,
+    { "name":"Trefoil","color":"#4bd2d2","radius":0.075,"closed":true,"by":"library",
       "points": [
       [1.27653,0,0],
       [1.27378,0.06838,0.03035],

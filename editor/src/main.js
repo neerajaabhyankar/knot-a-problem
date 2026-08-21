@@ -117,13 +117,44 @@ const past = [];
 const future = [];
 const HISTORY_LIMIT = 80;
 
+// Transaction depth. Inside one, `record()` does nothing: the snapshot taken at
+// `begin` already describes the state before the whole group, so forty edits
+// collapse into one ⌘Z. This is the answer to the open question in plan.md
+// about an agent making a forty-step edit — it makes one entry, and the agent
+// (or a script in the console) says so explicitly rather than us guessing.
+let depth = 0;
+
 /** Snapshot the model *before* mutating it. */
 function record() {
+  if (depth > 0) return;
   smoothing = null; // any other edit ends the smoothing session
   past.push(model.toJSON());
   if (past.length > HISTORY_LIMIT) past.shift();
   future.length = 0;
   updateHistoryButtons();
+}
+
+/** Group everything until `commit` into a single undo step. Nests. */
+function begin() {
+  if (depth === 0) record();
+  depth++;
+}
+
+function commit() {
+  depth = Math.max(0, depth - 1);
+  if (depth === 0) {
+    refresh();
+    updateHistoryButtons();
+  }
+}
+
+/** Abandon an open transaction and put the model back as it was. */
+function rollback() {
+  if (depth === 0) return false;
+  depth = 0;
+  if (past.length) model.restore(past.pop());
+  afterHistory('reverted');
+  return true;
 }
 
 function undo() {
@@ -1090,6 +1121,174 @@ updateHistoryButtons();
   viewer.render();
 })();
 
-// Handy for poking at the model from the console, and a first sketch of the
-// tool surface that level (b)'s agent will eventually drive.
-globalThis.knot = { model, viewer, refresh, setTool, setSelection, undo, redo, frameAll, smoothen: beginSmooth, setSmooth };
+// ---------- the tool surface ----------
+//
+// The rule from plan.md, made real: **nothing the agent can do is something the
+// UI can't, and nothing the UI can do is something the agent can't.** Every
+// button, key and gesture below has a call here, and every call here is
+// something you could have done by hand. Level (b) drives the editor through
+// this and nothing else; if it ever needs a back door, the surface is wrong.
+//
+// It is also just useful from the console: `knot.scene.add(...)` in devtools is
+// the quickest way to script a shape the mouse would struggle with.
+//
+// Everything that changes the model goes through the same `record()` the UI
+// uses, so scripted edits are undoable exactly like drawn ones — and wrapping a
+// batch in `knot.history.begin()` / `.commit()` makes the whole batch one ⌘Z.
+
+const ids = (v) => (v == null ? [...selection] : Array.isArray(v) ? v : [v]);
+const copy = (c) => ({
+  id: c.id,
+  name: c.name,
+  color: c.color,
+  radius: c.radius,
+  closed: c.closed,
+  by: c.by ?? 'human',
+  points: structuredClone(c.points),
+});
+
+globalThis.knot = {
+  version: 1,
+
+  scene: {
+    /** Every strand, without the points — for "what is on screen?". */
+    list: () => model.curves.map(({ points, ...rest }) => ({ ...rest, points: points.length })),
+    get: (id) => {
+      const c = model.get(id);
+      return c ? copy(c) : null;
+    },
+    /** Add a strand. The same thing a finished pen stroke produces. */
+    add(points, opts = {}) {
+      if (!Array.isArray(points) || points.length < 2) throw new Error('a curve needs at least two points');
+      record();
+      const c = model.addCurve(structuredClone(points), { by: 'agent', ...opts });
+      refresh();
+      return c.id;
+    },
+    /** Change colour, thickness, name, open/closed, or the geometry itself. */
+    update(id, changes = {}) {
+      const c = model.get(id);
+      if (!c) return false;
+      record();
+      const { points, ...rest } = changes;
+      Object.assign(c, rest, points ? { points: structuredClone(points) } : {}, { by: changes.by ?? 'agent' });
+      refresh();
+      return true;
+    },
+    remove(which) {
+      record();
+      const n = ids(which).filter((id) => model.remove(id)).length;
+      setSelection([]);
+      refresh();
+      return n;
+    },
+    clear() {
+      const n = model.curves.length;
+      record();
+      model.clear();
+      setSelection([]);
+      refresh();
+      return n;
+    },
+    toJSON: () => serialize(model.curves, { camera: viewer.camera3() }),
+    /** Load a scene the way Open does — inserting beside what is there. */
+    load(source, { face = false } = {}) {
+      const parsed = parse(typeof source === 'string' ? source : JSON.stringify(source));
+      insertScene(parsed, { face, label: 'loaded' });
+      return parsed.curves.length;
+    },
+  },
+
+  select: {
+    get: () => [...selection],
+    set: (which) => (setSelection(ids(which)), [...selection]),
+    add: (which) => (setSelection([...selection, ...ids(which)]), [...selection]),
+    all: () => (setSelection(model.curves.map((c) => c.id)), [...selection]),
+    none: () => (setSelection([]), []),
+  },
+
+  tool: {
+    get: () => tool,
+    set(name) {
+      if (!['select', 'draw', 'erase'].includes(name)) throw new Error(`no such tool: ${name}`);
+      setTool(name);
+      return tool;
+    },
+    /** What the next stroke gets, and how big the eraser is. */
+    settings(patch) {
+      if (patch?.color) drawColorSwatch.set(patch.color), (drawColor = patch.color);
+      if (patch?.radius > 0) drawSizeSwatch.set(patch.radius), (drawRadius = patch.radius);
+      if (patch?.eraser > 0) setEraserRadius(patch.eraser);
+      return { color: drawColor, radius: drawRadius, eraser: eraserRadius };
+    },
+  },
+
+  edit: {
+    /** One shot of what the Smooth dial does, at `amount` (0..1). */
+    smooth(amount = smoothAmount, which) {
+      const picked = ids(which);
+      if (!picked.length) return 0;
+      begin();
+      setSelection(picked);
+      beginSmooth();
+      setSmooth(amount);
+      smoothing = null;
+      commit();
+      return picked.length;
+    },
+  },
+
+  history: {
+    undo,
+    redo,
+    /** Group everything until commit() into a single undo step. */
+    begin,
+    commit,
+    rollback,
+    depth: () => depth,
+    canUndo: () => past.length > 0,
+    canRedo: () => future.length > 0,
+  },
+
+  view: {
+    frameAll,
+    get: () => viewer.camera3(),
+    set: (camera) => viewer.setCamera(camera),
+    /** Glide to a strand, the way loading one does. */
+    moveTo(id) {
+      const c = model.get(id);
+      if (!c) return false;
+      const box = bounds([c]);
+      viewer.easeTo(box.centre, Math.max(...box.size) / 2);
+      return true;
+    },
+  },
+
+  library: {
+    list: () => LIBRARY_INDEX.shapes.map(({ file, title, note, kind, parts }) => ({
+      name: file.replace(/\.knot\.json$/, ''),
+      title,
+      note,
+      kind,
+      parts,
+    })),
+    load: (name) => loadShape(name.endsWith(EXTENSION) ? name : name + EXTENSION),
+  },
+
+  file: {
+    save: saveScene,
+    export(format = 'obj') {
+      if (!model.curves.length) return null;
+      const text = format === 'vect' ? toVECT(model.curves) : toOBJ(model.curves);
+      download(`${suggestName()}.${format}`, text, 'text/plain');
+      return text.length;
+    },
+  },
+
+  // The pieces the surface is built out of. Tests and the devtools console use
+  // these; level (b) should not need them, and reaching for them is a sign
+  // something above is missing.
+  // `setSmooth` is the live dial the Smooth panel drives; the surface exposes
+  // its one-shot equivalent instead, and the tests use this to check the dial.
+  internals: { model, viewer, refresh, setSmooth },
+};

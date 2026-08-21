@@ -1,10 +1,10 @@
 {
   "format": "knot-a-problem/scene",
   "version": 1,
-  "saved": "2026-08-20T23:22:49.942Z",
+  "saved": "2026-08-21T01:13:22.932Z",
   "by": "library",
   "curves": [
-    { "name":"Cinquefoil","color":"#784bd2","radius":0.075,"closed":true,
+    { "name":"Cinquefoil","color":"#784bd2","radius":0.075,"closed":true,"by":"library",
       "points": [
       [1.34102,0,0],
       [1.33628,0.06886,0.05092],
