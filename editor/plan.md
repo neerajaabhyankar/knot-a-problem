@@ -219,6 +219,11 @@ self-intersects and every link really is linked. Anything without a nice
 parametrisation is level (b)'s job: ship the code, embed it with the relaxation
 engine.
 
+Saving **asks first**, whether you clicked the button or hit ⌘S: the shortcut is
+easy to catch by accident and the answer is a file on your disk. The dialogue
+doubles as a receipt — how many curves, how big — so it is worth reading rather
+than an obstacle to dismiss.
+
 OBJ and VECT export are one-way doors for other software. Full reasoning, and
 the thirteen formats considered, in `io.md`.
 
@@ -282,14 +287,14 @@ looking around.
                         continue a strand grab an end handle
                         finish            Enter, Esc, or a click on empty space
 
-  file                  save              ⌘S            (a .knot.json download)
+  file                  save              ⌘S            (asks first, and says how big)
                         open              ⌘O            (or drop one on the canvas)
                         ready-made shapes Shapes
 
   edit                  smooth            M             (then slide to taste)
                         undo / redo       ⌘Z / ⇧⌘Z      (one stroke at a time)
                         delete            Del           (asks first if >1)
-                        select all        A
+                        select all        ⌘A
                         add to selection  ⇧ click
                         eraser size       [ ]
                         help              ?
@@ -303,6 +308,19 @@ down, `crosshair` to draw.
 
 Select is the resting state. Right-drag panning means the context menu must be
 suppressed on the canvas.
+
+**Drag-a-box multi-select was built and removed.** It hung off ⌥, because a
+plain drag has to keep orbiting — being able to look around from anywhere is the
+rule the whole camera design rests on. It passed its tests and did not work in
+real use, and ⌥ being unreliable as a drag modifier is the likely reason,
+unverified. `⌘A` plus ⇧-click covers the ground for now. If it comes back it
+wants a different trigger, and it must be caught in the *capture* phase on the
+window: OrbitControls listens on the canvas and registered first, so a bubbling
+listener starts orbiting before the box ever sees the event and drags the scene
+out from under the rectangle you are drawing.
+
+There is **no Clear button**. Select all and Delete does the job with one fewer
+thing on the rail and one fewer way to lose everything by accident.
 
 **The draw-plane grid is anchored in the world, not to the screen centre.** The
 plane still passes through the orbit target, but the visible grid lines are slid

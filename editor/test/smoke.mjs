@@ -1006,9 +1006,25 @@ const drawnScene = await page.evaluate(() => ({
   meta: globalThis.knot.model.curves.map((c) => [c.color, c.radius, c.closed]),
 }));
 
+// Saving asks first — ⌘S is easy to hit by accident and the answer is a file on
+// your disk — and the dialogue doubles as a receipt.
+await page.click('#btn-save');
+await page.waitForTimeout(250);
+const receipt = await page.evaluate(() => {
+  const box = document.getElementById('confirm');
+  return box.hidden ? null : { text: document.getElementById('confirm-text').textContent,
+                               yes: document.getElementById('confirm-yes').textContent };
+});
+check(receipt !== null, 'Save asks before writing a file');
+check(
+  receipt && /\d/.test(receipt.text) && /KB|bytes/.test(receipt.text) && receipt.yes === 'Save',
+  'and says how many curves and how big before you commit',
+  JSON.stringify(receipt),
+);
+
 const download = await Promise.all([
   page.waitForEvent('download', { timeout: 10000 }),
-  page.click('#btn-save'),
+  page.click('#confirm-yes'),
 ]).then(([d]) => d);
 const savedPath = await download.path();
 check(
@@ -1094,6 +1110,49 @@ check(
   }) === beforeInsert,
   'and one undo takes the whole insert back',
 );
+
+// ===========================================================================
+// 9. Select all, and the camera staying free
+// ===========================================================================
+
+await page.evaluate(() => {
+  const loop = (cx) =>
+    Array.from({ length: 60 }, (_, i) => {
+      const t = (i / 60) * Math.PI * 2;
+      return [cx + 0.6 * Math.cos(t), 0.6 * Math.sin(t), 0];
+    });
+  globalThis.knot.model.clear();
+  for (const cx of [-2.4, 0, 2.4]) globalThis.knot.model.addCurve(loop(cx), { closed: true });
+  globalThis.knot.refresh();
+  globalThis.knot.viewer.setCamera({ position: [0, 0, 9], target: [0, 0, 0] });
+  globalThis.knot.setSelection([]);
+});
+await page.waitForTimeout(350);
+
+const selected = () => page.evaluate(() => [...globalThis.knot.viewer.selection].length);
+const camAt = () => page.evaluate(() => globalThis.knot.viewer.camera.position.toArray());
+const moved = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+await page.keyboard.press('Meta+a');
+await page.waitForTimeout(180);
+check((await selected()) === 3, '\u2318A selects everything', `${await selected()} of 3`);
+
+await page.keyboard.press('Escape');
+await page.waitForTimeout(150);
+check((await selected()) === 0, 'and Escape lets go of it again');
+
+// Select is home, and home is where you can always look around. Nothing may
+// take the left button in this mode.
+const camBefore = await camAt();
+await page.mouse.move(700, 400);
+await page.mouse.down();
+await page.mouse.move(820, 470, { steps: 8 });
+await page.mouse.up();
+await page.waitForTimeout(250);
+const orbitDrift = moved(camBefore, await camAt());
+check(orbitDrift > 0.5, 'a plain drag in Select orbits, always', `moved ${orbitDrift.toFixed(2)}`);
+
+check(await page.evaluate(() => !document.getElementById('btn-clear')), 'Clear is gone');
 
 check(errors.length === 0, 'no console or page errors', errors.slice(0, 3).join(' | '));
 

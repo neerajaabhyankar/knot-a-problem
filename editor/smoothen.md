@@ -208,7 +208,7 @@ state. Sequential is simpler than simultaneous and just as safe.
 ## 6. The control
 
 Smooth acts on the selection, so it is a **command**, not a mode — it lives with
-Delete and Clear, not with Select/Draw/Erase, and it is disabled when nothing is
+Delete, not with Select/Draw/Erase, and it is disabled when nothing is
 selected. It carries one settings square, the same one Draw and Erase carry,
 holding the one slider. Nothing new to learn: *button plus its own square* is
 already the rail's vocabulary.

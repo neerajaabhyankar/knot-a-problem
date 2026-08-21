@@ -593,10 +593,13 @@ canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
 const confirmEl = document.getElementById('confirm');
 let confirmResolve = null;
 
-function askConfirm(message) {
+function askConfirm(message, { confirm = 'Delete', danger = true } = {}) {
   document.getElementById('confirm-text').innerHTML = message;
+  const yes = btn('confirm-yes');
+  yes.textContent = confirm;
+  yes.classList.toggle('danger', danger);
   confirmEl.hidden = false;
-  btn('confirm-yes').focus();
+  yes.focus();
   return new Promise((resolve) => {
     confirmResolve = resolve;
   });
@@ -645,11 +648,24 @@ function download(name, text, type = 'application/json') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function saveScene() {
+/**
+ * Save, but ask first. ⌘S is easy to hit by accident and the answer is a file
+ * on your disk, so the dialogue doubles as a receipt: it says how many curves
+ * and how big before anything is written. The button asks too — one command
+ * should not mean two different things depending on how you reached it.
+ */
+async function saveScene() {
   if (!model.curves.length) return flashStatus('nothing to save yet');
-  download(suggestName() + EXTENSION, stringify(sceneForSave()));
+  const text = stringify(sceneForSave());
   const n = model.curves.length;
-  flashStatus(`saved <b>${n}</b> curve${n === 1 ? '' : 's'}`);
+  const size = text.length < 1024 ? `${text.length} bytes` : `${(text.length / 1024).toFixed(1)} KB`;
+  const ok = await askConfirm(
+    `Save <b>${n}</b> curve${n === 1 ? '' : 's'} to a file? <br><small>${size}</small>`,
+    { confirm: 'Save', danger: false },
+  );
+  if (!ok) return;
+  download(suggestName() + EXTENSION, text);
+  flashStatus(`saved <b>${n}</b> curve${n === 1 ? '' : 's'} &nbsp;&middot;&nbsp; ${size}`);
 }
 
 /**
@@ -855,16 +871,6 @@ async function deleteSelected() {
   refresh();
 }
 
-async function clearAll() {
-  if (!model.curves.length) return;
-  const ok = await askConfirm(`Delete all <b>${model.curves.length}</b> curves?`);
-  if (!ok) return;
-  record();
-  model.clear();
-  setSelection([]);
-  refresh();
-}
-
 function setEraserRadius(r) {
   eraserRadius = Math.max(6, Math.min(90, r));
   eraserCursor.style.width = `${eraserRadius * 2}px`;
@@ -887,7 +893,6 @@ btn('btn-undo').addEventListener('click', undo);
 btn('btn-redo').addEventListener('click', redo);
 btn('btn-smooth').addEventListener('click', beginSmooth);
 btn('btn-delete').addEventListener('click', deleteSelected);
-btn('btn-clear').addEventListener('click', clearAll);
 btn('btn-help').addEventListener('click', () => helpEl.classList.toggle('hidden'));
 btn('btn-save').addEventListener('click', saveScene);
 btn('btn-open').addEventListener('click', () => btn('file-input').click());
@@ -922,6 +927,9 @@ addEventListener('keydown', (ev) => {
     } else if (k === 'o') {
       ev.preventDefault();
       btn('file-input').click();
+    } else if (k === 'a') {
+      ev.preventDefault(); // or the browser selects the page text
+      setSelection(model.curves.map((c) => c.id));
     }
     return;
   }

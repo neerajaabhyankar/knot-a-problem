@@ -61,7 +61,7 @@
   /* Height of every toolbar button, and therefore the side of a swatch square.
      Explicit rather than derived: `aspect-ratio` against a stretched flex item
      resolves to nothing in WebKit, which collapsed the squares to 2px wide. */
-  --tool-h: 30px;
+  --tool-h: 26px;
   --danger: #960b2e;
 }
 
@@ -110,8 +110,8 @@ kbd {
 #toolbar {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px;
+  gap: 1px;
+  padding: 5px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -121,7 +121,7 @@ kbd {
 }
 
 /* A tool and its settings sit on one line; the swatches push to the right. */
-#toolbar .tool-row { display: flex; align-items: stretch; gap: 3px; height: var(--tool-h); }
+#toolbar .tool-row { display: flex; align-items: stretch; gap: 2px; height: var(--tool-h); }
 #toolbar .tool-row button:not(.swatch) { flex: 1; min-width: 0; }
 
 .swatch {
@@ -278,7 +278,7 @@ kbd {
   gap: 9px;
   width: 100%;
   height: var(--tool-h); /* one height for the whole toolbar */
-  padding: 0 10px;
+  padding: 0 9px;
   font: inherit;
   color: var(--dim);
   background: transparent;
@@ -290,8 +290,8 @@ kbd {
 }
 
 #toolbar .ico {
-  width: 16px;
-  font-size: var(--t-lead);
+  width: 15px;
+  font-size: var(--t-body);
   text-align: center;
   flex: none;
 }
@@ -309,21 +309,21 @@ kbd {
 
 #toolbar .sep {
   height: 1px;
-  margin: 4px 6px;
+  margin: 3px 6px;
   background: var(--border);
 }
 
 /* ---------- shortcut hints ---------- */
 
 #shortcuts {
-  padding: 9px 11px;
+  padding: 7px 10px;
   background: rgba(22, 24, 30, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   font-size: var(--t-label);
-  line-height: 1.45;
+  line-height: 1.34;
   /* Everything fits a normal window; a short one scrolls rather than spills. */
   min-height: 0;
   overflow-y: auto;
@@ -331,8 +331,8 @@ kbd {
 }
 
 #shortcuts section + section {
-  margin-top: 7px;
-  padding-top: 6px;
+  margin-top: 5px;
+  padding-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.055);
 }
 

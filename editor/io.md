@@ -135,6 +135,11 @@ An explicit **Save** writes a download. No autosave, no localStorage, no
 share-links — deliberately, so there is exactly one place your work lives and it
 is a file you own.
 
+**It asks first**, from the button as well as the shortcut. ⌘S is easy to hit by
+accident and the answer is a file on your disk, and one command should not mean
+two different things depending on how you reached it. The dialogue says how many
+curves and how big, so it reads as a receipt rather than a speed bump.
+
 Worth writing down as the accepted cost: **a refresh loses everything.** For a
 browser app with no server that is a real papercut, and localStorage is the
 usual answer. It is not being built; if it starts to hurt, the fix is small and
