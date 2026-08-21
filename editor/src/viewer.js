@@ -220,6 +220,7 @@ export class Viewer {
 
   setDragging(down) {
     this.dragging = down;
+    if (down) this.cancelEase(); // touching the camera wins over a glide
     this._applyCursor();
   }
 
@@ -435,8 +436,78 @@ export class Viewer {
     return hits.length ? hits[0].object.userData.id : null;
   }
 
+  /** The camera's own right and forward, as plain arrays. Placement offsets a
+   *  loaded shape along the right vector so it lands beside what you're looking
+   *  at, whatever angle you happen to be viewing from. */
+  right() {
+    const v = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+    return [v.x, v.y, v.z];
+  }
+
+  forward() {
+    const v = new THREE.Vector3();
+    this.camera.getWorldDirection(v);
+    return [v.x, v.y, v.z];
+  }
+
+  /** Drop the camera exactly where a saved scene left it. */
+  setCamera({ position, target }) {
+    this._ease = null;
+    this.camera.position.set(...position);
+    this.controls.target.set(...target);
+  }
+
+  camera3() {
+    const p = this.camera.position;
+    const t = this.controls.target;
+    return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z] };
+  }
+
+  /**
+   * Glide the view onto a point over `ms`. Used when something is loaded in
+   * beside what's already there: the new shape lands off to one side, and this
+   * is what takes you to it.
+   *
+   * The viewing *direction* never changes — this is a pan, not an orbit. The
+   * distance changes only if the arriving shape wouldn't otherwise fit, because
+   * loading a big scene into a zoomed-in view would otherwise glide you to a
+   * point where you can see nothing.
+   */
+  easeTo(centre, radius = 0, ms = 1200) {
+    const target = new THREE.Vector3(...centre);
+    const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+    let dist = this.camera.position.distanceTo(this.controls.target);
+    if (radius > 0) {
+      const needed = (radius * 1.9) / Math.tan((this.camera.fov * Math.PI) / 360);
+      dist = Math.max(dist, Math.min(needed, this.controls.maxDistance));
+    }
+    this._ease = {
+      from: { target: this.controls.target.clone(), position: this.camera.position.clone() },
+      to: { target, position: target.clone().addScaledVector(dir, dist) },
+      start: performance.now(),
+      ms,
+    };
+  }
+
+  /** Any deliberate camera input wins over a glide in progress. */
+  cancelEase() {
+    this._ease = null;
+  }
+
+  _stepEase() {
+    if (!this._ease) return;
+    const { from, to, start, ms } = this._ease;
+    const k = Math.min(1, (performance.now() - start) / ms);
+    // Ease in and out, so it starts and stops without a jerk.
+    const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+    this.controls.target.lerpVectors(from.target, to.target, e);
+    this.camera.position.lerpVectors(from.position, to.position, e);
+    if (k >= 1) this._ease = null;
+  }
+
   /** Recentre the camera on everything that's been drawn. */
   frameAll(model) {
+    this._ease = null;
     const box = new THREE.Box3();
     let any = false;
     for (const curve of model.curves) {
@@ -492,6 +563,7 @@ export class Viewer {
   }
 
   render() {
+    this._stepEase();
     if (this._focusRing.visible) this._focusRing.quaternion.copy(this.camera.quaternion);
     this.controls.update();
     this._syncDrawPlaneTransform();

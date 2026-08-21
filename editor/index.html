@@ -55,6 +55,19 @@
           <span class="ico">⌫</span><span class="lbl">Clear</span>
         </button>
         <div class="sep"></div>
+        <button id="btn-library" title="Insert a ready-made shape">
+          <span class="ico">◎</span><span class="lbl">Shapes</span>
+        </button>
+        <button id="btn-open" title="Open a .knot.json file (⌘O) — or just drop one on the canvas">
+          <span class="ico">↥</span><span class="lbl">Open</span>
+        </button>
+        <div class="tool-row">
+          <button id="btn-save" title="Save everything to a .knot.json file (⌘S)">
+            <span class="ico">↧</span><span class="lbl">Save</span>
+          </button>
+          <button id="sw-export" class="swatch" title="Export for other software"><span>⋯</span></button>
+        </div>
+        <div class="sep"></div>
         <button id="btn-help" title="Help (?)">
           <span class="ico">?</span><span class="lbl">Help</span>
         </button>
@@ -96,6 +109,8 @@
           <div class="row"><span>Undo</span><kbd>⌘Z</kbd></div>
           <div class="row"><span>Redo</span><kbd>⇧⌘Z</kbd></div>
           <div class="row"><span>Smooth</span><kbd>M</kbd></div>
+          <div class="row"><span>Open</span><kbd>⌘O</kbd></div>
+          <div class="row"><span>Save</span><kbd>⌘S</kbd></div>
           <div class="row"><span>Delete</span><kbd>Del</kbd></div>
           <div class="row"><span>Select all</span><kbd>A</kbd></div>
           <div class="row"><span>Add to selection</span><kbd>⇧ click</kbd></div>
@@ -174,6 +189,21 @@
       </details>
 
       <details>
+        <summary>Saving, and ready-made shapes</summary>
+        <p>
+          <b>Save</b> writes everything to a <code>.knot.json</code> file you
+          keep. <b>Open</b> reads one back &mdash; or just drop the file onto the
+          canvas. <b>Shapes</b> has trefoils, Hopf links and the rest, and they
+          are ordinary saved files too.
+        </p>
+        <p class="warn">
+          Anything loaded arrives <b>beside</b> what you already have, and the
+          view glides across to it. Nothing you drew is ever replaced &mdash; but
+          nothing is kept between visits either, so save before you close the tab.
+        </p>
+      </details>
+
+      <details>
         <summary>Editing</summary>
         <p>
           <b>Erase</b> only touches strands you've selected. <kbd>⌘Z</kbd> undoes
@@ -183,6 +213,9 @@
 
       <button id="help-close">Got it</button>
     </div>
+
+    <input id="file-input" type="file" accept=".json,application/json" hidden multiple />
+    <div id="drop-hint" hidden><span>drop to add it to the scene</span></div>
 
     <div id="confirm" hidden>
       <div class="box">

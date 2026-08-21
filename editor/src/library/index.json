@@ -1,0 +1,86 @@
+{
+  "front": [
+    0,
+    0,
+    1
+  ],
+  "shapes": [
+    {
+      "file": "triangle.knot.json",
+      "title": "Triangle",
+      "note": "",
+      "kind": "shape",
+      "parts": 1
+    },
+    {
+      "file": "square.knot.json",
+      "title": "Square",
+      "note": "",
+      "kind": "shape",
+      "parts": 1
+    },
+    {
+      "file": "pentagon.knot.json",
+      "title": "Pentagon",
+      "note": "",
+      "kind": "shape",
+      "parts": 1
+    },
+    {
+      "file": "circle.knot.json",
+      "title": "Circle",
+      "note": "",
+      "kind": "shape",
+      "parts": 1
+    },
+    {
+      "file": "trefoil.knot.json",
+      "title": "Trefoil",
+      "note": "3₁",
+      "kind": "knot",
+      "parts": 1
+    },
+    {
+      "file": "figure-eight.knot.json",
+      "title": "Figure eight",
+      "note": "4₁",
+      "kind": "knot",
+      "parts": 1
+    },
+    {
+      "file": "cinquefoil.knot.json",
+      "title": "Cinquefoil",
+      "note": "5₁",
+      "kind": "knot",
+      "parts": 1
+    },
+    {
+      "file": "torus-3-4.knot.json",
+      "title": "Torus (3,4)",
+      "note": "8₁₉",
+      "kind": "knot",
+      "parts": 1
+    },
+    {
+      "file": "hopf-link.knot.json",
+      "title": "Hopf link",
+      "note": "Lk 1",
+      "kind": "link",
+      "parts": 2
+    },
+    {
+      "file": "solomon.knot.json",
+      "title": "Solomon's seal",
+      "note": "Lk 2",
+      "kind": "link",
+      "parts": 2
+    },
+    {
+      "file": "borromean.knot.json",
+      "title": "Borromean rings",
+      "note": "",
+      "kind": "link",
+      "parts": 3
+    }
+  ]
+}

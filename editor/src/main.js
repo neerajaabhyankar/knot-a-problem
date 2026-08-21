@@ -6,13 +6,27 @@
 import './style.css';
 
 import { Scene } from './model.js';
+import LIBRARY_INDEX from './library/index.json';
 import { DEFAULT_COLOR, DEFAULT_RADIUS, PALETTE } from './theme.js';
 import { Viewer, sampleCurve, vec3 } from './viewer.js';
 import { EraseSession } from './eraser.js';
 import { fillRun, liftStroke } from './crossings.js';
 import { dedupe, simplifyStroke } from './simplify.js';
 import { smooth } from './smooth.js';
-import { closeSwatch, colorSwatch, sizeSwatch } from './swatches.js';
+import { closeSwatch, colorSwatch, menuSwatch, sizeSwatch } from './swatches.js';
+import {
+  EXTENSION,
+  bounds,
+  orient,
+  parse,
+  placement,
+  serialize,
+  stringify,
+  suggestName,
+  toOBJ,
+  toVECT,
+  translate,
+} from './io.js';
 
 const canvas = document.getElementById('view');
 const statusEl = document.getElementById('status');
@@ -538,6 +552,39 @@ canvas.addEventListener('pointercancel', () => {
   viewer.clearPreview();
 });
 
+// ---------- drag and drop ----------
+//
+// Dropping a file anywhere on the window is the same as opening it. The counter
+// is because dragenter/dragleave fire for every element the pointer crosses, so
+// a plain boolean flickers the hint on and off as you move across the rail.
+
+const dropHint = btn('drop-hint');
+let dragDepth = 0;
+const hasFiles = (ev) => [...(ev.dataTransfer?.types ?? [])].includes('Files');
+
+addEventListener('dragenter', (ev) => {
+  if (!hasFiles(ev)) return;
+  ev.preventDefault();
+  dragDepth++;
+  dropHint.hidden = false;
+});
+addEventListener('dragover', (ev) => {
+  if (hasFiles(ev)) ev.preventDefault(); // or the browser navigates to the file
+});
+addEventListener('dragleave', () => {
+  if (--dragDepth <= 0) {
+    dragDepth = 0;
+    dropHint.hidden = true;
+  }
+});
+addEventListener('drop', (ev) => {
+  if (!hasFiles(ev)) return;
+  ev.preventDefault();
+  dragDepth = 0;
+  dropHint.hidden = true;
+  openFiles([...ev.dataTransfer.files]);
+});
+
 // Right-drag pans, so the context menu has to go.
 canvas.addEventListener('contextmenu', (ev) => ev.preventDefault());
 
@@ -568,6 +615,98 @@ confirmEl.addEventListener('click', (ev) => {
 });
 
 // ---------- commands ----------
+
+// ---------- saving, loading, the shape library ----------
+//
+// See io.md. `io.js` does the serialising and the placement maths; everything
+// impure — the file picker, the download, the camera — is here.
+//
+// Loading always *inserts*: one rule, and the one that lets you build a link out
+// of pieces. What arrives is offset along the camera's right until it clears
+// what is already there, and then the view glides across to it.
+
+// The shapes are code-split — one chunk each, fetched the first time you pick
+// one — so eleven knots cost nothing until they are wanted. The index is tiny
+// and static, so it rides along in the bundle.
+const LIBRARY = import.meta.glob('./library/*.knot.json');
+
+/** Everything on screen, as the file format wants it. */
+function sceneForSave() {
+  return serialize(model.curves, { camera: viewer.camera3() });
+}
+
+function download(name, text, type = 'application/json') {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  // Revoking immediately can beat the download on some engines; a tick is enough.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function saveScene() {
+  if (!model.curves.length) return flashStatus('nothing to save yet');
+  download(suggestName() + EXTENSION, stringify(sceneForSave()));
+  const n = model.curves.length;
+  flashStatus(`saved <b>${n}</b> curve${n === 1 ? '' : 's'}`);
+}
+
+/**
+ * Add a parsed scene to what's already on screen.
+ *
+ * `face` turns the incoming shape to look at you — right for a library shape,
+ * which is a template and would otherwise arrive edge-on whenever you had
+ * orbited; wrong for a saved file, which is your work and arrives exactly as
+ * you left it.
+ */
+function insertScene({ curves, camera }, { face = false, label = 'loaded' } = {}) {
+  if (!curves.length) return flashStatus('that file has no curves in it');
+
+  const empty = model.curves.length === 0;
+  let incoming = curves;
+  if (face) incoming = orient(incoming, [0, 0, 1], viewer.forward().map((v) => -v));
+  incoming = translate(incoming, placement(model.curves, incoming, viewer.right()));
+
+  record();
+  const added = incoming.map((c) =>
+    model.addCurve(c.points, { closed: c.closed, color: c.color, radius: c.radius, name: c.name }),
+  );
+  refresh();
+  setSelection(added.map((c) => c.id));
+
+  // An empty canvas is the one case where a saved camera can be honoured: there
+  // is nothing to place the scene beside, so it lands on its own coordinates and
+  // the view it was saved from is exactly the view you get back.
+  const box = bounds(incoming);
+  if (empty && camera && !face) viewer.setCamera(camera);
+  else if (box) viewer.easeTo(box.centre, Math.max(...box.size) / 2);
+
+  const n = added.length;
+  flashStatus(`${label} &nbsp;&middot;&nbsp; <b>${n}</b> curve${n === 1 ? '' : 's'}`);
+}
+
+/** Read one or more dropped/picked files. Each is inserted as it arrives. */
+async function openFiles(files) {
+  for (const file of files) {
+    try {
+      insertScene(parse(await file.text(), { fallbackColor: drawColor, defaultRadius: DEFAULT_RADIUS }), {
+        label: file.name,
+      });
+    } catch (err) {
+      flashStatus(`<b>${file.name}</b> &mdash; ${err.message}`);
+      return;
+    }
+  }
+}
+
+async function loadShape(file) {
+  const load = LIBRARY[`./library/${file}`];
+  if (!load) return flashStatus('that shape is missing from the library');
+  const shape = await load();
+  // A bundled JSON import arrives as an object, not text.
+  insertScene(parse(JSON.stringify(shape.default ?? shape)), { face: true, label: 'inserted' });
+}
 
 // ---------- smoothing ----------
 //
@@ -750,6 +889,12 @@ btn('btn-smooth').addEventListener('click', beginSmooth);
 btn('btn-delete').addEventListener('click', deleteSelected);
 btn('btn-clear').addEventListener('click', clearAll);
 btn('btn-help').addEventListener('click', () => helpEl.classList.toggle('hidden'));
+btn('btn-save').addEventListener('click', saveScene);
+btn('btn-open').addEventListener('click', () => btn('file-input').click());
+btn('file-input').addEventListener('change', (ev) => {
+  openFiles([...ev.target.files]);
+  ev.target.value = ''; // so picking the same file twice still fires
+});
 btn('help-close').addEventListener('click', () => helpEl.classList.add('hidden'));
 
 // ⌘, Ctrl or ⇧ with a drag pans instead of orbiting. three.js swaps that itself;
@@ -771,6 +916,12 @@ addEventListener('keydown', (ev) => {
     } else if (k === 'y') {
       ev.preventDefault();
       redo();
+    } else if (k === 's') {
+      ev.preventDefault(); // or the browser offers to save the page
+      saveScene();
+    } else if (k === 'o') {
+      ev.preventDefault();
+      btn('file-input').click();
     }
     return;
   }
@@ -877,6 +1028,46 @@ function setSmooth(v) {
   smoothAmount = smoothSwatch.get();
   applySmooth();
 }
+
+// ---------- the shape library, and export ----------
+
+menuSwatch(
+  btn('sw-export'),
+  [
+    {
+      title: 'Export a copy',
+      items: [
+        { id: 'obj', title: 'Wavefront OBJ', note: '.obj' },
+        { id: 'vect', title: 'Geomview VECT', note: '.vect' },
+      ],
+    },
+  ],
+  (id) => {
+    if (!model.curves.length) return flashStatus('nothing to export yet');
+    const name = suggestName();
+    if (id === 'obj') download(`${name}.obj`, toOBJ(model.curves), 'text/plain');
+    else download(`${name}.vect`, toVECT(model.curves), 'text/plain');
+    flashStatus(`exported as <b>${id.toUpperCase()}</b> &nbsp;&middot;&nbsp; curves only, no thickness`);
+  },
+);
+
+// The library is fetched once, the first time you open the picker — the shapes
+// themselves are separate chunks, so none of this is in the initial bundle.
+const KINDS = [
+  ['shape', 'Shapes'],
+  ['knot', 'Knots'],
+  ['link', 'Links'],
+];
+
+const shapeGroups = KINDS.map(([kind, title]) => ({
+  title,
+  items: LIBRARY_INDEX.shapes
+    .filter((s) => s.kind === kind)
+    .map((s) => ({ id: s.file, title: s.title, note: s.note })),
+})).filter((g) => g.items.length);
+
+// menuSwatch binds the button's click itself, so there is nothing more to wire.
+menuSwatch(btn('btn-library'), shapeGroups, loadShape);
 
 // The pan modifier is ⌘ on a Mac and Ctrl everywhere else.
 if (!/Mac/i.test(navigator.platform || '')) btn('sc-pan').textContent = 'Ctrl drag';

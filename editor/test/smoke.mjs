@@ -7,6 +7,7 @@
 
 import { firefox } from 'playwright';
 import { mkdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { trefoilPath, trefoilStrokes } from './trefoil.mjs';
 
 const APP_URL = process.env.URL ?? 'http://localhost:5173/';
@@ -114,7 +115,7 @@ const circlePath = (cx, cy, r, steps = 64) =>
 await mkdir(OUT, { recursive: true });
 
 const browser = await firefox.launch({ firefoxUserPrefs: FIREFOX_WEBGL });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, acceptDownloads: true });
 
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
@@ -982,6 +983,116 @@ check(
   straight && !straight.closed && straight.worst < 1e-6,
   'Shift-drag is dead straight',
   straight ? `max deviation ${straight.worst.toExponential(1)} over ${straight.len.toFixed(2)}` : '',
+);
+
+// ===========================================================================
+// 8. Saving, loading, and the shape library
+// ===========================================================================
+//
+// The claim is "save it, open it, and it looks exactly the same", so this
+// compares every control point rather than eyeballing a screenshot.
+
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+await page.keyboard.press('d');
+await stroke(page, circlePath(640, 400, 170));
+await page.keyboard.press('Enter');
+await page.waitForTimeout(220);
+
+const drawnScene = await page.evaluate(() => ({
+  points: globalThis.knot.model.curves.map((c) => c.points),
+  meta: globalThis.knot.model.curves.map((c) => [c.color, c.radius, c.closed]),
+}));
+
+const download = await Promise.all([
+  page.waitForEvent('download', { timeout: 10000 }),
+  page.click('#btn-save'),
+]).then(([d]) => d);
+const savedPath = await download.path();
+check(
+  download.suggestedFilename().endsWith('.knot.json'),
+  'Save writes a .knot.json file',
+  download.suggestedFilename(),
+);
+
+const savedText = await readFile(savedPath, 'utf8');
+const savedJSON = JSON.parse(savedText);
+check(savedJSON.format === 'knot-a-problem/scene' && savedJSON.version >= 1, 'tagged and versioned');
+check(!!savedJSON.camera, 'and it remembers the view it was saved from');
+
+await page.evaluate(() => {
+  globalThis.knot.model.clear();
+  globalThis.knot.refresh();
+});
+await page.waitForTimeout(150);
+check((await curveCount(page)) === 0, 'the canvas is empty before loading it back');
+
+await page.setInputFiles('#file-input', savedPath);
+await page.waitForTimeout(900);
+
+const reloaded = await page.evaluate(() => ({
+  points: globalThis.knot.model.curves.map((c) => c.points),
+  meta: globalThis.knot.model.curves.map((c) => [c.color, c.radius, c.closed]),
+}));
+check(reloaded.points.length === drawnScene.points.length, 'every curve comes back', `${reloaded.points.length}`);
+check(JSON.stringify(reloaded.meta) === JSON.stringify(drawnScene.meta), 'with its colour, thickness and closedness');
+
+const drift = Math.max(
+  ...drawnScene.points.flatMap((c, i) =>
+    c.flatMap((p, j) => p.map((v, k) => Math.abs(v - (reloaded.points[i]?.[j]?.[k] ?? 1e9)))),
+  ),
+);
+check(drift <= 5e-6, 'and every control point within 5e-6 world units', `worst ${drift.toExponential(1)}`);
+check(drift < 2 * TUBE_RADIUS / 10000, 'which is nowhere near enough to change the picture');
+
+// Loading into an empty canvas restores the saved view, so it really is the
+// same picture and not just the same numbers.
+await page.screenshot({ path: OUT + '5-reloaded.png' });
+
+// --- the library, and always-insert -------------------------------------------
+
+await page.click('#btn-library');
+await page.waitForTimeout(250);
+const shapes = await page.evaluate(() =>
+  [...document.querySelectorAll('.panel.menu.open .item')].map((i) => i.dataset.id),
+);
+check(shapes.length >= 8, 'the shape picker offers a library', `${shapes.length} shapes`);
+check(shapes.includes('trefoil.knot.json') && shapes.includes('hopf-link.knot.json'), 'including a trefoil and a Hopf link');
+
+const beforeInsert = await curveCount(page);
+await page.click('.item[data-id="hopf-link.knot.json"]');
+await page.waitForTimeout(1700);
+check((await curveCount(page)) === beforeInsert + 2, 'inserting a Hopf link adds two curves, keeping what was there');
+
+// "Beside" means along the *camera's* right, not the world's — the camera has
+// been orbited all over the place by now, which is exactly the case worth
+// testing. Measure everything projected onto that axis.
+const placed = await page.evaluate(() => {
+  const right = globalThis.knot.viewer.right();
+  const on = (p) => p[0] * right[0] + p[1] * right[1] + p[2] * right[2];
+  const cs = globalThis.knot.model.curves;
+  const span = (c) => c.points.reduce((b, p) => [Math.min(b[0], on(p)), Math.max(b[1], on(p))], [1e9, -1e9]);
+  const first = span(cs[0]);
+  const t = globalThis.knot.viewer.controls.target;
+  return {
+    clear: cs.slice(1).every((c) => span(c)[0] > first[1]),
+    target: on([t.x, t.y, t.z]),
+    firstRight: first[1],
+  };
+});
+check(placed.clear, 'and it lands clear of the drawing, not on top of it');
+check(placed.target > placed.firstRight, 'with the view panned across to it',
+  `target at ${placed.target.toFixed(2)} along the camera's right, drawing ends at ${placed.firstRight.toFixed(2)}`);
+await page.screenshot({ path: OUT + '5-library.png' });
+
+check(
+  await page.evaluate(() => {
+    globalThis.knot.undo();
+    return globalThis.knot.model.curves.length;
+  }) === beforeInsert,
+  'and one undo takes the whole insert back',
 );
 
 check(errors.length === 0, 'no console or page errors', errors.slice(0, 3).join(' | '));

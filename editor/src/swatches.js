@@ -89,6 +89,40 @@ export function colorSwatch(swatch, onChange) {
 }
 
 /**
+ * A menu swatch: a panel of things to pick, fired back by id. Used for the
+ * shape library and for export, both of which are "choose one and something
+ * happens" rather than "set a value".
+ *
+ * `groups` is `[{ title, items: [{ id, title, note }] }]`.
+ */
+export function menuSwatch(swatch, groups, onPick) {
+  const el = document.createElement('div');
+  el.className = 'panel menu';
+  el.innerHTML = groups
+    .map(
+      (g) =>
+        `<div class="group">${g.title ? `<h4>${g.title}</h4>` : ''}${g.items
+          .map(
+            (it) =>
+              `<button class="item" data-id="${it.id}">` +
+              `<span>${it.title}</span>${it.note ? `<em>${it.note}</em>` : ''}</button>`,
+          )
+          .join('')}</div>`,
+    )
+    .join('');
+  document.body.appendChild(el);
+
+  el.addEventListener('click', (ev) => {
+    const item = ev.target.closest('.item');
+    if (!item) return;
+    closeSwatch();
+    onPick(item.dataset.id);
+  });
+  swatch.addEventListener('click', () => toggle(swatch, el));
+  return { el, open: () => toggle(swatch, el) };
+}
+
+/**
  * A size swatch: a slider, and the square itself previews the size as a dot.
  * `format` turns the raw value into the caption; `label` names what is being
  * set, since not every one of these is a size.

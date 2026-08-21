@@ -36,6 +36,7 @@ jobs:
         run: |
           node test/crossings.test.mjs
           node test/smooth.test.mjs
+          node test/io.test.mjs
 
       - name: Build
         working-directory: editor
