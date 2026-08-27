@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node test/crossings.test.mjs && node test/smooth.test.mjs && node test/io.test.mjs && node test/smoke.mjs && node test/browsers.mjs",
-    "library": "node tools/library.mjs"
+    "library": "node tools/library.mjs",
+    "analyse": "node tools/analyse.mjs"
   },
   "license": "ISC",
   "dependencies": {
