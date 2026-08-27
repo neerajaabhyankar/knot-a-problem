@@ -1,0 +1,366 @@
+<title>Borromean at Every Vertex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Overpass:wght@400;600&family=Overpass+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --ground:#eaedef; --surface:#f8f9fa; --sunk:#e1e5e8;
+  --ink:#111a20; --soft:#4e5b64; --faint:#7b878f; --rule:#ced5d9;
+  --accent:#186379;
+  --sA:#b3400e; --sB:#1c6a86; --sC:#9c7a17; --sD:#3d6d37;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0d1317; --surface:#141c21; --sunk:#0a1013;
+    --ink:#e0e7eb; --soft:#93a1aa; --faint:#68767f; --rule:#25313a;
+    --accent:#6fb8d4;
+    --sA:#ec7440; --sB:#57b2d1; --sC:#e0ba44; --sD:#7cb96a;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0d1317; --surface:#141c21; --sunk:#0a1013;
+  --ink:#e0e7eb; --soft:#93a1aa; --faint:#68767f; --rule:#25313a;
+  --accent:#6fb8d4;
+  --sA:#ec7440; --sB:#57b2d1; --sC:#e0ba44; --sD:#7cb96a;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:Overpass,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16.5px; line-height:1.62; margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px; margin:0 auto; padding:0 24px 96px}
+.col{max-width:66ch}
+
+header{padding:64px 0 36px}
+.eyebrow{
+  font-family:"Overpass Mono",ui-monospace,monospace; font-size:12.5px;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin:0 0 18px;
+}
+h1{
+  font-family:Newsreader,Georgia,serif; font-weight:400; font-size:clamp(38px,6.4vw,64px);
+  line-height:1.04; letter-spacing:-.015em; margin:0 0 20px; text-wrap:balance;
+}
+.lede{font-size:20px; line-height:1.55; color:var(--soft); margin:0; max-width:60ch}
+.lede strong{color:var(--ink); font-weight:600}
+
+h2{
+  font-family:Newsreader,Georgia,serif; font-weight:500; font-size:29px;
+  line-height:1.2; letter-spacing:-.01em; margin:0 0 14px; text-wrap:balance;
+}
+h3{font-size:15px; font-weight:600; letter-spacing:.02em; margin:0 0 8px}
+section{padding:52px 0 0}
+p{margin:0 0 16px}
+a{color:var(--accent); text-underline-offset:3px}
+
+/* ---- the viewer ---- */
+.stage{
+  background:var(--surface); border:1px solid var(--rule); border-radius:3px;
+  overflow:hidden; margin-top:34px;
+}
+canvas{display:block; width:100%; height:min(62vh,600px); cursor:grab; touch-action:none}
+canvas.dragging{cursor:grabbing}
+.rail{
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px;
+  padding:12px 16px; border-top:1px solid var(--rule); background:var(--sunk);
+}
+.railgroup{display:flex; align-items:center; gap:8px}
+.raillabel{
+  font-family:"Overpass Mono",ui-monospace,monospace; font-size:11px;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--faint);
+}
+button{
+  font-family:"Overpass Mono",ui-monospace,monospace; font-size:12.5px;
+  color:var(--soft); background:transparent; border:1px solid var(--rule);
+  border-radius:2px; padding:5px 11px; cursor:pointer; transition:.15s;
+}
+button:hover{border-color:var(--faint); color:var(--ink)}
+button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+button[aria-pressed="true"]{border-color:currentColor}
+.strand{display:inline-flex; align-items:center; gap:7px}
+.strand .dot{width:11px; height:11px; border-radius:50%; background:currentColor; flex:none}
+.strand[aria-pressed="false"]{opacity:.4}
+.strand[aria-pressed="false"] .dot{background:transparent; box-shadow:inset 0 0 0 2px currentColor}
+#sA{color:var(--sA)} #sB{color:var(--sB)} #sC{color:var(--sC)} #sD{color:var(--sD)}
+.readout{
+  font-family:"Overpass Mono",ui-monospace,monospace; font-size:12.5px;
+  color:var(--faint); margin-left:auto; text-align:right;
+}
+.readout b{color:var(--ink); font-weight:600}
+
+/* ---- results ---- */
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin:28px 0}
+.cell{background:var(--surface); padding:18px 20px}
+.cell .num{font-family:"Overpass Mono",ui-monospace,monospace; font-size:27px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums; display:block; margin-bottom:2px}
+.cell .cap{font-size:13.5px; color:var(--soft); line-height:1.4}
+
+.scroller{overflow-x:auto; margin:24px 0}
+table{border-collapse:collapse; width:100%; min-width:520px; font-size:14.5px}
+th,td{text-align:left; padding:9px 14px 9px 0; border-bottom:1px solid var(--rule)}
+th{font-family:"Overpass Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint); font-weight:400}
+td.n{font-family:"Overpass Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.yes{color:var(--sD); font-weight:600}
+
+figure{margin:28px 0}
+figcaption{font-size:14px; color:var(--soft); margin-top:12px; max-width:56ch}
+.fig{width:100%; height:auto; display:block}
+
+.note{border-left:2px solid var(--rule); padding:2px 0 2px 20px; margin:26px 0; color:var(--soft); font-size:15.5px}
+.note b{color:var(--ink)}
+
+code,kbd{font-family:"Overpass Mono",ui-monospace,monospace; font-size:.92em; background:var(--sunk); padding:1px 5px; border-radius:2px}
+
+footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); color:var(--faint); font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">math.stackexchange 2981717 &mdash; a retracted claim, reinstated</p>
+  <h1>Borromean at Every Vertex</h1>
+  <p class="lede">Four rings with the full rotational symmetry of a tetrahedron. <strong>Take any one away and the other three are the Borromean rings</strong> &mdash; and because the symmetry moves any component onto any other, that is one fact rather than four.</p>
+</header>
+
+<div class="stage">
+  <canvas id="view"></canvas>
+  <div class="rail">
+    <div class="railgroup">
+      <span class="raillabel">Rings</span>
+      <button id="sA" class="strand" aria-pressed="true"><span class="dot"></span>A</button>
+      <button id="sB" class="strand" aria-pressed="true"><span class="dot"></span>B</button>
+      <button id="sC" class="strand" aria-pressed="true"><span class="dot"></span>C</button>
+      <button id="sD" class="strand" aria-pressed="true"><span class="dot"></span>D</button>
+    </div>
+    <div class="railgroup">
+      <span class="raillabel">Look down</span>
+      <button id="ax3">3-fold axis</button>
+      <button id="ax2">2-fold axis</button>
+      <button id="axg">off-axis</button>
+    </div>
+    <div class="railgroup">
+      <button id="spin" aria-pressed="true">pause</button>
+    </div>
+    <div class="readout" id="readout">drag to turn</div>
+  </div>
+</div>
+
+<section>
+  <div class="col">
+    <h2>One ring per face, one weave per vertex</h2>
+    <p>Put a ring on each of the tetrahedron&rsquo;s four faces. The four ways of choosing three faces are exactly the four <em>vertices</em>, because the three faces meeting at a vertex are the three that miss the opposite one. So &ldquo;remove any ring and the rest are Borromean&rdquo; says the rings weave Borromean-style around each of the four corners &mdash; and the tetrahedral group carries any corner onto any other.</p>
+    <p>That is the observation in Kyle Miller&rsquo;s answer to the original question. He drew a link with it, claimed tetrahedral symmetry, and retracted the claim a comment later. He was right to: his diagram, and the four-triangle redrawing that followed it, have 3-fold symmetry only. The link above has all twelve rotations.</p>
+  </div>
+
+  <div class="grid">
+    <div class="cell"><span class="num">12</span><span class="cap">rotations in the symmetry group, exact by construction rather than to a tolerance</span></div>
+    <div class="cell"><span class="num">0</span><span class="cap">linking number, for all six pairs &mdash; the Gauss integral lands on it to 12 decimal places</span></div>
+    <div class="cell"><span class="num">6</span><span class="cap">crossings each sublink reduces to under R1 and R2, the Borromean minimum</span></div>
+    <div class="cell"><span class="num">28</span><span class="cap">crossings in the whole four-ring diagram, which is close to the floor for this link</span></div>
+  </div>
+
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Drop this ring</th><th>Weave at</th><th>Projects to</th><th>Reduces to</th><th>Linking</th><th>Jones</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td>vertex 1</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+      <tr><td>B</td><td>vertex 2</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+      <tr><td>C</td><td>vertex 3</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+      <tr><td>D</td><td>vertex 4</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="col" style="color:var(--soft);font-size:15px">Each row is an independent computation: a fresh search over 128 projection directions, a fresh Reidemeister reduction, a fresh Jones polynomial. The four agree coefficient for coefficient with the Borromean rings, and with each other &mdash; which is what the symmetry predicts and therefore what would have exposed a bug.</p>
+</section>
+
+<section>
+  <div class="col">
+    <h2>Why it cannot be four flat triangles</h2>
+    <p>The natural first attempt &mdash; a flat triangle lying in each face plane &mdash; is not merely hard to get right. It is impossible, and the reason is a single picture.</p>
+    <p>Two of the rings live in two face planes, which meet along the line through their shared edge. A <em>convex</em> curve cuts that line in two points, so each ring contributes an interval, and two convex curves in different planes are linked exactly when their intervals interleave. Borromean rings made of flat pieces work because their intervals <em>nest</em>.</p>
+    <p>Now bring in the symmetry. The half-turn that swaps these two rings maps that line to itself, reflecting it in the midpoint of the edge. So one interval is forced to be the mirror image of the other through that midpoint &mdash; and two intervals that are point reflections of each other can be disjoint, or interleaved, but never nested.</p>
+  </div>
+
+  <figure>
+    <svg class="fig" viewBox="0 0 720 250" role="img" aria-label="Three number lines showing that nesting is impossible under point reflection">
+      <defs><style>
+        .lbl{font-family:"Overpass Mono",monospace;font-size:12px;fill:var(--faint);letter-spacing:.08em}
+        .vd{font-family:Overpass,sans-serif;font-size:13.5px;fill:var(--soft)}
+        .axis{stroke:var(--rule);stroke-width:1.5}
+        .tick{stroke:var(--faint);stroke-width:1.5}
+        .m{font-family:"Overpass Mono",monospace;font-size:11px;fill:var(--faint)}
+      </style></defs>
+
+      <g transform="translate(0,34)">
+        <text class="lbl" x="0" y="-12">DISJOINT</text>
+        <line class="axis" x1="0" y1="18" x2="470" y2="18"/>
+        <line class="tick" x1="235" y1="10" x2="235" y2="26"/><text class="m" x="230" y="42">m</text>
+        <line x1="60" y1="18" x2="170" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round"/>
+        <line x1="300" y1="18" x2="410" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round"/>
+        <text class="vd" x="500" y="23">unlinked, but each ring bounds a disk the other misses &mdash; it splits off</text>
+      </g>
+
+      <g transform="translate(0,118)">
+        <text class="lbl" x="0" y="-12">INTERLEAVED</text>
+        <line class="axis" x1="0" y1="18" x2="470" y2="18"/>
+        <line class="tick" x1="235" y1="10" x2="235" y2="26"/><text class="m" x="230" y="42">m</text>
+        <line x1="60" y1="18" x2="300" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round"/>
+        <line x1="170" y1="18" x2="410" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round"/>
+        <text class="vd" x="500" y="23">Hopf-linked &mdash; linking number &plusmn;1, so no triple is Borromean</text>
+      </g>
+
+      <g transform="translate(0,202)">
+        <text class="lbl" x="0" y="-12">NESTED</text>
+        <line class="axis" x1="0" y1="18" x2="470" y2="18"/>
+        <line class="tick" x1="235" y1="10" x2="235" y2="26"/><text class="m" x="230" y="42">m</text>
+        <line x1="120" y1="18" x2="350" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round" opacity=".28"/>
+        <line x1="170" y1="18" x2="300" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round" opacity=".28"/>
+        <text class="vd" x="500" y="23">what Borromean needs &mdash; and reflection in m rules it out</text>
+      </g>
+    </svg>
+    <figcaption>Reflecting an interval through <span style="font-family:'Overpass Mono',monospace">m</span> sends <span style="font-family:'Overpass Mono',monospace">[a, b]</span> to <span style="font-family:'Overpass Mono',monospace">[&minus;b, &minus;a]</span>. For one to contain the other you would need <span style="font-family:'Overpass Mono',monospace">a + b</span> to be both &ge;&nbsp;0 and &le;&nbsp;0 at once, so the two intervals coincide and the rings touch. Nesting is unavailable, and with it the Borromean weave.</figcaption>
+  </figure>
+
+  <div class="col">
+    <p>A sweep of 132 flat-triangle configurations over size and twist confirms it, and confirms nothing else ever happens: every one is either the four-ring unlink or has all six linking numbers equal to &plusmn;1. There is no third outcome, which is exactly what the argument says.</p>
+    <p><strong>So the rings have to leave their planes.</strong> That is the retracted claim turned into something you can act on, and the rings above are corrugated for precisely this reason.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>What is proved, and what is not</h2>
+    <p>Each of the four sublinks is a three-component link with every linking number zero, a six-crossing diagram, and the Borromean rings&rsquo; Jones polynomial. The Borromean rings are the only Brunnian three-component link with six crossings, so that settles it &mdash; <em>given the link table</em>.</p>
+    <div class="note">
+      <b>The missing certificate.</b> What is not in hand is a self-contained one: an explicit sequence of Reidemeister moves carrying each sublink onto the standard six-crossing diagram. Two things block it. There is no six-crossing Borromean diagram to compare against &mdash; the three-ellipse model never projects below eight, over four thousand sampled directions. And the simplifier applies R1 and R2 only, so all four reduced diagrams stall with eight available R3 moves and nothing else. Building R3 closes the gap outright.
+    </div>
+    <p>Worth keeping straight: the <em>other</em> reading of &ldquo;four Borromean rings&rdquo; &mdash; remove any one and the rest fall <em>apart</em> &mdash; goes the other way. A three-fold symmetry fixing one ring and cycling the other three acts on the relevant two-dimensional space with characteristic polynomial <span style="font-family:'Overpass Mono',monospace">&lambda;&sup2;&nbsp;+&nbsp;&lambda;&nbsp;+&nbsp;1</span>, which has no eigenvalue +1 or &minus;1. Every length-four Milnor invariant is therefore forced to vanish, and the standard four-component Brunnian links admit no such symmetry at all. Same tetrahedron, opposite answer.</p>
+  </div>
+</section>
+
+<footer>
+  Built and checked with <code>knotlib</code> in the knot-a-problem repo. Everything here re-derives from <code>four-borromean/test.mjs</code>: symmetry asserted point-set-wise on all four group generators, linking by the Gauss integral, link type by projection and Jones.
+</footer>
+</div>
+
+<script>
+const DATA = [[[0.513,-0.871,-0.179],[0.559,-0.865,-0.207],[0.599,-0.853,-0.237],[0.631,-0.836,-0.27],[0.656,-0.812,-0.302],[0.672,-0.779,-0.332],[0.68,-0.739,-0.359],[0.683,-0.692,-0.38],[0.68,-0.639,-0.396],[0.673,-0.582,-0.404],[0.664,-0.522,-0.407],[0.653,-0.461,-0.406],[0.644,-0.402,-0.402],[0.635,-0.347,-0.398],[0.629,-0.297,-0.395],[0.625,-0.252,-0.397],[0.622,-0.215,-0.405],[0.62,-0.186,-0.423],[0.618,-0.165,-0.451],[0.614,-0.15,-0.49],[0.607,-0.142,-0.54],[0.594,-0.14,-0.602],[0.576,-0.142,-0.672],[0.55,-0.148,-0.748],[0.517,-0.155,-0.827],[0.474,-0.164,-0.907],[0.424,-0.173,-0.984],[0.368,-0.181,-1.054],[0.307,-0.187,-1.116],[0.243,-0.191,-1.164],[0.178,-0.192,-1.199],[0.114,-0.189,-1.221],[0.054,-0.183,-1.228],[0.001,-0.172,-1.22],[-0.045,-0.157,-1.201],[-0.083,-0.136,-1.173],[-0.111,-0.111,-1.137],[-0.129,-0.079,-1.097],[-0.14,-0.042,-1.056],[-0.143,0,-1.015],[-0.142,0.048,-0.978],[-0.137,0.101,-0.947],[-0.131,0.158,-0.922],[-0.127,0.218,-0.903],[-0.127,0.28,-0.89],[-0.131,0.341,-0.882],[-0.141,0.402,-0.878],[-0.158,0.459,-0.875],[-0.179,0.513,-0.871],[-0.207,0.559,-0.865],[-0.237,0.599,-0.853],[-0.27,0.631,-0.836],[-0.302,0.656,-0.812],[-0.332,0.672,-0.779],[-0.359,0.68,-0.739],[-0.38,0.683,-0.692],[-0.396,0.68,-0.639],[-0.404,0.673,-0.582],[-0.407,0.664,-0.522],[-0.406,0.653,-0.461],[-0.402,0.644,-0.402],[-0.398,0.635,-0.347],[-0.395,0.629,-0.297],[-0.397,0.625,-0.252],[-0.405,0.622,-0.215],[-0.423,0.62,-0.186],[-0.451,0.618,-0.165],[-0.49,0.614,-0.15],[-0.54,0.607,-0.142],[-0.602,0.594,-0.14],[-0.672,0.576,-0.142],[-0.748,0.55,-0.148],[-0.827,0.517,-0.155],[-0.907,0.474,-0.164],[-0.984,0.424,-0.173],[-1.054,0.368,-0.181],[-1.116,0.307,-0.187],[-1.164,0.243,-0.191],[-1.199,0.178,-0.192],[-1.221,0.114,-0.189],[-1.228,0.054,-0.183],[-1.22,0.001,-0.172],[-1.201,-0.045,-0.157],[-1.173,-0.083,-0.136],[-1.137,-0.111,-0.111],[-1.097,-0.129,-0.079],[-1.056,-0.14,-0.042],[-1.015,-0.143,0],[-0.978,-0.142,0.048],[-0.947,-0.137,0.101],[-0.922,-0.131,0.158],[-0.903,-0.127,0.218],[-0.89,-0.127,0.28],[-0.882,-0.131,0.341],[-0.878,-0.141,0.402],[-0.875,-0.158,0.459],[-0.871,-0.179,0.513],[-0.865,-0.207,0.559],[-0.853,-0.237,0.599],[-0.836,-0.27,0.631],[-0.812,-0.302,0.656],[-0.779,-0.332,0.672],[-0.739,-0.359,0.68],[-0.692,-0.38,0.683],[-0.639,-0.396,0.68],[-0.582,-0.404,0.673],[-0.522,-0.407,0.664],[-0.461,-0.406,0.653],[-0.402,-0.402,0.644],[-0.347,-0.398,0.635],[-0.297,-0.395,0.629],[-0.252,-0.397,0.625],[-0.215,-0.405,0.622],[-0.186,-0.423,0.62],[-0.165,-0.451,0.618],[-0.15,-0.49,0.614],[-0.142,-0.54,0.607],[-0.14,-0.602,0.594],[-0.142,-0.672,0.576],[-0.148,-0.748,0.55],[-0.155,-0.827,0.517],[-0.164,-0.907,0.474],[-0.173,-0.984,0.424],[-0.181,-1.054,0.368],[-0.187,-1.116,0.307],[-0.191,-1.164,0.243],[-0.192,-1.199,0.178],[-0.189,-1.221,0.114],[-0.183,-1.228,0.054],[-0.172,-1.22,0.001],[-0.157,-1.201,-0.045],[-0.136,-1.173,-0.083],[-0.111,-1.137,-0.111],[-0.079,-1.097,-0.129],[-0.042,-1.056,-0.14],[0,-1.015,-0.143],[0.048,-0.978,-0.142],[0.101,-0.947,-0.137],[0.158,-0.922,-0.131],[0.218,-0.903,-0.127],[0.28,-0.89,-0.127],[0.341,-0.882,-0.131],[0.402,-0.878,-0.141],[0.459,-0.875,-0.158]],[[0.513,0.871,0.179],[0.559,0.865,0.207],[0.599,0.853,0.237],[0.631,0.836,0.27],[0.656,0.812,0.302],[0.672,0.779,0.332],[0.68,0.739,0.359],[0.683,0.692,0.38],[0.68,0.639,0.396],[0.673,0.582,0.404],[0.664,0.522,0.407],[0.653,0.461,0.406],[0.644,0.402,0.402],[0.635,0.347,0.398],[0.629,0.297,0.395],[0.625,0.252,0.397],[0.622,0.215,0.405],[0.62,0.186,0.423],[0.618,0.165,0.451],[0.614,0.15,0.49],[0.607,0.142,0.54],[0.594,0.14,0.602],[0.576,0.142,0.672],[0.55,0.148,0.748],[0.517,0.155,0.827],[0.474,0.164,0.907],[0.424,0.173,0.984],[0.368,0.181,1.054],[0.307,0.187,1.116],[0.243,0.191,1.164],[0.178,0.192,1.199],[0.114,0.189,1.221],[0.054,0.183,1.228],[0.001,0.172,1.22],[-0.045,0.157,1.201],[-0.083,0.136,1.173],[-0.111,0.111,1.137],[-0.129,0.079,1.097],[-0.14,0.042,1.056],[-0.143,0,1.015],[-0.142,-0.048,0.978],[-0.137,-0.101,0.947],[-0.131,-0.158,0.922],[-0.127,-0.218,0.903],[-0.127,-0.28,0.89],[-0.131,-0.341,0.882],[-0.141,-0.402,0.878],[-0.158,-0.459,0.875],[-0.179,-0.513,0.871],[-0.207,-0.559,0.865],[-0.237,-0.599,0.853],[-0.27,-0.631,0.836],[-0.302,-0.656,0.812],[-0.332,-0.672,0.779],[-0.359,-0.68,0.739],[-0.38,-0.683,0.692],[-0.396,-0.68,0.639],[-0.404,-0.673,0.582],[-0.407,-0.664,0.522],[-0.406,-0.653,0.461],[-0.402,-0.644,0.402],[-0.398,-0.635,0.347],[-0.395,-0.629,0.297],[-0.397,-0.625,0.252],[-0.405,-0.622,0.215],[-0.423,-0.62,0.186],[-0.451,-0.618,0.165],[-0.49,-0.614,0.15],[-0.54,-0.607,0.142],[-0.602,-0.594,0.14],[-0.672,-0.576,0.142],[-0.748,-0.55,0.148],[-0.827,-0.517,0.155],[-0.907,-0.474,0.164],[-0.984,-0.424,0.173],[-1.054,-0.368,0.181],[-1.116,-0.307,0.187],[-1.164,-0.243,0.191],[-1.199,-0.178,0.192],[-1.221,-0.114,0.189],[-1.228,-0.054,0.183],[-1.22,-0.001,0.172],[-1.201,0.045,0.157],[-1.173,0.083,0.136],[-1.137,0.111,0.111],[-1.097,0.129,0.079],[-1.056,0.14,0.042],[-1.015,0.143,0],[-0.978,0.142,-0.048],[-0.947,0.137,-0.101],[-0.922,0.131,-0.158],[-0.903,0.127,-0.218],[-0.89,0.127,-0.28],[-0.882,0.131,-0.341],[-0.878,0.141,-0.402],[-0.875,0.158,-0.459],[-0.871,0.179,-0.513],[-0.865,0.207,-0.559],[-0.853,0.237,-0.599],[-0.836,0.27,-0.631],[-0.812,0.302,-0.656],[-0.779,0.332,-0.672],[-0.739,0.359,-0.68],[-0.692,0.38,-0.683],[-0.639,0.396,-0.68],[-0.582,0.404,-0.673],[-0.522,0.407,-0.664],[-0.461,0.406,-0.653],[-0.402,0.402,-0.644],[-0.347,0.398,-0.635],[-0.297,0.395,-0.629],[-0.252,0.397,-0.625],[-0.215,0.405,-0.622],[-0.186,0.423,-0.62],[-0.165,0.451,-0.618],[-0.15,0.49,-0.614],[-0.142,0.54,-0.607],[-0.14,0.602,-0.594],[-0.142,0.672,-0.576],[-0.148,0.748,-0.55],[-0.155,0.827,-0.517],[-0.164,0.907,-0.474],[-0.173,0.984,-0.424],[-0.181,1.054,-0.368],[-0.187,1.116,-0.307],[-0.191,1.164,-0.243],[-0.192,1.199,-0.178],[-0.189,1.221,-0.114],[-0.183,1.228,-0.054],[-0.172,1.22,-0.001],[-0.157,1.201,0.045],[-0.136,1.173,0.083],[-0.111,1.137,0.111],[-0.079,1.097,0.129],[-0.042,1.056,0.14],[0,1.015,0.143],[0.048,0.978,0.142],[0.101,0.947,0.137],[0.158,0.922,0.131],[0.218,0.903,0.127],[0.28,0.89,0.127],[0.341,0.882,0.131],[0.402,0.878,0.141],[0.459,0.875,0.158]],[[-0.513,-0.871,0.179],[-0.559,-0.865,0.207],[-0.599,-0.853,0.237],[-0.631,-0.836,0.27],[-0.656,-0.812,0.302],[-0.672,-0.779,0.332],[-0.68,-0.739,0.359],[-0.683,-0.692,0.38],[-0.68,-0.639,0.396],[-0.673,-0.582,0.404],[-0.664,-0.522,0.407],[-0.653,-0.461,0.406],[-0.644,-0.402,0.402],[-0.635,-0.347,0.398],[-0.629,-0.297,0.395],[-0.625,-0.252,0.397],[-0.622,-0.215,0.405],[-0.62,-0.186,0.423],[-0.618,-0.165,0.451],[-0.614,-0.15,0.49],[-0.607,-0.142,0.54],[-0.594,-0.14,0.602],[-0.576,-0.142,0.672],[-0.55,-0.148,0.748],[-0.517,-0.155,0.827],[-0.474,-0.164,0.907],[-0.424,-0.173,0.984],[-0.368,-0.181,1.054],[-0.307,-0.187,1.116],[-0.243,-0.191,1.164],[-0.178,-0.192,1.199],[-0.114,-0.189,1.221],[-0.054,-0.183,1.228],[-0.001,-0.172,1.22],[0.045,-0.157,1.201],[0.083,-0.136,1.173],[0.111,-0.111,1.137],[0.129,-0.079,1.097],[0.14,-0.042,1.056],[0.143,0,1.015],[0.142,0.048,0.978],[0.137,0.101,0.947],[0.131,0.158,0.922],[0.127,0.218,0.903],[0.127,0.28,0.89],[0.131,0.341,0.882],[0.141,0.402,0.878],[0.158,0.459,0.875],[0.179,0.513,0.871],[0.207,0.559,0.865],[0.237,0.599,0.853],[0.27,0.631,0.836],[0.302,0.656,0.812],[0.332,0.672,0.779],[0.359,0.68,0.739],[0.38,0.683,0.692],[0.396,0.68,0.639],[0.404,0.673,0.582],[0.407,0.664,0.522],[0.406,0.653,0.461],[0.402,0.644,0.402],[0.398,0.635,0.347],[0.395,0.629,0.297],[0.397,0.625,0.252],[0.405,0.622,0.215],[0.423,0.62,0.186],[0.451,0.618,0.165],[0.49,0.614,0.15],[0.54,0.607,0.142],[0.602,0.594,0.14],[0.672,0.576,0.142],[0.748,0.55,0.148],[0.827,0.517,0.155],[0.907,0.474,0.164],[0.984,0.424,0.173],[1.054,0.368,0.181],[1.116,0.307,0.187],[1.164,0.243,0.191],[1.199,0.178,0.192],[1.221,0.114,0.189],[1.228,0.054,0.183],[1.22,0.001,0.172],[1.201,-0.045,0.157],[1.173,-0.083,0.136],[1.137,-0.111,0.111],[1.097,-0.129,0.079],[1.056,-0.14,0.042],[1.015,-0.143,0],[0.978,-0.142,-0.048],[0.947,-0.137,-0.101],[0.922,-0.131,-0.158],[0.903,-0.127,-0.218],[0.89,-0.127,-0.28],[0.882,-0.131,-0.341],[0.878,-0.141,-0.402],[0.875,-0.158,-0.459],[0.871,-0.179,-0.513],[0.865,-0.207,-0.559],[0.853,-0.237,-0.599],[0.836,-0.27,-0.631],[0.812,-0.302,-0.656],[0.779,-0.332,-0.672],[0.739,-0.359,-0.68],[0.692,-0.38,-0.683],[0.639,-0.396,-0.68],[0.582,-0.404,-0.673],[0.522,-0.407,-0.664],[0.461,-0.406,-0.653],[0.402,-0.402,-0.644],[0.347,-0.398,-0.635],[0.297,-0.395,-0.629],[0.252,-0.397,-0.625],[0.215,-0.405,-0.622],[0.186,-0.423,-0.62],[0.165,-0.451,-0.618],[0.15,-0.49,-0.614],[0.142,-0.54,-0.607],[0.14,-0.602,-0.594],[0.142,-0.672,-0.576],[0.148,-0.748,-0.55],[0.155,-0.827,-0.517],[0.164,-0.907,-0.474],[0.173,-0.984,-0.424],[0.181,-1.054,-0.368],[0.187,-1.116,-0.307],[0.191,-1.164,-0.243],[0.192,-1.199,-0.178],[0.189,-1.221,-0.114],[0.183,-1.228,-0.054],[0.172,-1.22,-0.001],[0.157,-1.201,0.045],[0.136,-1.173,0.083],[0.111,-1.137,0.111],[0.079,-1.097,0.129],[0.042,-1.056,0.14],[0,-1.015,0.143],[-0.048,-0.978,0.142],[-0.101,-0.947,0.137],[-0.158,-0.922,0.131],[-0.218,-0.903,0.127],[-0.28,-0.89,0.127],[-0.341,-0.882,0.131],[-0.402,-0.878,0.141],[-0.459,-0.875,0.158]],[[-0.513,0.871,-0.179],[-0.559,0.865,-0.207],[-0.599,0.853,-0.237],[-0.631,0.836,-0.27],[-0.656,0.812,-0.302],[-0.672,0.779,-0.332],[-0.68,0.739,-0.359],[-0.683,0.692,-0.38],[-0.68,0.639,-0.396],[-0.673,0.582,-0.404],[-0.664,0.522,-0.407],[-0.653,0.461,-0.406],[-0.644,0.402,-0.402],[-0.635,0.347,-0.398],[-0.629,0.297,-0.395],[-0.625,0.252,-0.397],[-0.622,0.215,-0.405],[-0.62,0.186,-0.423],[-0.618,0.165,-0.451],[-0.614,0.15,-0.49],[-0.607,0.142,-0.54],[-0.594,0.14,-0.602],[-0.576,0.142,-0.672],[-0.55,0.148,-0.748],[-0.517,0.155,-0.827],[-0.474,0.164,-0.907],[-0.424,0.173,-0.984],[-0.368,0.181,-1.054],[-0.307,0.187,-1.116],[-0.243,0.191,-1.164],[-0.178,0.192,-1.199],[-0.114,0.189,-1.221],[-0.054,0.183,-1.228],[-0.001,0.172,-1.22],[0.045,0.157,-1.201],[0.083,0.136,-1.173],[0.111,0.111,-1.137],[0.129,0.079,-1.097],[0.14,0.042,-1.056],[0.143,0,-1.015],[0.142,-0.048,-0.978],[0.137,-0.101,-0.947],[0.131,-0.158,-0.922],[0.127,-0.218,-0.903],[0.127,-0.28,-0.89],[0.131,-0.341,-0.882],[0.141,-0.402,-0.878],[0.158,-0.459,-0.875],[0.179,-0.513,-0.871],[0.207,-0.559,-0.865],[0.237,-0.599,-0.853],[0.27,-0.631,-0.836],[0.302,-0.656,-0.812],[0.332,-0.672,-0.779],[0.359,-0.68,-0.739],[0.38,-0.683,-0.692],[0.396,-0.68,-0.639],[0.404,-0.673,-0.582],[0.407,-0.664,-0.522],[0.406,-0.653,-0.461],[0.402,-0.644,-0.402],[0.398,-0.635,-0.347],[0.395,-0.629,-0.297],[0.397,-0.625,-0.252],[0.405,-0.622,-0.215],[0.423,-0.62,-0.186],[0.451,-0.618,-0.165],[0.49,-0.614,-0.15],[0.54,-0.607,-0.142],[0.602,-0.594,-0.14],[0.672,-0.576,-0.142],[0.748,-0.55,-0.148],[0.827,-0.517,-0.155],[0.907,-0.474,-0.164],[0.984,-0.424,-0.173],[1.054,-0.368,-0.181],[1.116,-0.307,-0.187],[1.164,-0.243,-0.191],[1.199,-0.178,-0.192],[1.221,-0.114,-0.189],[1.228,-0.054,-0.183],[1.22,-0.001,-0.172],[1.201,0.045,-0.157],[1.173,0.083,-0.136],[1.137,0.111,-0.111],[1.097,0.129,-0.079],[1.056,0.14,-0.042],[1.015,0.143,0],[0.978,0.142,0.048],[0.947,0.137,0.101],[0.922,0.131,0.158],[0.903,0.127,0.218],[0.89,0.127,0.28],[0.882,0.131,0.341],[0.878,0.141,0.402],[0.875,0.158,0.459],[0.871,0.179,0.513],[0.865,0.207,0.559],[0.853,0.237,0.599],[0.836,0.27,0.631],[0.812,0.302,0.656],[0.779,0.332,0.672],[0.739,0.359,0.68],[0.692,0.38,0.683],[0.639,0.396,0.68],[0.582,0.404,0.673],[0.522,0.407,0.664],[0.461,0.406,0.653],[0.402,0.402,0.644],[0.347,0.398,0.635],[0.297,0.395,0.629],[0.252,0.397,0.625],[0.215,0.405,0.622],[0.186,0.423,0.62],[0.165,0.451,0.618],[0.15,0.49,0.614],[0.142,0.54,0.607],[0.14,0.602,0.594],[0.142,0.672,0.576],[0.148,0.748,0.55],[0.155,0.827,0.517],[0.164,0.907,0.474],[0.173,0.984,0.424],[0.181,1.054,0.368],[0.187,1.116,0.307],[0.191,1.164,0.243],[0.192,1.199,0.178],[0.189,1.221,0.114],[0.183,1.228,0.054],[0.172,1.22,0.001],[0.157,1.201,-0.045],[0.136,1.173,-0.083],[0.111,1.137,-0.111],[0.079,1.097,-0.129],[0.042,1.056,-0.14],[0,1.015,-0.143],[-0.048,0.978,-0.142],[-0.101,0.947,-0.137],[-0.158,0.922,-0.131],[-0.218,0.903,-0.127],[-0.28,0.89,-0.127],[-0.341,0.882,-0.131],[-0.402,0.878,-0.141],[-0.459,0.875,-0.158]]];
+const NAMES = ['A','B','C','D'];
+const cv = document.getElementById('view'), ctx = cv.getContext('2d');
+const shown = [true,true,true,true];
+let M = [1,0,0, 0,1,0, 0,0,1];
+let spinning = true, dragging = false, last = null;
+
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const mul = (A,B) => { const C=new Array(9); for(let i=0;i<3;i++) for(let j=0;j<3;j++){ let s=0; for(let k=0;k<3;k++) s+=A[i*3+k]*B[k*3+j]; C[i*3+j]=s; } return C; };
+const apply = (m,p) => [m[0]*p[0]+m[1]*p[1]+m[2]*p[2], m[3]*p[0]+m[4]*p[1]+m[5]*p[2], m[6]*p[0]+m[7]*p[1]+m[8]*p[2]];
+const rotX = (a) => [1,0,0, 0,Math.cos(a),-Math.sin(a), 0,Math.sin(a),Math.cos(a)];
+const rotY = (a) => [Math.cos(a),0,Math.sin(a), 0,1,0, -Math.sin(a),0,Math.cos(a)];
+
+function frameFor(d){
+  const n = Math.hypot(...d), w = d.map(x=>x/n);
+  const s = Math.abs(w[0]) < 0.9 ? [1,0,0] : [0,1,0];
+  let u = [s[1]*w[2]-s[2]*w[1], s[2]*w[0]-s[0]*w[2], s[0]*w[1]-s[1]*w[0]];
+  const un = Math.hypot(...u); u = u.map(x=>x/un);
+  const v = [w[1]*u[2]-w[2]*u[1], w[2]*u[0]-w[0]*u[2], w[0]*u[1]-w[1]*u[0]];
+  return [u[0],u[1],u[2], v[0],v[1],v[2], w[0],w[1],w[2]];
+}
+
+let W = 0, H = 0;
+function size(){
+  const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio||1, 2);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+const CHUNK = 4;
+function draw(){
+  const ground = css('--surface');
+  const cols = [css('--sA'), css('--sB'), css('--sC'), css('--sD')];
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = ground; ctx.fillRect(0,0,W,H);
+
+  const scale = Math.min(W,H) * 0.36;
+  const cx = W/2, cy = H/2;
+  const chunks = [];
+  DATA.forEach((pts, ci) => {
+    if (!shown[ci]) return;
+    const n = pts.length;
+    const P = pts.map(p => { const q = apply(M,p); return [cx + q[0]*scale, cy - q[1]*scale, q[2]]; });
+    for (let s = 0; s < n; s += CHUNK) {
+      const run = [];
+      let depth = 0;
+      for (let k = 0; k <= CHUNK; k++) { const q = P[(s+k)%n]; run.push(q); depth += q[2]; }
+      chunks.push({ ci, depth: depth/(CHUNK+1), run });
+    }
+  });
+  chunks.sort((a,b) => a.depth - b.depth);
+
+  // Each chunk is stroked twice: once wide in the ground colour, which is what
+  // cuts the strand behind it, then once in its own. The ground pass uses BUTT
+  // caps deliberately — a round cap overhangs the chunk's own ends by half its
+  // width and erases the next chunk of the SAME curve, which at this scale
+  // turns every ring into a dashed line. Butt caps keep the sideways gap, which
+  // is the whole point, and drop the lengthways overhang, which was the bug.
+  const w0 = Math.max(4.5, Math.min(W,H) * 0.016);
+  for (const c of chunks) {
+    const t = 1 + 0.16 * c.depth;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(c.run[0][0], c.run[0][1]);
+    for (let i=1;i<c.run.length;i++) ctx.lineTo(c.run[i][0], c.run[i][1]);
+    ctx.lineCap = 'butt';
+    ctx.strokeStyle = ground; ctx.lineWidth = w0*t + 7; ctx.stroke();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = cols[c.ci]; ctx.lineWidth = w0*t; ctx.stroke();
+  }
+}
+
+function setReadout(){
+  const off = NAMES.filter((_,i)=>!shown[i]);
+  const el = document.getElementById('readout');
+  el.innerHTML = off.length === 1
+    ? `${off[0]} hidden &mdash; <b>these three are the Borromean rings</b>`
+    : off.length === 0 ? 'drag to turn &middot; hide a ring to see the Borromean rings'
+    : `${off.length} rings hidden`;
+}
+
+let raf;
+function loop(){
+  if (spinning && !dragging) M = mul(rotY(0.0035), M);
+  draw();
+  raf = requestAnimationFrame(loop);
+}
+
+cv.addEventListener('pointerdown', e => { dragging = true; last = [e.clientX, e.clientY]; cv.classList.add('dragging'); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = (e.clientX-last[0])*0.008, dy = (e.clientY-last[1])*0.008;
+  last = [e.clientX, e.clientY];
+  M = mul(mul(rotX(dy), rotY(dx)), M);
+});
+const stop = e => { dragging = false; cv.classList.remove('dragging'); };
+cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+
+NAMES.forEach((n,i) => {
+  const b = document.getElementById('s'+n);
+  b.addEventListener('click', () => {
+    shown[i] = !shown[i];
+    b.setAttribute('aria-pressed', String(shown[i]));
+    setReadout();
+  });
+});
+document.getElementById('ax3').addEventListener('click', () => { M = frameFor([1,1,1]); spinning = false; syncSpin(); });
+document.getElementById('ax2').addEventListener('click', () => { M = frameFor([0,0,1]); spinning = false; syncSpin(); });
+document.getElementById('axg').addEventListener('click', () => { M = frameFor([0.37,0.91,0.21]); spinning = false; syncSpin(); });
+const spinBtn = document.getElementById('spin');
+function syncSpin(){ spinBtn.textContent = spinning ? 'pause' : 'spin'; spinBtn.setAttribute('aria-pressed', String(spinning)); }
+spinBtn.addEventListener('click', () => { spinning = !spinning; syncSpin(); });
+
+addEventListener('resize', size);
+size(); setReadout(); syncSpin();
+M = frameFor([1,1,1]);
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { spinning = false; syncSpin(); }
+loop();
+</script>
