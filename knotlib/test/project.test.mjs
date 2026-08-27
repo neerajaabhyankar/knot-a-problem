@@ -64,6 +64,22 @@ refuses(() => project([{ points: F.circle().points, closed: false }]), 'an open 
 refuses(() => project([]), 'and so is an empty scene');
 refuses(() => project([{ points: [[0, 0, 0], [1, 1, 1]], closed: true }]), 'and a curve of two points');
 
+// The nastiest of the five, because it is silent: viewed straight down its own
+// axis the trefoil's third crossing lands on a *shared vertex*, so the
+// intersection test rejects it and the crossing goes missing altogether. What
+// comes back is a two-crossing diagram that is not planar. Euler's formula
+// catches it afterwards, but the message is then about face counts rather than
+// about the view, which is the wrong thing to tell someone.
+refuses(
+  () => project([F.torus(2, 3, { n: 200 })], [0, 0, 1]),
+  'a crossing landing on a shared vertex is caught here, not left for Euler to find',
+  /exactly on a vertex/,
+);
+check(
+  project([F.torus(2, 3, { n: 200 })], [0.02, 0, 1]).diagram.n === 3,
+  'and a couple of degrees off that axis the third crossing is back',
+);
+
 check(
   project([F.torus(2, 1, { n: 198 })], [0, 0, 1]).diagram.n === 1,
   'while a hair off that same view reads fine — degeneracy is about the direction, not the curve',

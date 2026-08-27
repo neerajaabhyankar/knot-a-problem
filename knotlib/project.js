@@ -18,11 +18,22 @@ const TOL = {
   angle: 1e-3,      // |sin| between crossing segments — below this it's a tangency
   coincide: 1e-4,   // two crossings at the same place
   height: 1e-6,     // the two strands at a crossing are at the same depth, i.e. they touch
-  endpoint: 1e-7,   // a crossing sitting exactly on a vertex
+  // A crossing sitting on a vertex, as a fraction of the segment. Generous,
+  // because the failure it guards against is silent: when a crossing lands
+  // *exactly* on a shared vertex the intersection test rejects it outright and
+  // the crossing simply goes missing, which builds a diagram that is not planar.
+  // Euler's formula catches that afterwards, but by then the message is about
+  // face counts rather than about the view.
+  endpoint: 1e-3,
   collinear: 1e-4,  // two stretches of strand lying along the same line
 };
 /** Segments this close together along one component are neighbours, not crossings. */
 const NEIGHBOUR = 2;
+/** For the clearance measure: ignore anything this close to a crossing, and this
+ *  close along the strand, both as a fraction of the drawing's diameter. */
+const AVOID = 0.08;
+/** Points to sample when measuring clearance — enough to see, cheap to do. */
+const PROBES = 120;
 
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -34,6 +45,36 @@ const norm3 = (a) => {
 };
 
 export class DegenerateProjection extends Error {}
+
+/**
+ * How round a component looks from here, 0 to 1: the ratio of the two spreads
+ * of its projected points. A ring seen edge-on scores 0, a ring seen face-on
+ * scores 1.
+ *
+ * This exists because "fewest crossings" is not the same as "readable", and on
+ * its own it prefers the squashed view — a component seen nearly edge-on has
+ * hardly any crossings precisely because it has hardly any picture. Genericity
+ * is a matter of degree once floating point is involved, and this is the degree.
+ */
+export function roundness(xy) {
+  const n = xy.length;
+  const mx = xy.reduce((s, p) => s + p[0], 0) / n;
+  const my = xy.reduce((s, p) => s + p[1], 0) / n;
+  let xx = 0;
+  let yy = 0;
+  let xyc = 0;
+  for (const p of xy) {
+    xx += (p[0] - mx) ** 2;
+    yy += (p[1] - my) ** 2;
+    xyc += (p[0] - mx) * (p[1] - my);
+  }
+  const tr = (xx + yy) / n;
+  const det = (xx * yy - xyc * xyc) / (n * n);
+  const gap = Math.sqrt(Math.max(0, tr * tr / 4 - det));
+  const big = tr / 2 + gap;
+  const small = tr / 2 - gap;
+  return big > 0 ? Math.sqrt(Math.max(0, small) / big) : 0;
+}
 
 /** A right-handed frame whose third axis is `w`. */
 function frame(w) {
@@ -113,7 +154,13 @@ function findCrossings(flat, scale) {
       const qp = [Q.a[0] - P.a[0], Q.a[1] - P.a[1]];
       const t = (qp[0] * s[1] - qp[1] * s[0]) / denom;
       const u = (qp[0] * r[1] - qp[1] * r[0]) / denom;
-      if (t <= 0 || t >= 1 || u <= 0 || u >= 1) continue;
+      const onSegment = (v) => v > -TOL.endpoint && v < 1 + TOL.endpoint;
+      if (t <= 0 || t >= 1 || u <= 0 || u >= 1) {
+        if (onSegment(t) && onSegment(u)) {
+          throw new DegenerateProjection('a crossing lands exactly on a vertex');
+        }
+        continue;
+      }
       if (Math.min(t, 1 - t, u, 1 - u) < TOL.endpoint) {
         throw new DegenerateProjection('a crossing lands exactly on a vertex');
       }
@@ -140,6 +187,54 @@ function findCrossings(flat, scale) {
     }
   }
   return found;
+}
+
+/**
+ * How much daylight there is between strands that are not crossing, as a
+ * fraction of the drawing's diameter.
+ *
+ * This is what "readable" actually means, and neither crossing count nor
+ * roundness catches it: two strands can graze each other with no crossing at
+ * all, and the picture is then a smudge that no break can rescue. Measured
+ * everywhere except near a crossing, where the distance is zero by definition.
+ */
+function clearance(flat, crossings, scale) {
+  const avoid = AVOID * scale;
+  const near = (p) => crossings.some((x) => Math.hypot(p[0] - x.at[0], p[1] - x.at[1]) < avoid);
+  const sampled = flat.map((f) => {
+    const step = Math.max(1, Math.ceil(f.xy.length / PROBES));
+    const pts = [];
+    const arc = [];
+    let run = 0;
+    for (let i = 0; i < f.xy.length; i += step) {
+      if (i) run += Math.hypot(f.xy[i][0] - f.xy[i - step][0], f.xy[i][1] - f.xy[i - step][1]);
+      pts.push(f.xy[i]);
+      arc.push(run);
+    }
+    return { pts, arc, total: run, keep: pts.map((p) => !near(p)) };
+  });
+
+  let best = Infinity;
+  for (let a = 0; a < sampled.length; a++) {
+    const A = sampled[a];
+    for (let i = 0; i < A.pts.length; i++) {
+      if (!A.keep[i]) continue;
+      for (let j = i + 1; j < A.pts.length; j++) {
+        if (!A.keep[j]) continue;
+        const along = A.arc[j] - A.arc[i];
+        if (Math.min(along, A.total - along) < avoid) continue;
+        best = Math.min(best, Math.hypot(A.pts[i][0] - A.pts[j][0], A.pts[i][1] - A.pts[j][1]));
+      }
+      for (let b = a + 1; b < sampled.length; b++) {
+        const B = sampled[b];
+        for (let j = 0; j < B.pts.length; j++) {
+          if (!B.keep[j]) continue;
+          best = Math.min(best, Math.hypot(A.pts[i][0] - B.pts[j][0], A.pts[i][1] - B.pts[j][1]));
+        }
+      }
+    }
+  }
+  return Number.isFinite(best) ? best / scale : 1;
 }
 
 /**
@@ -214,11 +309,28 @@ export function project(curves, direction = [0, 0, 1]) {
   for (let d = 0; d < 4 * n; d++) if (pair[d] < 0) throw new Error(`dart ${d} was never joined`);
 
   const diagram = new Diagram({ n, pair, over, loops });
+  // The layout is not part of the diagram — it belongs to the projection that
+  // produced it. `under` is here because drawing a diagram the way a book does
+  // means breaking the strand that goes beneath, and that needs to be located
+  // on the polyline, not just on the graph.
   const layout = {
     scale,
+    roundness: Math.min(...flat.map((f) => roundness(f.xy))),
+    // The shallowest crossing in the picture, as |sin| of its angle. A
+    // near-tangential crossing is technically a crossing and practically a
+    // smudge: it cannot be drawn with a readable break, and it is the first
+    // thing to go wrong when a diagram is read back off a page.
+    sharpness: found.length
+      ? Math.min(...found.map((x) => Math.abs(x.A.dir[0] * x.B.dir[1] - x.A.dir[1] * x.B.dir[0])))
+      : 1,
     components: flat.map((f) => f.xy),
-    crossings: found.map((x) => x.at),
+    crossings: found.map((x, k) => {
+      const top = x.A.h > x.B.h ? 'A' : 'B';
+      const where = ({ ci, i, t }) => ({ component: ci, segment: i, t });
+      return { at: x.at, over: where(x[top]), under: where(x[top === 'A' ? 'B' : 'A']), crossing: k };
+    }),
   };
+  layout.clearance = clearance(flat, layout.crossings, scale);
   return { diagram, direction: dir, layout };
 }
 
@@ -243,10 +355,17 @@ export function directions(count) {
  * of what was tried", never "minimal", and `tried`/`usable` are returned so a
  * caller can say so.
  */
-export function choose(curves, { samples = 64 } = {}) {
+export function choose(curves, { samples = 64, minRoundness = 0.4, minSharpness = 0.25, minClearance = 0.05 } = {}) {
   let best = null;
+  let fallback = null;
   let usable = 0;
+  let flat = 0;
   const failures = new Map();
+  // Fewest crossings first, then the most readable of those: a view with the
+  // same count but a strand seen edge-on, or two strands grazing each other, is
+  // the same mathematics and a worse picture.
+  const score = (r) => Math.min(r.layout.roundness, r.layout.sharpness, 3 * r.layout.clearance);
+  const better = (a, b) => !b || a.diagram.n < b.diagram.n || (a.diagram.n === b.diagram.n && score(a) > score(b));
   for (const d of directions(samples)) {
     let got;
     try {
@@ -257,12 +376,20 @@ export function choose(curves, { samples = 64 } = {}) {
       continue;
     }
     usable++;
-    if (!best || got.diagram.n < best.diagram.n) best = got;
+    if (better(got, fallback)) fallback = got;
+    if (got.layout.roundness < minRoundness || got.layout.sharpness < minSharpness || got.layout.clearance < minClearance) {
+      flat++;
+      continue;
+    }
+    if (better(got, best)) best = got;
   }
-  if (!best) {
+  // Nothing round enough is still an answer, just a worse one — some links have
+  // no view where every component reads as a loop. Say so rather than refuse.
+  const winner = best ?? fallback;
+  if (!winner) {
     throw new DegenerateProjection(
       `no generic direction among ${samples} tried: ${[...failures].map(([m, k]) => `${k}× ${m}`).join('; ')}`,
     );
   }
-  return { ...best, tried: samples, usable };
+  return { ...winner, tried: samples, usable, flat, squashed: !best };
 }

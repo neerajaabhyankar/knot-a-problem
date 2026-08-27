@@ -14,6 +14,7 @@ import { fillRun, liftStroke } from './crossings.js';
 import { dedupe, simplifyStroke } from './simplify.js';
 import { smooth } from './smooth.js';
 import { closeSwatch, colorSwatch, menuSwatch, sizeSwatch } from './swatches.js';
+import { setupAnalyze } from './analyze.js';
 import {
   EXTENSION,
   bounds,
@@ -60,6 +61,7 @@ let smoothing = null;
 let erase = null;
 let downAt = null; // to tell a click apart from an orbit drag
 let eraserRadius = 20;
+let analyze = null; // the Analyze panel, once the DOM exists
 
 const CLICK_SLOP = 5; // px of movement still counted as a click
 const MIN_STROKE = 7; // px of travel before a drag counts as a stroke at all
@@ -270,6 +272,7 @@ function refresh() {
   viewer.syncCurves(model);
   setSelection(selection);
   updateHistoryButtons();
+  analyze?.invalidate();
 }
 
 function updateStatus() {
@@ -755,6 +758,48 @@ async function loadShape(file) {
   insertScene(parse(JSON.stringify(shape.default ?? shape)), { face: true, label: 'inserted' });
 }
 
+/**
+ * A traced diagram, lifted into 3D and inserted beside what is already there.
+ *
+ * The lift is the *drawing* pipeline, unchanged: each loop is a stroke whose
+ * gaps are marked under, placed against the loops already down. Rule 1 decides
+ * every crossing, because a printed diagram breaks exactly the strand that goes
+ * beneath — so rule 2, which guesses that the later stroke goes over, never has
+ * to fire. That the imported picture and the pen use the same door is not a
+ * coincidence: a pen lift and a printed break mean the same thing.
+ */
+function insertTraced(traced, label = 'diagram') {
+  const all = traced.loops.flatMap((l) => l.points);
+  if (!all.length) return flashStatus('nothing came out of that picture');
+
+  // Image pixels onto the middle of the viewport, so the lift happens at the
+  // scale a hand-drawn stroke would have. Where it finally lands is
+  // insertScene's business, and it puts it beside your work like everything else.
+  const lo = [Math.min(...all.map((p) => p[0])), Math.min(...all.map((p) => p[1]))];
+  const hi = [Math.max(...all.map((p) => p[0])), Math.max(...all.map((p) => p[1]))];
+  const span = Math.max(hi[0] - lo[0], hi[1] - lo[1], 1);
+  const scale = (0.6 * Math.min(innerWidth, innerHeight)) / span;
+  const mid = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2];
+  const toScreen = ([x, y]) => [innerWidth / 2 + (x - mid[0]) * scale, innerHeight / 2 + (y - mid[1]) * scale];
+
+  const placed = [];
+  const curves = [];
+  for (const loop of traced.loops) {
+    const lifted = liftStroke(loop.points.map(toScreen), loop.under, {
+      separation: separationPx(),
+      obstacles: placed,
+    });
+    placed.push(lifted.points);
+    const points = lifted.points
+      .map(([x, y, d]) => viewer.unproject(x, y, d))
+      .filter(Boolean)
+      .map((v) => [v.x, v.y, v.z]);
+    if (points.length >= 3) curves.push({ points, closed: true, color: loop.color, radius: drawRadius, name: label });
+  }
+  insertScene({ curves, camera: null }, { label: `traced from ${label}` });
+  return curves.length;
+}
+
 // ---------- smoothing ----------
 //
 // The heat equation along each strand's own arclength, with a guard that makes
@@ -994,6 +1039,7 @@ addEventListener('keydown', (ev) => {
   else if (k === ']') setEraserRadius(eraserRadius + 4);
   else if (k === '?') helpEl.classList.toggle('hidden');
   else if (k === 'a' || k === 'A') setSelection(model.curves.map((c) => c.id));
+  else if (k === 'k' || k === 'K') analyze.show(!analyze.isOpen());
 });
 
 addEventListener('keyup', (ev) => {
@@ -1067,6 +1113,26 @@ function setSmooth(v) {
   smoothAmount = smoothSwatch.get();
   applySmooth();
 }
+
+// ---------- analyze ----------
+//
+// The panel gets handed the things it is not allowed to reach for itself: the
+// scene, the way the camera is pointing, and the editor's own download and
+// insert paths. `analyse()` inside it stays a pure function of curves, which is
+// what lets it be tested without a browser.
+//
+// `forward()` points into the scene; a projection direction points the other
+// way, at the viewer, because that is the axis along which "over" means nearer.
+analyze = setupAnalyze({
+  curves: () => model.curves,
+  forward: () => viewer.forward().map((v) => -v),
+  download,
+  insert: insertTraced,
+  flash: flashStatus,
+  defaultColor: DEFAULT_COLOR,
+});
+// Orbiting changes the answer, so the panel follows the camera while it is open.
+viewer.controls.addEventListener('change', () => analyze.invalidate());
 
 // ---------- the shape library, and export ----------
 
@@ -1273,6 +1339,24 @@ globalThis.knot = {
       parts,
     })),
     load: (name) => loadShape(name.endsWith(EXTENSION) ? name : name + EXTENSION),
+  },
+
+  analyze: {
+    open: () => (analyze.show(true), true),
+    close: () => (analyze.show(false), true),
+    isOpen: () => analyze.isOpen(),
+    /** 'camera' reads the view you are looking at; 'search' hunts for a clear one. */
+    view: () => analyze.mode(),
+    setView: (mode) => analyze.setMode(mode),
+    /** The whole readout, minus the objects that do not survive a structured clone. */
+    run() {
+      const { diagram, layout, curves, ...rest } = analyze.run();
+      return rest;
+    },
+    /** Save this projection as a knot diagram, breaks and all. */
+    print: () => analyze.print(),
+    /** Read a picture of a diagram back into the scene. */
+    importImage: (file) => analyze.importDiagram(file),
   },
 
   file: {

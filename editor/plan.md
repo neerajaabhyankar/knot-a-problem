@@ -389,6 +389,25 @@ Known asymmetries, deliberate and recorded rather than papered over:
 | `history.begin/commit` | the UI batches implicitly; there is no button for it |
 | erasing | a gesture with no direct call; its effect is `remove` plus `add` |
 
+## Analyze
+
+Bottom right, opposite the status line, because it reads the scene rather than
+changing it. Design and measurements in `analyze.md`; the mathematics is
+`../knotlib`, which this app imports and which does not know a screen exists.
+
+Three pieces: the panel (`src/analyze.js`, no knot theory in it), the printer
+(`src/diagram2d.js`, pure), and the tracer (`src/trace.js`, pure). Both pure
+ones are tested in node like `smooth.js` and `io.js`.
+
+The thing to keep hold of: **an imported diagram and a drawn one come through
+the same door.** A printed break and a pen lift mean the same thing, so the
+tracer's output — closed loops with stretches marked under — is exactly what a
+pen stroke produces, and it goes through `liftStroke` unchanged. Rule 1 decides
+every crossing, so rule 2 never has to guess.
+
+`K` opens it. **Not `A`** — that was already a second, undocumented way to
+select all, and `smoke.mjs` tests it.
+
 ## Look and feel
 
 - Background: near-black, ground plane fogged out so there's no bright horizon.
@@ -457,7 +476,9 @@ Known asymmetries, deliberate and recorded rather than papered over:
   data-model question it raises are in `smoothen.md` §8.
 - Drag control points; points move in the screen plane, depth preserved.
 - Insert / delete points on an existing curve.
-- Projection views: snap camera to a nice minimal-crossing projection; 2D diagram mode.
+- ~~Projection views~~ **done** — Analyze reads the view you are looking at, or
+  searches for a clear one, and prints it as a diagram. A 2D *mode* you can
+  orbit out of is still not there; printing gives you the picture as a file.
 - Coloring, naming, per-component visibility.
 - **Planarisation**: pull a strand onto its own best-fit plane, guard-limited.
   The one thing that would give flat *and* still-a-polygon, since it flattens

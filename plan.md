@@ -1,8 +1,10 @@
 # knot-a-problem — overall plan
 
-> Status: **level (a) is built and shipped** (`editor/plan.md`), and the first
-> step of level (c) is built and tested (`knotlib/`, with its design in
-> `knotlib/diagram.md` and its vocabulary in `knotlib/glossary.md`). The rest of
+> Status: **level (a) is built and shipped** (`editor/plan.md`). The first two
+> steps of the plan below are built and tested: `knotlib/` (design in
+> `knotlib/diagram.md`, vocabulary in `knotlib/glossary.md`) and the editor's
+> **Analyze** panel, which prints a projection as a knot diagram and reads one
+> back (`editor/analyze.md`). The rest of
 > levels (b) and (c) below is a worked plan rather than a sketch — the data types,
 > the tool calls, the build order and the definition of Done are all named. What
 > is *not* committed is any of it being right; the parts most likely to move are
@@ -123,7 +125,7 @@ most of (b) and (c):
 | | from | to | who needs it | state |
 |---|---|---|---|---|
 | `project` | space curve | diagram | the 2D view; every invariant | **built** |
-| `embed` | diagram | space curve | image import, table import, "make me 8₁₉" | half-built, by accident — below |
+| `embed` | diagram | space curve | image import, table import, "make me 8₁₉" | **built** for a picture; needs `relax.js` to look right |
 | `identify` | diagram | name + invariants | "what is this?" | invariants built, table not |
 | `realize` | name | diagram | table lookup, the codes half of the library | not started |
 
@@ -161,13 +163,14 @@ exist beside it — that pairing is the acceptance criterion, not a nicety.
 
 | call | what it does | its UI half |
 |---|---|---|
-| `analyze.project(dir?)` | space curve → `Diagram` | **2D** toggle: flatten the view to the diagram |
+| ✅ `analyze.run()` | space curve → `Diagram` + every invariant | the **Analyze** panel |
+| ✅ `analyze.print()` | the projection, as a printed diagram | **Print 2D projection** |
+| ✅ `analyze.importImage(file)` | a picture of a diagram → curves | **Import a diagram…** |
 | `analyze.codes(id)` | PD / Gauss / DT / braid word as text | a panel you can copy out of |
 | `analyze.invariants(id, which?)` | writhe, linking number, Alexander, Jones | the same panel |
 | `analyze.identify(id)` | `{ names[], confidence, ruled_out[] }` | **What is this?** button |
 | `import.code(text)` | Gauss/DT/PD/braid → curves | paste box |
 | `import.name('8_19')` | table → curves | the existing library picker, second tab |
-| `import.image(file)` | picture of a diagram → curves | drag a file onto the canvas |
 | `moves.relax(id, opts)` | energy descent to a clean embedding | **Relax** button, dialled like Smoothen |
 | `moves.reidemeister(kind, at)` | one isotopy, animated | click a crossing or a bigon |
 | `agent.ask(text)` | routes to the above, explains the result | the chat pane |
@@ -286,12 +289,12 @@ level (c). So (c) starts early, in the middle of (b).
 
 | step | what | why now | user-visible after |
 |---|---|---|---|
-| 1 | ✅ `knotlib/` — diagram type, projection, invariants, R-moves | the bridge everything crosses | *(nothing yet — not wired to the editor)* |
-| 2 | 2D diagram view | needs only step 1, and it is the thing you want most | **2D** toggle |
-| 3 | `relax.js` | blocks everything that imports | **Relax** dial |
+| 1 | ✅ `knotlib/` — diagram type, projection, invariants, R-moves | the bridge everything crosses | the **Analyze** panel's numbers |
+| 2 | ✅ the diagram, printed — plus **import** (tier 1, raster) arriving early because it was nearly free | a printed break and a pen lift mean the same thing, so the tracer reuses the drawing lift | **Print 2D projection**, **Import a diagram** |
+| 3 | `relax.js` — **now the blocker** | an imported diagram lifts into a pancake, and where crossings crowd together the depths cancel and strands touch | **Relax** dial |
 | 4 | table generation + `identify` | lookup, not computation | **What is this?** |
 | 5 | codes in (`import.code`, `import.name`) | steps 3 and 4 make the output presentable | paste box; library gains 250 knots |
-| 6 | SVG trace → `crossings.js` lift | reuses steps 3 and 5 wholesale | drag a file on |
+| 6 | ~~SVG trace~~ — done as raster tracing in step 2; the remaining tier is a *photograph* | | |
 | 7 | chat pane over the tool schemas | last, because it is a thin layer over 1–6 | the mouth |
 
 Tracing is deliberately tiered, because it is the flakiest thing on the list and

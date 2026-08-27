@@ -512,3 +512,125 @@ kbd {
 
 #confirm .danger { color: #180a0c; background: var(--danger); }
 #confirm .danger:hover { filter: brightness(1.08); }
+
+/* ---------- analyze ---------- */
+
+/* Bottom right, opposite the status line: it reads the scene rather than
+   changing it, so it does not belong in the tool rail. */
+#btn-analyze {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 13px 0 10px;
+  color: var(--body);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  font-size: var(--t-body);
+  cursor: pointer;
+}
+#btn-analyze:hover { color: var(--fg); border-color: rgba(255, 255, 255, 0.22); }
+#btn-analyze.active { color: var(--fg); border-color: var(--accent); }
+#btn-analyze .ico { font-size: var(--t-lead); line-height: 1; color: var(--dim); }
+#btn-analyze.active .ico { color: var(--accent); }
+
+#analyze {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 62px; /* clear of its own button */
+  z-index: 7;
+  width: 296px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+  user-select: none;
+}
+#analyze[hidden] { display: none; }
+
+#analyze header { display: flex; align-items: center; justify-content: space-between; }
+#analyze h2 {
+  margin: 0;
+  font-size: var(--t-label);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+#analyze-close {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--faint);
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  font-size: var(--t-lead);
+  line-height: 1;
+  cursor: pointer;
+}
+#analyze-close:hover { color: var(--fg); background: rgba(255, 255, 255, 0.08); }
+
+#analyze .a-views { display: flex; gap: 4px; }
+#analyze .a-views button {
+  flex: 1;
+  height: var(--tool-h);
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: var(--t-label);
+  cursor: pointer;
+}
+#analyze .a-views button:hover { color: var(--fg); }
+#analyze .a-views button.on { color: var(--fg); background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.5); }
+
+#analyze-body { flex: 1; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+#analyze-body h3 {
+  margin: 14px 0 5px;
+  font-size: var(--t-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+#analyze-body h3:first-child { margin-top: 0; }
+
+/* Label left, value right, and the caveat underneath in the quietest colour —
+   half of these numbers need a caveat and hiding it would be a lie. */
+.a-row { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; padding: 3px 0; font-size: var(--t-body); }
+.a-row span { color: var(--dim); }
+.a-row b { font-family: var(--mono); font-weight: 400; color: var(--fg); text-align: right; overflow-wrap: anywhere; }
+.a-row i { grid-column: 1 / -1; font-style: normal; font-size: var(--t-label); line-height: 1.45; color: var(--faint); }
+
+.a-note { margin: 0 0 8px; font-size: var(--t-body); line-height: 1.55; color: var(--dim); }
+
+#analyze .a-actions { display: flex; flex-direction: column; gap: 5px; }
+#analyze .a-actions button {
+  height: 30px;
+  color: #180a0c;
+  background: var(--accent);
+  border: 0;
+  border-radius: 8px;
+  font-size: var(--t-body);
+  cursor: pointer;
+}
+#analyze .a-actions button:hover { filter: brightness(1.08); }
+#analyze .a-actions button:disabled { opacity: 0.3; cursor: default; filter: none; }
+#analyze .a-actions .ghost { color: var(--dim); background: rgba(255, 255, 255, 0.06); }
+#analyze .a-actions .ghost:hover { color: var(--fg); background: rgba(255, 255, 255, 0.1); filter: none; }

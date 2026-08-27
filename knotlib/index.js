@@ -6,6 +6,6 @@
 
 export * as laurent from './laurent.js';
 export { CROSS, DART, Diagram, OPP, ROT, ROTINV, SLOT, unlink } from './diagram.js';
-export { DegenerateProjection, choose, directions, project } from './project.js';
+export { DegenerateProjection, choose, directions, project, roundness } from './project.js';
 export { BRACKET_LIMIT, INVARIANCE, bracket, crossingCount, fingerprint, jones, linking, writhe } from './invariants.js';
 export { apply, find, simplify, survey } from './moves.js';

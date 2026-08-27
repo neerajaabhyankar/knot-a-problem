@@ -85,6 +85,7 @@
           <div class="row"><span>Pan</span><kbd id="sc-pan">⌘ drag</kbd></div>
           <div class="row"><span>Zoom</span><kbd>scroll</kbd></div>
           <div class="row"><span>Frame all</span><kbd>F</kbd></div>
+          <div class="row"><span>Analyze</span><kbd>K</kbd></div>
         </section>
 
         <section id="sc-draw" hidden>
@@ -118,6 +119,31 @@
     </div>
 
     <div id="status"></div>
+
+    <!-- Bottom right, opposite the status line, because it reads the whole
+         scene rather than doing anything to it. -->
+    <button id="btn-analyze" title="Analyze — what knot is this? (K)">
+      <span class="ico">∮</span><span class="lbl">Analyze</span>
+    </button>
+
+    <aside id="analyze" hidden>
+      <header>
+        <h2>Analyze</h2>
+        <button id="analyze-close" title="Close (K)">&times;</button>
+      </header>
+      <!-- A crossing is a property of a projection, so the view is a choice and
+           it is made here rather than assumed. -->
+      <div class="a-views">
+        <button data-view="camera" class="on">This view</button>
+        <button data-view="search">Clearest view</button>
+      </div>
+      <div id="analyze-body"></div>
+      <div class="a-actions">
+        <button id="analyze-print">Print 2D projection</button>
+        <button id="analyze-import" class="ghost">Import a diagram&hellip;</button>
+      </div>
+    </aside>
+    <input id="analyze-file" type="file" accept="image/*" hidden />
 
     <div id="help">
       <h1>Knot Editor</h1>
@@ -197,6 +223,27 @@
           Anything loaded arrives <b>beside</b> what you already have, and the
           view glides across to it. Nothing you drew is ever replaced &mdash; but
           nothing is kept between visits either, so save before you close the tab.
+        </p>
+      </details>
+
+      <details>
+        <summary>Analyzing, and printing a diagram</summary>
+        <p>
+          <b>Analyze</b> reads the scene as a knot diagram: how many crossings,
+          which Reidemeister moves are available, the Jones polynomial, whether
+          it differs from its mirror.
+        </p>
+        <p>
+          It reads it <b>from the view you are looking at</b>, because a crossing
+          is a property of a projection and not of a curve &mdash; orbit and the
+          numbers can change. Some views have no diagram at all: a ring seen
+          exactly edge-on is a straight line. <b>Clearest view</b> hunts for a
+          good one instead.
+        </p>
+        <p>
+          <b>Print 2D projection</b> saves that view as an SVG in the usual
+          notation, with the strand that goes underneath <b>broken</b> at each
+          crossing. <b>Import</b> reads such a picture back.
         </p>
       </details>
 

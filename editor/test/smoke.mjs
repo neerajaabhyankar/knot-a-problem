@@ -1244,6 +1244,91 @@ check(rolled.wrecked === 0 && rolled.after === rolled.before,
   'and rollback abandons a half-finished batch',
   `${rolled.before} → ${rolled.wrecked} → ${rolled.after}`);
 
+// ===========================================================================
+// 11. Analyze: reading the scene, printing it, and reading it back
+// ===========================================================================
+//
+// The round trip is the claim worth making in a browser: print the projection
+// you are looking at, paint that SVG into ordinary pixels the way a screenshot
+// would, feed it back through the file picker's code path, and check the knot
+// that arrives is the knot that left.
+
+await api(() => globalThis.knot.scene.clear());
+await api(() => globalThis.knot.library.load('trefoil'));
+await page.waitForTimeout(400);
+
+await page.keyboard.press('k');
+check(await page.isVisible('#analyze'), 'K opens the Analyze panel');
+
+const read = await api(() => globalThis.knot.analyze.run());
+check(read.crossings === 3, 'it reads the trefoil as three crossings', `${read.crossings}`);
+check(read.components === 1 && read.chiral === true, 'one component, and it can tell it from its mirror');
+check(/A\^4/.test(read.jones ?? ''), 'with a Jones polynomial', read.jones);
+check(
+  read.moves.R2.available === 0 && /clasp/.test(read.moves.R2.reasons[0] ?? ''),
+  'and no simplifying move, because every bigon is a clasp',
+  read.moves.R2.reasons.join(''),
+);
+
+const panelText = await page.textContent('#analyze-body');
+check(/Crossings/.test(panelText) && /Jones/.test(panelText), 'and the panel says so on screen');
+
+await api(() => globalThis.knot.analyze.setView('search'));
+await page.waitForTimeout(300);
+const searched = await api(() => globalThis.knot.analyze.run());
+check(searched.crossings === 3 && searched.tried > 1, 'the clearest-view search finds three crossings too',
+  `best of ${searched.tried}, ${searched.usable} usable`);
+await api(() => globalThis.knot.analyze.setView('camera'));
+
+const printed = await api(() => {
+  const svg = globalThis.knot.analyze.print();
+  return { bytes: svg.length, subpaths: (svg.match(/M/g) ?? []).length, page: (svg.match(/rect[^>]*fill="([^"]+)"/) ?? [])[1] };
+});
+check(printed.subpaths === 3, 'printing breaks the strand once per crossing', `${printed.subpaths} subpaths`);
+check(printed.page === '#0a0b0e', 'on the editor\'s own page colour', printed.page);
+
+// Print → pixels → import. The SVG never reaches the tracer as an SVG: it is
+// painted into a canvas first, so what goes in is a picture like any other.
+const imported = await api(async () => {
+  const knot = globalThis.knot;
+  const svg = knot.analyze.print();
+  const url = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  const img = new Image();
+  await new Promise((ok, no) => {
+    img.onload = ok;
+    img.onerror = () => no(new Error('the printed diagram would not load as an image'));
+    img.src = url;
+  });
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width || 720;
+  canvas.height = img.height || 720;
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/png'));
+  const before = knot.scene.list().length;
+  try {
+    const added = await knot.analyze.importImage(new File([blob], 'printed.png', { type: 'image/png' }));
+    return { ok: true, added, before, after: knot.scene.list().length };
+  } catch (e) {
+    return { ok: false, why: String(e && e.message) };
+  }
+});
+check(imported.ok && imported.added === 1, 'a picture of that diagram imports as one strand',
+  imported.ok ? `${imported.before} → ${imported.after} curves` : imported.why);
+
+if (imported.ok && imported.added === 1) {
+  const again = await api(() => {
+    const knot = globalThis.knot;
+    const all = knot.scene.list().map((c) => c.id);
+    knot.scene.remove(all.slice(0, all.length - 1)); // keep only what just arrived
+    return knot.analyze.run();
+  });
+  check(again.crossings === 3, 'and reads back as a three-crossing knot', `${again.crossings}`);
+  check(again.jones === read.jones, 'with the very same Jones polynomial', `${read.jones} → ${again.jones}`);
+}
+
+await api(() => globalThis.knot.analyze.close());
+check(!(await page.isVisible('#analyze')), 'and it closes again');
+
 // --- parity, the other direction ---
 //
 // Everything the rail can do has a call. Checked by name, so adding a button
@@ -1251,7 +1336,9 @@ check(rolled.wrecked === 0 && rolled.after === rolled.before,
 const parity = await api(() => {
   const k = globalThis.knot;
   const has = (path) => path.split('.').reduce((o, p) => (o == null ? o : o[p]), k) !== undefined;
-  const buttons = [...document.querySelectorAll('#toolbar button')].map((b) => b.id || `tool-${b.dataset.tool}`);
+  const buttons = [...document.querySelectorAll('#toolbar button, #btn-analyze, #analyze button')].map(
+    (b) => b.id || `view-${b.dataset.view}`,
+  );
   return {
     buttons,
     missing: [
@@ -1263,6 +1350,9 @@ const parity = await api(() => {
       ['sw-draw-color', 'tool.settings'], ['sw-draw-size', 'tool.settings'],
       ['sw-sel-color', 'scene.update'], ['sw-sel-size', 'scene.update'],
       ['sw-erase-size', 'tool.settings'], ['sw-smooth', 'edit.smooth'],
+      ['btn-analyze', 'analyze.open'], ['analyze-close', 'analyze.close'],
+      ['view-camera', 'analyze.setView'], ['view-search', 'analyze.setView'],
+      ['analyze-print', 'analyze.print'], ['analyze-import', 'analyze.importImage'],
     ].filter(([, call]) => !has(call)).map(([b, call]) => `${b}→${call}`),
   };
 });
