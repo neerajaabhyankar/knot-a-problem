@@ -1,0 +1,10 @@
+{
+  "name": "knotlib",
+  "version": "0.1.0",
+  "description": "Knot theory as deterministic functions. No DOM, no three.js, no dependencies.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/diagram.test.mjs && node test/project.test.mjs && node test/invariants.test.mjs && node test/moves.test.mjs"
+  },
+  "license": "ISC"
+}

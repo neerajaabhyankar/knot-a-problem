@@ -1,7 +1,12 @@
 # knot-a-problem — overall plan
 
-> Status: **pencil sketch.** This is an initial guess at structure, not a commitment.
-> Only Level (a) is being built right now. See `editor/plan.md` for that.
+> Status: **level (a) is built and shipped** (`editor/plan.md`), and the first
+> step of level (c) is built and tested (`knotlib/`, with its design in
+> `knotlib/diagram.md` and its vocabulary in `knotlib/glossary.md`). The rest of
+> levels (b) and (c) below is a worked plan rather than a sketch — the data types,
+> the tool calls, the build order and the definition of Done are all named. What
+> is *not* committed is any of it being right; the parts most likely to move are
+> flagged under Risks and Open questions.
 
 ## The three levels
 
@@ -11,9 +16,11 @@
 | **(b)** | **Knowledge** | AI-assisted: import known knots, ask questions, classify, name things. |
 | **(c)** | **Computation** | Real knot theory: invariants, simplification, proofs, open-ended problems. |
 
-Levels are layered, not sequential silos — (b) and (c) both read and write the same
-curve/diagram data structures that (a) owns. Getting that data model right in (a) is
-the main thing that makes (b) and (c) cheap later.
+Levels are layered, not sequential silos, and the plan below proves it: importing
+a diagram is level (b), but it produces an unpresentable pancake without the
+energy descent that lives in level (c). So (c) starts in the middle of (b). What
+they share is the data model, and getting that right is the main thing that
+makes both of them cheap.
 
 ---
 
@@ -44,54 +51,11 @@ Everything downstream — PD codes, invariants, AI import/export — is a functi
 > eleven library files. Renaming would cost a format version bump and a migration
 > for no gain. `by` records who last touched the curve.
 
-## Level (b) — Knowledge
+## Agentic harness
 
-Give the editor a memory and a mouth.
-
-- **Import**: parse standard sources into `Curve[]` — Rolfsen / Thistlethwaite tables,
-  KnotPlot / SnapPy formats, Gauss codes, DT codes, PD codes, braid words.
-- **Recognize**: "what is this?" → compute a cheap invariant fingerprint, look it up
-  in a local table, answer with a name and confidence.
-- **Converse**: a chat pane beside the canvas. Natural language in, editor actions
-  and answers out. "Make me a trefoil." "Is this the unknot?" "Color the components."
-- **Vision (stretch)**: photo of a real knot → skeleton curve. Diagram → stylized image.
-
-Rough shape: the LLM never guesses at math. It routes to tools (Level c), and
-explains the results.
-
-## Level (c) — Computation
-
-The actual mathematics, as a library of deterministic tools.
-
-- **Projection → diagram**: 3D curve → planar diagram with signed crossings (PD code).
-  This is the bridge between (a) and everything combinatorial.
-
-  > **A crossing is a property of a projection, not of a curve.** There is no
-  > crossing to point at until a direction has been chosen, and not every
-  > direction works: a Hopf link made of two perpendicular circles, viewed down
-  > the axis of one, projects that component to a line segment — degenerate, no
-  > crossings defined. So this step really has two parts: *pick a generic
-  > projection direction*, then read off the diagram. Any UI that talks about
-  > "the crossings" is quietly assuming the first part has already happened.
-- **Invariants**: crossing number bounds, writhe, linking number, Alexander,
-  Jones / Kauffman bracket, HOMFLY, knot group presentation.
-- **Moves**: Reidemeister I/II/III as first-class operations, both on the diagram and
-  as animated deformations of the 3D curve. Note that these are *isotopies* —
-  they do not change the knot type. A **crossing change** is a different animal
-  entirely: it is the unknotting operation, and it does change topology.
-- **Simplification**: energy-based untangling (Möbius energy / ropelength gradient
-  descent) so a messy hand-drawn loop relaxes into a clean form.
-- **Questions**: unknot detection, chirality, splittability, component analysis.
-
-Prefer existing engines where they exist (SnapPy, KnotJob, regina) over reimplementing;
-wrap them behind a stable tool interface.
-
----
-
-## Agentic harness (sketch)
-
-The idea: the editor exposes a **tool surface**, and an agent drives it the same way a
-user's mouse does. Nothing the agent can do is something the UI can't.
+The editor exposes a **tool surface**, and an agent drives it the same way a
+user's mouse does. Nothing the agent can do is something the UI can't, and
+nothing the UI can do is something the agent can't.
 
 ```
    ┌────────────┐    natural language     ┌───────────┐
@@ -127,38 +91,281 @@ knot.file     save export
 them; **level (b) reaching for them is a sign the surface above is missing
 something**, and the fix is to add it there rather than to reach through.
 
-Still to come, from levels (b) and (c):
+What (b) and (c) add to it is tabulated under level (b) below. The shape of the
+harness does not change — only the namespaces do.
 
-- `analyze.project(camera) -> PD code` — needs a *choice of generic projection*
-  first; see the note under Level (c)
-- `analyze.invariant(id, which)`
-- `moves.reidemeister(kind, at)`
-- `library.load('8_19')` — the codes half, which needs an embedder
+## The missing middle
 
-Open questions to revisit, not answer now:
+Today there are two representations and they sit very far apart: `Curve[]`, a
+list of points in ℝ³, and a name like `3₁`. Almost everything levels (b) and (c)
+want to do passes through a third — the **diagram**.
 
-- Where does the agent live — in-browser (WASM / API calls from the page) or a local
-  Python service? Level (c) leans Python (SnapPy, numpy); level (a) is JS. Likely a
-  thin local server bridging the two.
-- ~~Undo/redo semantics when an agent makes a 40-step edit: one undo entry or
-  forty?~~ **Answered: one, and the agent says so.** `knot.history.begin()` /
-  `.commit()` group any number of edits into a single undo step, with
-  `.rollback()` to abandon a half-finished batch. The UI uses the same
-  primitive.
-- Does the agent see the canvas (screenshots) or only the data? Probably both.
-- ~~Provenance: every curve should record whether a human or an agent last
-  touched it.~~ **Done:** `Curve.by` is `'human'`, `'agent'` or `'library'`, set
-  on creation and updated on every edit, and it round-trips through the file.
+```js
+Diagram = {
+  n:     number,       // crossings
+  pair:  Int32Array,   // 4n half-edges — the planar structure, and the truth
+  over:  Uint8Array,   // one bit per crossing
+  loops: number,       // components with no crossings at all
+}
+```
 
-## Repo layout (guess)
+**Built — see `knotlib/diagram.md` for the design and `knotlib/glossary.md` for
+any word above that isn't obvious.** Two things moved from the sketch that stood
+here before. PD codes are *derived*, not primary, because they cannot express a
+crossing-free circle and do not give you faces — and faces are where the
+Reidemeister moves live. And the planar coordinates are not on the type at all;
+they come back from `project()` alongside the diagram, because they belong to
+the projection that produced them rather than to the combinatorics.
+
+Four operations connect the three representations, and between them they are
+most of (b) and (c):
+
+| | from | to | who needs it | state |
+|---|---|---|---|---|
+| `project` | space curve | diagram | the 2D view; every invariant | **built** |
+| `embed` | diagram | space curve | image import, table import, "make me 8₁₉" | half-built, by accident — below |
+| `identify` | diagram | name + invariants | "what is this?" | invariants built, table not |
+| `realize` | name | diagram | table lookup, the codes half of the library | not started |
+
+**`embed` half exists already, by accident.** `src/crossings.js` takes a flat
+polyline with pen-lift gaps and lifts it into a 3D curve — that *is*
+diagram → space curve, for the case where the diagram was drawn with a mouse.
+And the pen-lift gap it keys on is exactly the printed break convention. A knot
+plate scanned out of a book is the same input arriving from a different device.
+This is the largest piece of luck in the current design and it should be
+protected: keep `crossings.js` free of anything mouse-specific.
+
+`project` is the direction that needs care. **A crossing is a property of a
+projection, not of a curve** — there is nothing to point at until a direction
+has been chosen, and not every direction works: a Hopf link of two perpendicular
+circles, viewed down the axis of one, projects that component to a line segment,
+and no crossings are defined at all. So
+`project` **chooses** a direction before it reads anything, checks the choice is
+generic (no two crossings coincident, no tangency, no vertex seen end-on), and
+jitters and retries if it is not. The direction it settled on is returned with
+the diagram, because a diagram without its direction is not reproducible.
+
+---
+
+## Level (b) — Knowledge
+
+Give the editor a memory and a mouth. Concretely: get knots *in* from
+representations other than the mouse, answer questions about them, and let that
+happen in English.
+
+### The tool surface it adds
+
+Same rule as level (a): **nothing the agent can do is something the UI can't,
+and vice versa.** Every call below is listed with the affordance that has to
+exist beside it — that pairing is the acceptance criterion, not a nicety.
+
+| call | what it does | its UI half |
+|---|---|---|
+| `analyze.project(dir?)` | space curve → `Diagram` | **2D** toggle: flatten the view to the diagram |
+| `analyze.codes(id)` | PD / Gauss / DT / braid word as text | a panel you can copy out of |
+| `analyze.invariants(id, which?)` | writhe, linking number, Alexander, Jones | the same panel |
+| `analyze.identify(id)` | `{ names[], confidence, ruled_out[] }` | **What is this?** button |
+| `import.code(text)` | Gauss/DT/PD/braid → curves | paste box |
+| `import.name('8_19')` | table → curves | the existing library picker, second tab |
+| `import.image(file)` | picture of a diagram → curves | drag a file onto the canvas |
+| `moves.relax(id, opts)` | energy descent to a clean embedding | **Relax** button, dialled like Smoothen |
+| `moves.reidemeister(kind, at)` | one isotopy, animated | click a crossing or a bigon |
+| `agent.ask(text)` | routes to the above, explains the result | the chat pane |
+
+`import.*` and `analyze.*` are level (b); `moves.*` is level (c) surfaced here
+because (b) cannot produce a presentable 3D knot without it — see the note on
+ordering below.
+
+### The rule the chat pane lives under
+
+**The model never does mathematics.** It selects, calls, and explains. If an
+answer contains a claim about a knot, that claim came out of a tool, and the
+answer says which one. This is testable and should be tested: assert that every
+mathematical assertion in a reply matches the tool output it cites, and that the
+system prompt contains no knot theory for the model to recall instead.
+
+The corollary is that `identify` must be allowed to say **"not in the table"**
+and **"these two, and no polynomial I have distinguishes them"**. A confident
+wrong name is worse than no name in a tool that is meant to teach.
+
+---
+
+## Level (c) — Computation
+
+The mathematics, as a library of deterministic functions. Same discipline as
+`smooth.js` and `io.js`: **pure JS, no DOM, no three.js, tested in node.**
+
+- **`project.js`** — generic-direction choice, crossing extraction, PD code.
+- **`invariants.js`** — writhe, linking number, Alexander (a determinant),
+  Kauffman bracket → Jones, HOMFLY if it earns its place.
+- **`relax.js`** — ropelength / Möbius-energy descent. Not new work from zero:
+  `smooth.js`'s `shove()` is already contact repulsion with a rigid/local split
+  and wholesale rollback. Relaxation is that plus a shortening term, run to
+  convergence instead of dosed by a dial.
+- **`moves.js`** — Reidemeister I/II/III on the diagram, and as animated
+  isotopies of the 3D curve. These do **not** change the knot type; a crossing
+  change is the unknotting operation and is a different animal.
+- **`table/`** — knots and links up to 12 crossings, with an invariant
+  fingerprint each, **generated offline and committed as JSON**. Exactly the
+  pattern `tools/library.mjs` already established for shapes, at a larger scale,
+  validated the same way by a test that reloads what shipped.
+
+### Where the compute runs
+
+The editor is a static site on GitHub Pages. That constraint is load-bearing —
+it is why there is no server today and why deployment is one push. So:
+
+1. **Identification is a lookup, not a computation.** Anything a person draws by
+   hand is under 12 crossings. Bake the table offline in Python (SnapPy, regina,
+   whatever is best) and ship JSON. No runtime dependency on either.
+2. **Cheap invariants run in JS, live.** Writhe and linking are sums. Alexander
+   is a determinant. Kauffman bracket is 2ⁿ states — fine to 16-ish crossings,
+   and it can say "too big" above that instead of hanging.
+3. **A Python service is a development escape hatch, not a runtime dependency.**
+   If something genuinely needs SnapPy at runtime, that is the moment to decide
+   it is worth losing the static deploy for. Not before.
+4. **The LLM key is the user's.** A static site cannot hold a secret. The chat
+   pane asks for a key and keeps it in `localStorage`; a proxy is a later
+   convenience, not a prerequisite.
+
+---
+
+## Done
+
+Falsifiable, or it does not count. The project's habit is to measure rather than
+eyeball, and these are written so a test can fail.
+
+### The 2×2 the whole thing turns on
+
+Both directions, for knots **and** links:
+
+| | knot | link |
+|---|---|---|
+| **3D → 2D** | camera → generic direction → PD code → drawn diagram that matches what you saw | same, plus each component keeps its colour and the linking numbers agree with the 3D curve's |
+| **2D → 3D** | traced/typed diagram → lift → relax → a knot you can orbit | same, plus components stay separate — no accidental joins, no accidental splits |
+
+### The acceptance tests
+
+1. **Table round trip, no human.** For every knot in the shipped table up to 9
+   crossings: `import.name(k)` → curve → `analyze.project()` → `identify()`
+   returns `k`. One test, and it exercises `realize`, `embed`, `relax`,
+   `project` and `identify` at once. Done = all of them, or a written list of
+   the ones that fail and why.
+2. **Clearance survives the round trip.** Every curve produced by `embed` +
+   `relax` keeps tubes ≥ 2R apart, the same bar the shipped library is held to.
+   A knot that passes through itself is not a knot.
+3. **The Wikipedia plate.** Feed
+   `File:Knot_table.svg` to `import.image`. Every panel traces, lifts, relaxes
+   and identifies to the knot it is labelled with. Score is reported as N/35,
+   not as a vibe. Done = all of them, or a stated and understood failure list.
+4. **Draw and ask.** Draw a trefoil freehand, press **What is this?**, get
+   `3₁` — *and* the honest chirality answer, since the mirror is a different
+   knot and Jones can tell them apart.
+5. **Moves preserve type.** After any `moves.reidemeister` or any amount of
+   `moves.relax`, the invariant fingerprint is unchanged. Asserted, every time,
+   in the test.
+6. **Messy in, clean out.** A deliberately tangled hand-drawn trefoil relaxes to
+   a 3-crossing projection without changing knot type.
+7. **The model did no maths.** Every mathematical claim in a chat reply traces
+   to a tool call; the prompt contains no knot theory.
+8. **Nothing reaches through.** No level (b) or (c) code touches
+   `knot.internals`. Wanting to means the surface is missing something, and the
+   fix goes there.
+9. **Parity still holds.** The rail-walk test in `smoke.mjs` §10 covers every
+   new control, and every new call has a control.
+10. **Still one push to deploy.** Whatever gets added, `git push` still builds,
+    tests and publishes a static site.
+
+---
+
+## Order of work
+
+The levels are layered, not sequential, and the dependency that proves it is
+this: **2D → 3D is not presentable without relaxation**, and relaxation is
+level (c). So (c) starts early, in the middle of (b).
+
+| step | what | why now | user-visible after |
+|---|---|---|---|
+| 1 | ✅ `knotlib/` — diagram type, projection, invariants, R-moves | the bridge everything crosses | *(nothing yet — not wired to the editor)* |
+| 2 | 2D diagram view | needs only step 1, and it is the thing you want most | **2D** toggle |
+| 3 | `relax.js` | blocks everything that imports | **Relax** dial |
+| 4 | table generation + `identify` | lookup, not computation | **What is this?** |
+| 5 | codes in (`import.code`, `import.name`) | steps 3 and 4 make the output presentable | paste box; library gains 250 knots |
+| 6 | SVG trace → `crossings.js` lift | reuses steps 3 and 5 wholesale | drag a file on |
+| 7 | chat pane over the tool schemas | last, because it is a thin layer over 1–6 | the mouth |
+
+Tracing is deliberately tiered, because it is the flakiest thing on the list and
+the tiers are wildly different problems:
+
+- **Tier 0 — vector.** The Wikipedia knot table *is* an SVG, so its strands are
+  already paths and there is no computer vision at all. **Unverified
+  assumption, and the first thing to check before committing to this tier:**
+  that the breaks at under-crossings are real gaps between subpaths rather than
+  a white stroke painted over a continuous path. If it is the latter, tier 0
+  becomes "read the paths, then work out the paint order", which is still far
+  easier than tier 1 but is not free. This is the tier Done asks for.
+- **Tier 1 — clean raster.** A scanned plate. Skeletonise, find endpoints,
+  pair them across gaps. Real work, but bounded.
+- **Tier 2 — a photograph of actual string.** The ReadMe's stretch goal.
+  A different project wearing this project's clothes; do not let it in early.
+
+---
+
+## Risks
+
+- **Tracing is the flakiest link**, which is why it is last and tiered.
+- **Minimal-crossing projection is a search**, not a formula. Sample directions,
+  keep the best; accept "good" rather than proving "minimal".
+- **Kauffman bracket is exponential.** It must refuse loudly above its limit
+  rather than hang the tab.
+- **The table bounds identification.** Above 12 crossings the honest answer is
+  "not in the table", and the UI has to be able to say that without looking broken.
+- **Degenerate projections are the normal case, not the edge case** — a
+  hand-drawn link is full of near-tangencies. The genericity check and retry is
+  core machinery, not a guard clause.
+- **A chat pane invites the model to answer from memory.** It will be right
+  often enough to be dangerous. Test 7 exists for that reason.
+
+---
+
+## Repo layout
 
 ```
 knot-a-problem/
 ├── ReadMe.md
 ├── plan.md              ← this file
 ├── editor/              ← level (a): the browser app
-│   └── plan.md
-├── knotlib/             ← level (c): computation, probably Python (later)
-├── agent/               ← level (b): tool definitions + harness (later)
+│   ├── plan.md
+│   ├── src/             (owns Curve[], the tool surface, rendering)
+│   └── tools/library.mjs
+├── knotlib/             ← level (c): pure JS, no DOM, tested in node
+│   ├── diagram.md  glossary.md      (the design, and the words)
+│   ├── diagram.js  project.js  invariants.js  moves.js  laurent.js
+│   ├── relax.js         (next)
+│   ├── table/           (generated, committed — later)
+│   └── tools/table.mjs  (the offline generator; Python allowed here)
+├── agent/               ← level (b): tool schemas, tracing, the chat pane
+│   ├── tools.json       (one schema per knot.* call)
+│   └── trace/           (tier 0 first)
 └── old-mnist-expts/     ← unrelated, archived
 ```
+
+`knotlib` is a sibling of `editor`, not a child, and it imports nothing from it.
+The dependency runs one way: `editor` may import `knotlib`; `knotlib` may not
+know that a screen exists. That is what keeps its tests runnable in node, which
+is what has made `smooth.js` and `io.js` cheap to trust.
+
+---
+
+## Open questions, still open
+
+- **Does the diagram get to be editable?** Dragging an arc in the 2D view and
+  having the 3D curve follow is the natural next thought after step 2, and it is
+  the same unsolved problem as `smoothen.md` §8 — curve editing — wearing a
+  different hat. Probably they should be solved together, or not at all.
+- **Does the agent see the canvas?** Screenshots would help it discuss what the
+  user is looking at, and cost nothing mathematically since it does no maths.
+  Probably yes, but only after the tool half works blind.
+- **What is a link's name?** Knots have Rolfsen numbers; link tables are messier
+  and the notation is less settled. Decide before shipping `identify` for links,
+  not after.
