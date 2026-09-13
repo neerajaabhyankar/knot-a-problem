@@ -30,8 +30,8 @@ against the built artifact, and commits it into `wlog-the-blog`, which is what
 GitHub Pages serves. **You touch one repo.** The blog's own publishing path is
 untouched and unaware of this.
 
-`.github/workflows/deploy.yml` fires only when something under `editor/` changes,
-or by hand from the Actions tab.
+`.github/workflows/deploy.yml` fires only when something under `editor/` or
+`knotlib/` changes (the editor imports knotlib), or by hand from the Actions tab.
 
 ### One-time setup
 
@@ -60,6 +60,10 @@ Then `gh workflow run "deploy editor"` to try it without pushing anything.
 - **The editor lives only in the actual website repo**, https://github.com/neerajaabhyankar/wlog-the-blog, never in the
   private Jekyll source. The `cp -r _site/ ../wlog-the-blog/` from the Jekyll source merges rather than deletes, so publishing the blog leaves the editor alone. If you ever switch that to `rsync --delete`, it
   would wipe the editor — add `--exclude knot-and-link-editor`.
+- **Never force-push `wlog-the-blog` from a stale clone.** The editor exists
+  there only as deploy commits, so a force-push from a clone that lacks them
+  deletes the editor. That happened on 2026-09-07. `git pull` before publishing
+  the blog.
 - **No Jekyll layout.** The editor is full-viewport and sets `overflow: hidden`
   on `body`; the site's `layout: default` would fight it. So the page carries no
   site nav, deliberately.

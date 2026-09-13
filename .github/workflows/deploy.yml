@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - 'editor/**'
+      - 'knotlib/**' # the editor imports it, so it ships inside the build
       - '.github/workflows/deploy.yml'
   workflow_dispatch: # deploy by hand from the Actions tab
 
@@ -31,12 +32,21 @@ jobs:
         working-directory: editor
         run: npm ci
 
+      # knotlib has no dependencies, so it needs no install of its own.
+      - name: knotlib tests
+        working-directory: knotlib
+        run: npm test
+
+      # Every node-only file in editor's `npm test`; smoke and browsers need the
+      # built site and run below.
       - name: Unit tests
         working-directory: editor
         run: |
           node test/crossings.test.mjs
           node test/smooth.test.mjs
           node test/io.test.mjs
+          node test/diagram2d.test.mjs
+          node test/trace.test.mjs
 
       - name: Build
         working-directory: editor
