@@ -91,16 +91,14 @@ three of the four components is therefore the same as naming a vertex, and
 condition~(i) becomes the statement that the components weave in the Borromean
 pattern around each of the four vertices. Since the symmetry group is transitive
 on vertices, the four instances of condition~(i) are a single condition. This is
-what makes the problem tractable, and it is special to the tetrahedron; we
-record in Remark~\ref{rem:unique} that $n=4$ is the only case in which ``every
-triple of components'' and ``a vertex of the solid'' mean the same thing.
+what makes the problem tractable.
 
 Sections~\ref{sec:defs}--\ref{sec:frame} set up the problem and the equivariant
 frame. Section~\ref{sec:milnor} checks that the symmetry is compatible with the
-linking that condition~(i) demands --- a necessary condition, and one that fails
-for the superficially similar problem in which the triples are required to fall
-\emph{apart}. Section~\ref{sec:obstructions} proves two obstructions, which
-together say that the components can be neither flat nor economical.
+linking that condition~(i) demands, which is a necessary condition for the
+problem to have any solution at all. Section~\ref{sec:obstructions} proves two
+obstructions, which together say that the components can be neither flat nor
+economical.
 Section~\ref{sec:construction} gives the link.
 
 \section{Conventions}\label{sec:defs}
@@ -113,19 +111,22 @@ $S\subseteq\{1,\dots,n\}$, the \emph{sublink} $L_S$ is $\bigcup_{i\in S}K_i$.
 The \emph{unlink} $U_n$ is $n$ components bounding disjoint embedded discs.
 
 We write $\Bor$ for the \emph{Borromean rings}: the three-component link
-$\mathrm{L6a4}$ of the standard tables~\cite{linkinfo}, drawn in
-Figure~\ref{fig:borromean} as three mutually perpendicular rectangles. It has
-the two properties quoted above, namely $\lk(K_i,K_j)=0$ for each pair while
-$\Bor$ is not the unlink; that round circles cannot be used in place of the
-rectangles is a theorem of Freedman and Skora~\cite{freedmanskora1987}, with an
-elementary proof due to Lindström and Zetterström~\cite{lindstrom1991}.
+$\mathrm{L6a4}$ of the standard tables~\cite{linkinfo}, whose standard diagram is Figure~\ref{fig:borromean}.
+It has the two properties quoted above, namely $\lk(K_i,K_j)=0$ for each pair
+while $\Bor$ is not the unlink. The diagram is drawn with circular arcs, but no
+three \emph{round circles} in space form the Borromean rings: that is a theorem
+of Freedman and Skora~\cite{freedmanskora1987}, with an elementary proof due to
+Lindström and Zetterström~\cite{lindstrom1991}. Any realisation therefore
+deforms the circles, a constraint the present problem inherits.
 
 \begin{figure}[htbp]
 \centering
 \input{fig-borromean.tex}
-\caption{The Borromean rings $\Bor$, as three mutually perpendicular golden
-rectangles seen along the diagonal $(1,1,1)$. No two of the three are linked;
-all three together cannot be separated.}
+\caption{The standard diagram of the Borromean rings $\Bor$. Each component
+passes over one neighbour and under the other, cyclically. No two of the three
+are linked, yet all three together cannot be separated. Here and throughout,
+over and under are shown only by the break in the lower strand; the colours
+distinguish components and carry no other information.}
 \label{fig:borromean}
 \end{figure}
 
@@ -275,17 +276,6 @@ transitively.}
 \label{fig:tetra}
 \end{figure}
 
-\begin{remark}\label{rem:unique}
-The construction above makes sense for any polyhedron in which exactly three
-faces meet at every vertex: put one component on each face and ask for a
-Borromean weave at each vertex. What is special about the tetrahedron is that
-there the \emph{vertices account for all the triples}. A polyhedron with $F$
-faces and three faces at every vertex has $2F-4$ vertices, and
-$\binom{F}{3}=2F-4$ forces $F(F-1)=12$, so $F=4$. For the cube, for instance,
-one would be asserting a Borromean weave at each of $8$ vertices, which is a
-statement about $8$ of the $\binom{6}{3}=20$ triples and not about all of them.
-\end{remark}
-
 \section{The symmetry is compatible with the required linking}\label{sec:milnor}
 
 Before constructing anything it is worth checking that conditions~(i) and~(ii)
@@ -338,16 +328,6 @@ gives $\bar\mu(123)=-\bar\mu(124)$. Since $(123)$ and $(234)$ generate $A_4$,
 these are all the relations, and the solution space is spanned by
 $(1,-1,1,-1)$ in the ordering above, equivalently by $(-1,1,-1,1)$.
 \end{proof}
-
-\begin{remark}
-The analogous computation for the superficially similar problem in which every
-three-component sublink is required to be the \emph{unlink} --- a Brunnian
-four-component link with tetrahedral symmetry --- comes out the other way: there
-the relevant invariants are of length four rather than three, the generator
-$r_1$ acts on the corresponding two-dimensional space with characteristic
-polynomial $\lambda^2+\lambda+1$, which has neither $+1$ nor $-1$ as a root, and
-every such invariant is forced to vanish. We do not pursue that here.
-\end{remark}
 
 \section{Two obstructions}\label{sec:obstructions}
 
@@ -550,17 +530,11 @@ $u_2,u_3,u_4$ about the three coordinate axes.}
 
 \begin{figure}[htbp]
 \centering
-\begin{minipage}{0.47\textwidth}\centering
-  \resizebox{\linewidth}{!}{\input{fig-link-3fold.tex}}\\[2pt]
-  {\footnotesize along a $3$-fold axis}
-\end{minipage}\hfill
-\begin{minipage}{0.47\textwidth}\centering
-  \resizebox{\linewidth}{!}{\input{fig-link-2fold.tex}}\\[2pt]
-  {\footnotesize along a $2$-fold axis}
-\end{minipage}
-\caption{The link $L$ of Theorem~\ref{thm:main}, seen along a vertex-to-face
-axis (left) and along an axis through midpoints of opposite edges (right).
-Components are coloured \textcolor{ringA}{$K_1$}, \textcolor{ringB}{$K_2$},
+\resizebox{0.70\linewidth}{!}{\input{fig-link.tex}}
+\caption{The link $L$ of Theorem~\ref{thm:main}. The projection direction was
+chosen among those giving the fewest crossings to keep the crossings as far
+apart from one another, and from the corners, as possible. Components are
+coloured \textcolor{ringA}{$K_1$}, \textcolor{ringB}{$K_2$},
 \textcolor{ringC}{$K_3$}, \textcolor{ringD}{$K_4$}.}
 \label{fig:link}
 \end{figure}
@@ -610,9 +584,9 @@ scripts accompanying this paper.
 
 \begin{figure}[htbp]
 \centering
-\resizebox{0.52\linewidth}{!}{\input{fig-sublink.tex}}
-\caption{The sublink obtained by deleting \textcolor{ringA}{$K_1$}, seen along
-the axis through $v_1$. By Lemma~\ref{lem:vertices} the three surviving
+\resizebox{0.48\linewidth}{!}{\input{fig-sublink.tex}}
+\caption{The sublink obtained by deleting \textcolor{ringA}{$K_1$}. By
+Lemma~\ref{lem:vertices} the three surviving
 components are those belonging to the faces meeting at $v_1$, and by
 Proposition~\ref{prop:sublinks} they form the Borromean rings. The other three
 sublinks are carried onto this one by the symmetry.}
@@ -629,11 +603,9 @@ sublinks as $\Bor$, however, rests on Proposition~\ref{prop:sublinks}, which
 appeals to the tabulation of links of small crossing number. A synthetic
 argument --- an explicit isotopy carrying one sublink onto the standard diagram
 of $\Bor$, which by Lemma~\ref{lem:vertices} would settle all four at once ---
-would be preferable, and we do not have one. The natural route is to redesign
-the component so that the Borromean weave is visible in a neighbourhood of each
-vertex and the connecting arcs demonstrably meet nothing; such an argument would
-use only that three faces meet at each vertex, and so would apply to the cube
-and the dodecahedron as well.
+would be preferable, and we do not have one. The natural route is to redesign the component so that the Borromean
+weave is visible in a neighbourhood of each vertex and the connecting arcs
+demonstrably meet nothing.
 
 \paragraph{Economy.}
 Theorem~\ref{thm:minimal} rules out $12$ crossings. The link of
@@ -642,12 +614,6 @@ sampled directions has $36$ crossings. We make no claim about the minimal
 crossing number of this link, nor about whether the link of
 Theorem~\ref{thm:main} is the simplest one satisfying
 Problem~\ref{prob:main}.
-
-\paragraph{Maximality of the symmetry.}
-Theorem~\ref{thm:main} exhibits an embedding with twelve rotational symmetries.
-Whether some other embedding of the same link type has more --- for instance all
-twenty-four symmetries of the tetrahedron, including the reflections --- is not
-addressed here.
 
 \bigskip
 \noindent\textbf{Acknowledgement.} The observation that the four components

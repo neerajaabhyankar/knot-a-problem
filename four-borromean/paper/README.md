@@ -12,8 +12,16 @@ illustrates.
 | file | produced by | from |
 |---|---|---|
 | `link.json` | `integer-model.mjs` | the two generating corners |
-| `fig-link-3fold.tex`, `fig-link-2fold.tex`, `fig-sublink.tex` | `make-figure.mjs` | `link.json` |
-| `fig-borromean.tex` | `make-borromean-figure.mjs` | three golden rectangles, checked against `knotlib` before drawing |
+| `fig-link.tex`, `fig-sublink.tex` | `build-figures.mjs`, via `make-diagram.mjs` | `link.json` |
+| `fig-borromean.tex` | `make-borromean-figure.mjs` | three circles in Venn position, cyclic over/under |
+
+`make-diagram.mjs` is the renderer, and it enforces what makes a picture a knot
+diagram rather than a projection: every crossing involves exactly two strands,
+crossings are kept apart from each other and from the corners, and the
+under-strand is broken by a visible gap. The projection direction is searched
+for, not assumed — among directions giving the fewest crossings it keeps the one
+whose worst feature is least bad. **Over and under are carried by the break
+alone**, so every figure reads in greyscale; colour only separates components.
 
 Run them from this directory with `node`. They import `../polygon.mjs`,
 `../tetra.mjs`, `../lib.mjs`, `../linking.mjs` and `../../knotlib`.
@@ -26,6 +34,7 @@ Run them from this directory with `node`. They import `../polygon.mjs`,
 | `milnor-symmetry.mjs` | Proposition 5.2 — the invariant subspace is 1-dimensional, spanned by (−1,1,−1,1) |
 | `vertex-weave.mjs` | Theorem 6.2 — the 12-crossing model clasps every pair, in both cyclic orientations |
 | `rationalise.mjs` | the search that produced the integer coordinates |
+| `search-integer.mjs` | a wider search for a simpler integer model; found none |
 
 `../test.mjs` is the standing check on the whole directory and covers the
 smooth link as well as the polygonal ones.
