@@ -67,20 +67,21 @@ At most one or two reach the paper.
 *and* bulge-free. Nothing known once dents are allowed; probably possible.
 Cheap to test.
 
-**2. A single 4-fold axis, four loops.** Different and weaker than tetrahedral:
-one axis, four loops carried round it in a cycle. Not answered here — the
-tetrahedral group has no 4-fold rotation. One condition, no obstruction found.
-**The cheapest open question on this list.**
+**2. Cyclic symmetry.** One axis, the loops carried round it in a cycle. The
+number of conditions to check is the number of orbits of triples: 1 for four
+loops, 2 for five, 4 for six, 5 for seven. **Four loops is the cheapest open
+question on this list** — a single condition, no obstruction found, and not
+answered here, since the tetrahedral group contains no 4-fold rotation. Note
+this asks for a *different* symmetry, not a stronger one: a 4-fold axis and the
+tetrahedral rotations do not contain one another.
 
-**3. Bigger symmetry groups.** Two distinct asks that both happen to have 24
-elements:
-
-| ask | contains | nature |
-|---|---|---|
-| tetrahedral + mirrors | the 12 | reflections; asks if the link equals its mirror image |
-| rotations of a cube | the 12, plus a 4-fold axis | rotations only; problem 2 and the present result at once |
-
-Different questions, same size. Problem 7 settles both.
+**3. Tetrahedral symmetry plus mirrors.** The full symmetry group of the
+tetrahedron is the twelve rotations together with twelve reflections. This is a
+genuine strengthening of the present result. A reflection reverses handedness,
+so the arrangement would have to be carried onto itself by a mirror. Not
+obviously impossible — the Borromean rings are equal to their own mirror image.
+The current link almost certainly lacks it, since the search had no reason to
+produce it. Problem 7 settles it.
 
 **4. More loops, one per face.** Needs a solid with exactly three faces at every
 corner whose symmetry treats all faces alike: tetrahedron (4 loops), cube (6),
