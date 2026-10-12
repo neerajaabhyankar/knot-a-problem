@@ -358,6 +358,10 @@ be non-zero. It is a proof of impossibility, not a failed search. Worth being
 precise about, because an obstruction at one rung of the ladder says nothing
 about the rungs above it — which is exactly the situation in §8.4.
 
+> **Both obstruction proofs are written up** and live in
+> `paper/tabled-obstructions.tex`, cut from the paper because neither is needed
+> to prove existence. Reuse them if either becomes its own note.
+
 ### 8.1 Planar components without convexity
 
 Can all four components be planar? §5.4 forbids it when they are also convex,

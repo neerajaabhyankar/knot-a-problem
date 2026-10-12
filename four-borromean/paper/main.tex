@@ -96,10 +96,7 @@ what makes the problem tractable.
 Sections~\ref{sec:defs}--\ref{sec:frame} set up the problem and the equivariant
 frame. Section~\ref{sec:milnor} checks that the symmetry is compatible with the
 linking that condition~(i) demands, which is a necessary condition for the
-problem to have any solution at all. Section~\ref{sec:obstructions} proves two
-obstructions, which together say that the components can be neither flat nor
-economical.
-Section~\ref{sec:construction} gives the link.
+problem to have any solution at all. Section~\ref{sec:construction} gives the link.
 
 \section{Conventions}\label{sec:defs}
 
@@ -329,165 +326,6 @@ these are all the relations, and the solution space is spanned by
 $(1,-1,1,-1)$ in the ordering above, equivalently by $(-1,1,-1,1)$.
 \end{proof}
 
-\section{Two obstructions}\label{sec:obstructions}
-
-Both obstructions in this section say that an obvious economy is unavailable.
-They are what force the construction of Section~\ref{sec:construction} to look
-as elaborate as it does.
-
-\subsection{The components cannot be flat and convex}
-
-Call a closed curve \emph{convex planar} if it lies in a plane and bounds a
-convex region there; equivalently, no straight line meets it in more than two
-points. Triangles and ellipses are convex planar; a star-shaped polygon is not.
-
-\begin{theorem}\label{thm:convex}
-No $\Tet$-symmetric four-component link all of whose components are convex
-planar satisfies condition~(i).
-\end{theorem}
-
-\begin{proof}
-Let $a_i$ be the axis through $v_i$, so that $K_i$ is invariant under the
-rotation $r_i$ of order $3$ about $a_i$.
-
-\emph{Step 1: the planes are forced.} A planar simple closed curve spans a
-unique plane $P_i$, and $r_i(K_i)=K_i$ forces $r_i(P_i)=P_i$. A rotation through
-$120^\circ$ about $a_i$ carries a plane containing $a_i$ to a different such
-plane, since $120^\circ\not\equiv0\pmod{180^\circ}$; hence $P_i\perp a_i$.
-
-\emph{Step 2: the half-turn reverses the line of intersection.} For $i\neq j$
-the axes $a_i,a_j$ meet at an angle $\arccos(-1/3)$, so $P_i$ and $P_j$ are not
-parallel and $\ell=P_i\cap P_j$ is a line. There is a unique element $u\in\Tet$
-of order $2$ with $u(K_i)=K_j$ and $u(K_j)=K_i$, namely the half-turn realising
-the double transposition $(ij)(kl)$; let $b$ be its axis. Then $u(\ell)=\ell$. A
-half-turn carries a line to itself only if the line is $b$, or meets $b$
-orthogonally. The first is impossible, as $b$ lies in neither $P_i$ nor $P_j$;
-in the second case $u|_\ell$ is the point reflection of $\ell$ in the point
-$\ell\cap b$. Concretely, for $i=1$, $j=2$ we have $b$ the $x$-axis, and with
-$P_1=\{x+y+z=c\}$ and $P_2=\{x-y-z=c\}$ one computes
-$\ell=\{(c,s,-s):s\in\RR\}$, whose direction $(0,1,-1)$ is orthogonal to $b$ and
-which meets $b$ at $(c,0,0)$.
-
-\emph{Step 3: chords cannot nest.} Being convex, $K_i$ meets $\ell$ in at most
-two points, so (generically) $K_i\cap\ell$ is the pair of endpoints of an
-interval $I_i\subset\ell$, and likewise for $K_j$. Two disjoint convex planar
-curves lying in distinct planes are linked precisely when $I_i$ and $I_j$
-interleave, and unlinked precisely when the intervals nest or are disjoint. By
-Step 2, $I_j$ is the image of $I_i$ under the point reflection in
-$m=\ell\cap b$. Taking $m$ as the origin of a coordinate on $\ell$ and writing
-$I_i=[\alpha,\beta]$, we get $I_j=[-\beta,-\alpha]$. For $I_i\subseteq I_j$ we
-would need $-\beta\le\alpha$ and $\beta\le-\alpha$, that is
-$\alpha+\beta\ge0$ and $\alpha+\beta\le0$; so $\alpha+\beta=0$, $I_i=I_j$, and
-the two curves meet. Nesting is therefore unavailable
-(Figure~\ref{fig:intervals}).
-
-\emph{Step 4: neither survivor works.} The group $A_4$ is $2$-transitive on four
-points, hence transitive on the six unordered pairs, so every pair falls into
-the same one of the remaining two cases. If all pairs interleave then
-$\lk(K_i,K_j)=\pm1$ for every pair, contradicting Lemma~\ref{lem:pairs}. If all
-pairs are disjoint, then the convex disc $D_i\subset P_i$ bounded by $K_i$ meets
-$P_j$ only in the filled interval $I_i$, which is disjoint from $K_j$; so $D_i$
-is a disc bounded by $K_i$ and disjoint from every other component, every
-three-component sublink is split, and no such sublink is $\Bor$.
-\end{proof}
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[scale=0.92,font=\small]
-  \foreach \y/\lab in {0/{disjoint}, -1.5/{interleaved}, -3.0/{nested}}
-    {\draw[rulegrey] (-3.6,\y) -- (3.6,\y);
-     \draw[rulegrey,line width=1pt] (0,\y-0.17) -- (0,\y+0.17);
-     \node[rulegrey,font=\scriptsize] at (0,\y+0.38) {$m$};
-     \node[anchor=west,font=\scriptsize] at (4.0,\y) {\lab};}
-  % disjoint
-  \draw[ringB,line width=3pt,line cap=round] (-3.0,0)--(-1.3,0);
-  \draw[ringC,line width=3pt,line cap=round] (1.3,0)--(3.0,0);
-  % interleaved
-  \draw[ringB,line width=3pt,line cap=round] (-3.0,-1.5)--(1.3,-1.5);
-  \draw[ringC,line width=3pt,line cap=round] (-1.3,-1.5)--(3.0,-1.5);
-  % nested -- greyed, because it is the case the symmetry forbids
-  \draw[ringB!35,line width=3pt,line cap=round] (-2.4,-3.0)--(2.4,-3.0);
-  \draw[ringC!35,line width=3pt,line cap=round] (-1.1,-3.0)--(1.1,-3.0);
-  \node[font=\scriptsize,anchor=west] at (4.0,-3.34) {\textcolor{rulegrey}{(impossible here)}};
-\end{tikzpicture}
-\caption{The three ways two intervals can sit on the line $\ell=P_i\cap P_j$.
-The half-turn exchanging the two components reflects $\ell$ in the point $m$,
-so one interval is the mirror image of the other through $m$. Disjoint and
-interleaved configurations are compatible with that; nesting is not, and nesting
-is the only one of the three that yields a Borromean triple.}
-\label{fig:intervals}
-\end{figure}
-
-\subsection{The components cannot cross the minimum number of times}
-
-Theorem~\ref{thm:convex} forces the components off their planes. The next
-result forces them to cross each other more often than one might hope.
-
-Suppose, as the picture in Figure~\ref{fig:tetra} suggests, that each component
-runs along the boundary of its face. Two faces $F_i,F_j$ share an edge whose
-endpoints are the two vertices $v_k,v_l$ with $\{k,l\}=\{1,2,3,4\}\setminus\{i,j\}$,
-so the components $K_i$ and $K_j$ come close together near $v_k$ and near $v_l$
-and nowhere else. The most economical diagram consistent with that picture is
-one in which the three components at each vertex cross each other once apiece,
-giving $4\times3=12$ crossings in all and exactly two crossings per pair --- the
-fewest any link satisfying our conditions could have, since a pair crossing
-fewer than twice has nonzero linking number or does not interact at all.
-
-\begin{theorem}\label{thm:minimal}
-There is no $\Tet$-symmetric diagram of a four-component link in which, for each
-vertex $v_k$, the three components $\{K_i:i\neq k\}$ pairwise cross exactly once
-near $v_k$, and no crossings occur elsewhere.
-\end{theorem}
-
-\begin{proof}
-Fix such a diagram. Near $v_k$ the three components cross pairwise once, so the
-relation ``$K_i$ passes over $K_j$ near $v_k$'' is a tournament on three
-elements. The stabiliser of $v_k$ in $\Tet$ is $\langle r_k\rangle$, which
-permutes those three components in a $3$-cycle and preserves the relation; a
-$3$-cycle preserves no linear order on three elements, so the relation is a
-cyclic order, and there are exactly two of them. Since $\Tet$ is transitive on
-the vertices of $\Delta$, the choice at one vertex determines the choice at all
-four, so there are exactly two diagrams to consider, interchanged by reversing
-every cyclic order.
-
-Each pair $\{K_i,K_j\}$ crosses exactly twice, at $v_k$ and at $v_l$. Two
-crossings between distinct components contribute $\pm1$ each to
-$2\lk(K_i,K_j)$, and the two contributions cancel exactly when the \emph{same}
-component passes over at both crossings. By Lemma~\ref{lem:pairs} we therefore
-need the over-strand of the pair $\{K_i,K_j\}$ to be the same at $v_k$ and at
-$v_l$.
-
-Take the cyclic order at $v_k$ to be the orbit of $r_k$, the rotation through
-$+120^\circ$ about the axis through $v_k$. In the coordinates
-of~\eqref{eq:r1}--\eqref{eq:halfturns} these rotations act on indices as
-\[
-  r_1=(2\,3\,4),\qquad r_2=(1\,4\,3),\qquad r_3=(1\,2\,4),\qquad r_4=(1\,3\,2),
-\]
-and the over-strand of a pair at a vertex is read off from the corresponding
-cyclic order. The six pairs give
-\begin{center}\small
-\begin{tabular}{@{}lccc@{}}
-\toprule
-pair & vertices & over at the first & over at the second\\
-\midrule
-$\{K_1,K_2\}$ & $v_3,v_4$ & $K_1$ & $K_2$\\
-$\{K_1,K_3\}$ & $v_2,v_4$ & $K_3$ & $K_1$\\
-$\{K_1,K_4\}$ & $v_2,v_3$ & $K_1$ & $K_4$\\
-$\{K_2,K_3\}$ & $v_1,v_4$ & $K_2$ & $K_3$\\
-$\{K_2,K_4\}$ & $v_1,v_3$ & $K_4$ & $K_2$\\
-$\{K_3,K_4\}$ & $v_1,v_2$ & $K_3$ & $K_4$\\
-\bottomrule
-\end{tabular}
-\end{center}
-In every row the over-strand changes, so every pair has linking number $\pm1$.
-Reversing all four cyclic orders exchanges the two columns and changes nothing.
-Both diagrams are therefore excluded by Lemma~\ref{lem:pairs}.
-\end{proof}
-
-Theorems~\ref{thm:convex} and~\ref{thm:minimal} together explain the shape of
-what follows: the components must leave their planes, and they must meet each
-other more than twice per pair.
-
 \section{The link}\label{sec:construction}
 
 \begin{theorem}\label{thm:main}
@@ -507,8 +345,7 @@ vanish, and each of its four three-component sublinks is the Borromean rings.
 \end{theorem}
 
 Written out, with $r_1(x,y,z)=(z,x,y)$, the four hexagons are the rows of
-Table~\ref{tab:coords}; Figure~\ref{fig:link} shows the link along two of its
-symmetry axes.
+Table~\ref{tab:coords}, and Figure~\ref{fig:link} shows the link.
 
 \begin{table}[htbp]
 \centering\small
@@ -530,11 +367,13 @@ $u_2,u_3,u_4$ about the three coordinate axes.}
 
 \begin{figure}[htbp]
 \centering
-\resizebox{0.70\linewidth}{!}{\input{fig-link.tex}}
-\caption{The link $L$ of Theorem~\ref{thm:main}. The projection direction was
-chosen among those giving the fewest crossings to keep the crossings as far
-apart from one another, and from the corners, as possible. Components are
-coloured \textcolor{ringA}{$K_1$}, \textcolor{ringB}{$K_2$},
+\input{fig-link.tex}
+\caption{The link $L$ of Theorem~\ref{thm:main}. The projection direction is
+chosen to keep strands apart: among directions giving close to the fewest
+crossings, the one maximising the least separation between crossings, between a
+crossing and a corner, and between two strands that do not cross. Two extra
+crossings are accepted in exchange, which nearly triples that separation.
+Components are coloured \textcolor{ringA}{$K_1$}, \textcolor{ringB}{$K_2$},
 \textcolor{ringC}{$K_3$}, \textcolor{ringD}{$K_4$}.}
 \label{fig:link}
 \end{figure}
@@ -584,7 +423,7 @@ scripts accompanying this paper.
 
 \begin{figure}[htbp]
 \centering
-\resizebox{0.48\linewidth}{!}{\input{fig-sublink.tex}}
+\input{fig-sublink.tex}
 \caption{The sublink obtained by deleting \textcolor{ringA}{$K_1$}. By
 Lemma~\ref{lem:vertices} the three surviving
 components are those belonging to the faces meeting at $v_1$, and by
@@ -606,14 +445,6 @@ of $\Bor$, which by Lemma~\ref{lem:vertices} would settle all four at once ---
 would be preferable, and we do not have one. The natural route is to redesign the component so that the Borromean
 weave is visible in a neighbourhood of each vertex and the connecting arcs
 demonstrably meet nothing.
-
-\paragraph{Economy.}
-Theorem~\ref{thm:minimal} rules out $12$ crossings. The link of
-Theorem~\ref{thm:main} is far from that bound: its best projection among $192$
-sampled directions has $36$ crossings. We make no claim about the minimal
-crossing number of this link, nor about whether the link of
-Theorem~\ref{thm:main} is the simplest one satisfying
-Problem~\ref{prob:main}.
 
 \bigskip
 \noindent\textbf{Acknowledgement.} The observation that the four components
