@@ -4,7 +4,7 @@
 > exact tetrahedral symmetry (|T| = 12) whose every 3-component sublink is the
 > Borromean rings. It is built, verified against `knotlib`, and shipped here as
 > `tetrahedral-4-borromean.knot.json`, five SVG views, and the scripts that
-> produce and check it. The gap is named in §7 and it is a gap in the
+> produce and check it. The gap is named in §8 and it is a gap in the
 > *certificate*, not in the construction.
 
 ## 1. The question
@@ -200,7 +200,69 @@ the six pairs of components has to weave through two different Borromean triples
 which puts a floor of roughly 24 crossings on any diagram of this link; the one
 here is 28. It is not a picture that becomes the Valknut with enough tidying.
 
-## 7. The gap
+## 7. Straight edges, and a model you can build
+
+The rings can be replaced by closed **polygons** — straight edges, sharp corners
+— without changing the link. That makes the weave quicker to read by eye, and it
+makes a physical model possible.
+
+This is not a rendering option. Thinning a ring to a few straight edges *moves
+the strand*, and a strand that moves far enough cuts through its neighbour. So
+every polygon below is its own link until checked, and is re-verified against
+`knotlib` from scratch.
+
+**The symmetry stays free, for the same reason as §3.** Ring A repeats every 60
+of its 180 points under R, so a polygon is built by thinning that one third down
+to `m` corners and regenerating: arc, R(arc), R²(arc) gives ring A, and the three
+half-turns give B, C and D. *Any* subset of the arc therefore yields an exactly
+T-symmetric link. Corner count is the only thing being searched.
+
+**Six corners per ring is the minimum, and the minimum is achieved.** The count
+must be a multiple of 3 or the ring cannot carry R at all, so the only smaller
+option is 3 — and a 3-corner ring is a flat triangle, planar and convex, which
+is the case §4 rules out. (§4 is written for rings lying *in* the face planes; a
+3-corner ring sits in a plane parallel to one, and the argument carries over
+unchanged, since the two planes still meet in a line and the half-turn still
+reverses it.) A sweep of 20 offsets confirms it: no 3-corner arrangement works.
+
+| corners/ring | distinct corners | closest approach | verified |
+|---|---|---|---|
+| smooth (180 pts) | — | 0.252 | yes |
+| 6 | 2 | 0.109 | yes |
+| 9 | 3 | 0.152 | yes |
+| 24 | 8 | 0.203 | yes |
+
+**Closest approach** is the smallest distance between any two strands, measured
+edge-to-edge rather than vertex-to-vertex — with long straight edges those are
+very different numbers, and only the first one means anything. The link is about
+2.5 units across, so it is the margin a paper model has before two pieces
+collide.
+
+Thinning alone left the coarse ones too tight to build (0.038 at 6 corners), so
+`optimise-polygon.mjs` widens the gap. **The step bound is the point.** If the
+closest approach is currently `c` and no corner moves more than `c/2`, then no
+point of any edge moves further either, so two strands that were `c` apart stay
+more than 0 apart: nothing can pass through anything, and the link type is
+preserved *by construction* rather than by re-checking and hoping. It is
+re-checked anyway. That took 6 corners from 0.038 to 0.109 and 9 from 0.039 to
+0.152. The one guard the bound does not give you is a spike — two adjacent edges
+folding flat against each other, which is degenerate for `project()` without
+ever being a crossing — so turn angle and minimum edge length are constrained
+separately.
+
+**The cutting list.** A closed polygon in space is fixed, up to rigid motion, by
+three numbers per corner: the edge length leaving it, the turn angle through it,
+and the torsion — how far the next edge rotates out of the plane of the previous
+two. `recipe.mjs` emits them. Because each ring is 3-fold symmetric only `m/3`
+rows are distinct, and all four rings are congruent, so the 6-corner model's
+entire specification is two rows built twelve times:
+
+| corner | edge | turn | torsion |
+|---|---|---|---|
+| 1 | 1.209 | 124.7° | +113.1° |
+| 2 | 1.063 | 90.6° | −99.4° |
+
+## 8. The gap
 
 What is proved: the four sublinks are 3-component links with all linking numbers
 zero, 6-crossing diagrams, and the Borromean rings' Jones polynomial. Since the
@@ -224,13 +286,13 @@ rather than a proof. It is a strong one — the Jones polynomials agree to the
 last coefficient across four independent projections of four different sublinks
 — but it is not the same thing.
 
-## 8. What would close it, and what else this wants from the repo
+## 9. What would close it, and what else this wants from the repo
 
 Nothing here was blocked. Everything above runs on `knotlib` as shipped plus
 about 400 lines in this directory. But four things would make it better, and
 three of them are already on the roadmap:
 
-- **R3 in `moves.js`** (plan step 1's leftover). Closes §7 outright: the reduced
+- **R3 in `moves.js`** (plan step 1's leftover). Closes §8 outright: the reduced
   diagrams stall on R3 and nothing else.
 - **`relax.js`** (plan step 3). `relaxsym.mjs` here is a stand-in and a weak one
   — it descends on length-over-clearance in the symmetric subspace and on the
@@ -247,7 +309,7 @@ three of them are already on the roadmap:
   link with vanishing linking numbers, and §2 shows it is the invariant that
   decides whether a symmetry is allowed before any search happens.
 
-## 9. Two roughnesses found in `knotlib`
+## 10. Two roughnesses found in `knotlib`
 
 Both are worked around locally in `lib.mjs`; neither is fixed here, because
 nothing in this directory should reach into `knotlib`.
@@ -267,7 +329,7 @@ nothing in this directory should reach into `knotlib`.
    correctness, since neither move changes the link, and it turned four "cannot
    compute" answers here into four clean ones.
 
-## 10. The files
+## 11. The files
 
 | file | what |
 |---|---|
@@ -278,8 +340,13 @@ nothing in this directory should reach into `knotlib`.
 | `search.mjs` | the seeded random search of §5 |
 | `refine.mjs`, `pick.mjs`, `best.mjs`, `polish.mjs` | hill-climb and rank |
 | `relaxsym.mjs` | equivariant ropelength descent — the `relax.js` stand-in |
-| `verify.mjs`, `reduce.mjs` | the checks of §6 and §7 |
+| `verify.mjs`, `reduce.mjs` | the checks of §6 and §8 |
 | `render.mjs`, `final.mjs` | the SVGs and the scene file |
+| `polygon.mjs` | thinning, and edge-to-edge clearance |
+| `search-polygon.mjs` | the corner-count sweep of §7 |
+| `optimise-polygon.mjs` | the bounded-step widening of §7 |
+| `recipe.mjs` | edge length, turn angle and torsion — the cutting list |
+| `artifact-data.mjs` | what the published page is built from |
 | `test.mjs` | the whole claim, as one falsifiable run |
 
 `node test.mjs` re-derives the verdict from the shipped curves in a few seconds.
@@ -288,4 +355,8 @@ nothing in this directory should reach into `knotlib`.
 
 **Interactive view:** <https://claude.ai/code/artifact/70e63ca5-f85c-4c48-a67e-93bb6957fd57>
 — rotate the link, hide any one ring to see the Borromean rings underneath, and
-snap to the 3-fold and 2-fold axes. Built from `curves.json` by `link-viewer.html`.
+snap to the 3-fold and 2-fold axes. The **Shape** control switches between the
+smooth rings and the three verified polygons, with the cutting list beside it.
+Built by `link-viewer.html` from `artifact-data.json`, which stores one third of
+one ring per shape and regenerates the other eleven twelfths with the same two
+group operations used here.
