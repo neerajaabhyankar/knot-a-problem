@@ -101,10 +101,10 @@ construction exploits.
 
 - **Theorem A (Existence).** There is a link satisfying (i) and (ii). Explicit
   coordinates given; the symmetry group has order 12.
-- **Proposition B (Consistency of the triple invariants).** The constraints that
-  (ii) imposes on `μ̄(ijk)` are consistent with `|μ̄(ijk)| = 1` for all four
-  triples, and determine the four signs up to one global sign and a choice of
-  component orientations. *This is a necessary condition passing, not a
+- **Proposition B (The triple invariants).** The constraints that (ii) imposes
+  on `μ̄(ijk)` leave a 1-dimensional solution space, spanned by `(−1,1,−1,1)`.
+  So they are consistent with `|μ̄(ijk)| = 1` on all four triples, and the signs
+  are determined up to one global sign. *A necessary condition passing, not a
   construction — say so.*
 - **Proposition C (Convex planar components are impossible).** If every `Kᵢ` is
   a convex planar curve, no link satisfies (i) and (ii). Moreover each `Kᵢ` is
@@ -189,27 +189,38 @@ other. **The mechanism of 5.4 fails.** Say exactly that — do *not* say the
 planar case is possible, which we have not shown, and do not say it is
 impossible, which we have no reason to believe.
 
-### 5.6 Triple Milnor invariants under the symmetry — **derivation done, needs re-checking**
-Setup: all `lk = 0`, so `μ̄(ijk) ∈ ℤ` is well defined and alternating. A rotation
-is orientation-preserving on `S³`, so for `g ∈ T` with permutation `σ` and
-orientation signs `εᵢ = ±1` (whether `g` preserves the chosen orientation of
-`Kᵢ`):
-`μ̄(σi, σj, σk) = εᵢ εⱼ ε_k · μ̄(i,j,k)`.
+### 5.6 Triple Milnor invariants under the symmetry — **settled**
 
-Write `A = μ̄(123)`, `B = μ̄(124)`, `C = μ̄(134)`, `D = μ̄(234)`, extended
-alternatingly. Grind the two generating 3-cycles.
+Previously flagged as the riskiest item. It is now closed, and the orientation
+bookkeeping that made it risky turns out to be unnecessary.
 
-- From the 3-cycle fixing component 4: `ε₄ = +1`, `D = B`, `C = −B`.
-- From the 3-cycle fixing component 1: `A = −B` (up to the orientation sign
-  bookkeeping, which has two branches; **re-derive carefully and state which**).
+**The orientation signs can all be taken `+1`.** A symmetry `g` acts on
+components by a permutation and, for each component, either preserves or
+reverses its chosen orientation; call that sign `εᵢ(g)`. The whole assignment is
+an equivariant `±1`-bundle over the components, and over a transitive `G`-set
+`G/H` such bundles are classified by `Hom(H, ±1)`. Here `H = Stab_T(Kᵢ) ≅ C₃`,
+which has **odd order**, so `Hom(H, ±1)` is trivial, the bundle is trivial, and
+orientations can be chosen equivariantly. Hence `εᵢ(g) = +1` throughout and
 
-Result: all four have equal magnitude; condition (i) makes that magnitude 1. The
-system is **consistent**, so there is no obstruction at this order.
+`μ̄(σi, σj, σk) = μ̄(i, j, k)` for every `σ ∈ T`.
 
-**TODO before writing:** redo this with explicit orientation choices, by hand,
-twice. The previous derivation allowed `εᵢ` with product 1 and produced two
-branches; the paper needs one clean statement. This is the part most likely to
-contain an error and least likely to be caught by a reader.
+That is the whole lemma. No branches, no case analysis. *(The same argument
+covers `C₄` in §8.2, where the stabiliser is trivial, and the icosahedral action
+in §8.3, where it is `A₄`, whose abelianisation is `C₃` — odd again.)*
+
+**The solution space.** `μ̄` is alternating, so it is determined by its four
+values on the 3-subsets written in increasing order, `(x₀,x₁,x₂,x₃)` with
+`x₀ = μ̄(1,2,3)`, `x₁ = μ̄(0,2,3)`, `x₂ = μ̄(0,1,3)`, `x₃ = μ̄(0,1,2)`. Imposing
+invariance under all 12 elements leaves a **1-dimensional** space, spanned by
+
+`(x₀, x₁, x₂, x₃) = (−1, +1, −1, +1).`
+
+So condition (i), which forces `|μ̄| = 1` on every triple, is satisfiable, and
+the four signs are determined up to one global sign. This is Proposition B, and
+it agrees with the hand derivation.
+
+Computed by `milnor-symmetry.mjs` in this directory; the same script reports the
+`C₄` case of §8.2 (also 1-dimensional, spanned by `(1,1,1,1)`).
 
 ### 5.7 The Brunnian contrast — **done, solid**
 For a 4-component Brunnian link, the longitude `ℓ₄` lies in the multilinear
@@ -227,46 +238,67 @@ must be written.
 
 ---
 
-## 6. The gap that blocks publication
+## 6. The proof: constructive (decided)
 
-**What we have.** Each 3-sublink: all three linking numbers zero, a 6-crossing
-diagram, and the Jones polynomial of `B`, agreeing to the last coefficient
-across four independent projections.
+**What we have now.** Each 3-sublink has all three linking numbers zero, a
+6-crossing diagram, and the Jones polynomial of `B`, agreeing to the last
+coefficient across four independent projections.
 
-**Why that is not yet a proof.** It identifies the sublink as `B` only by
-appeal to the classification of 6-crossing links — a table lookup. A referee is
-entitled to a self-contained certificate, and the Jones polynomial is not a
-complete invariant.
+**Why that is not a proof.** It pins the sublink down only by appeal to the
+classification of 6-crossing links — a table lookup — and the Jones polynomial
+is not a complete invariant. A referee is entitled to a self-contained argument.
 
-Two routes. **Pick one before writing anything else.**
+**Decision: build the link so that each triple is visibly `B`, and prove it
+directly.** No computer in the proof. The computations stay in the repo as a
+check on the construction, and are mentioned in the paper only as that.
 
-### Route A — combinatorial certificate
-Print the PD code of one sublink diagram and give an explicit finite sequence of
-Reidemeister moves carrying it to the fixed diagram of `B` from §2.5. By §5.2 one
-sublink suffices: the symmetry carries it to the other three.
+### What a constructive proof has to supply
 
-- Pro: certainly works, fully checkable, no new mathematics.
-- Con: needs R3, which `knotlib` does not implement (`knotlib/diagram.md` §7),
-  and the sequence may be long and unilluminating in print.
-- Mitigation: the 6-corner polygonal model (§7) has small diagrams.
+By §5.2 the four triples are one `T`-orbit, so **one triple proves all four.**
+That is the whole reason this is tractable. The argument has to be:
 
-### Route B — constructive proof
-Build the link so that each 3-sublink is *visibly* `B`: arrange that near each
-vertex `vₖ` the three strands realise the standard Borromean weave, and prove
-the rest of each component contributes nothing — i.e. exhibit the isotopy
-directly rather than certifying a diagram.
+1. **Localise.** Show that the three components meeting at vertex `v₄` interact
+   only inside a ball `B(v₄)` around that vertex — i.e. outside the four vertex
+   balls, the four components are pairwise disjoint in a controlled way and no
+   crossings occur between the *relevant* pairs. This is where the design work
+   is: the link must be built so the statement is true and visibly so.
+2. **Identify the local picture.** Inside `B(v₄)`, exhibit the three strands as
+   the standard Borromean weave — the 6-crossing alternating diagram, 2
+   crossings per pair, cyclic over/under.
+3. **Kill the rest.** Show each component's remaining arc, outside the three
+   vertex balls it participates in, can be isotoped away without crossing
+   anything — e.g. it lies in a ball disjoint from the other two components of
+   that triple, or bounds a disc meeting nothing.
+4. **Assemble.** Steps 1–3 give an ambient isotopy of the 3-sublink onto the
+   standard diagram of `B` from §2.5.
 
-- Pro: a real proof, no computer, much better paper, and it would likely
-  generalise to the cube and dodecahedron for free.
-- Con: we do not have it. Requires designing the link *for* the proof rather
-  than verifying the link we found.
-- This is the intellectually right answer and should be attempted first.
+### What that implies for the geometry — this is the real work
 
-**Recommendation:** attempt B for two days with A fully specified as the
-fallback. They are compatible — B's construction will want A's machinery for a
-sanity check anyway.
+The link we currently have was *found by search and then relaxed*. It is not
+built to make the above true, and step 1 may simply fail for it. Expect to
+**redesign the component** so that:
 
----
+- each component passes near exactly three of the four vertices (the three
+  vertices of its own face), and is far from the fourth;
+- near each vertex the three incoming strands are in "standard position" — three
+  arcs forming a small triangle with alternating over/under;
+- the arcs connecting one vertex region to the next stay in a collar where they
+  meet nothing.
+
+This is a design constraint, not a search criterion, and it is likely to produce
+a *cleaner* link than the one we have — plausibly with fewer crossings.
+
+**Checkpoint:** before writing any prose, produce a component for which step 1
+is true and verifiable, and confirm with the existing machinery that all four
+sublinks are still Borromean. If the redesign fails after a fair attempt, fall
+back to printing a Reidemeister sequence — but do not start there.
+
+### Bonus the constructive route buys
+
+If the proof is local — "a Borromean weave at each vertex, nothing elsewhere" —
+then it does not actually care that the polyhedron is a tetrahedron. It cares
+that **every vertex meets exactly three faces.** So the same proof should give
+the cube and the dodecahedron for free, which is §8.3.
 
 ## 7. The explicit model the paper prints — **highest-value work item**
 
@@ -301,39 +333,200 @@ rational rounding will not break it.
 
 ---
 
-## 8. Adjacent problems — listed, not committed
+## 8. Adjacent problems — the author's shortlist
 
-For the author to choose from. Each is one sentence in the paper at most, or a
-sequel.
+Five, chosen by the author. Not committed to the paper; at most one or two get a
+paragraph. The rest are sequels.
 
-1. **Planar, non-convex components.** Can all four components be planar? §5.5
-   kills the only obstruction we have. Open, and the most natural next question.
-2. **Other polyhedra.** The construction needs each vertex to meet exactly three
-   faces, so one component per face and one Borromean weave per vertex. Among
-   Platonic solids that is the tetrahedron (4 components, 4 weaves), the cube (6,
-   8) and the dodecahedron (12, 20). The octahedron and icosahedron are excluded.
-   This is exactly the condition Kyle Miller guessed at and did not pin down;
-   stating it cleanly is a small, citable contribution.
-3. **Other component counts.** `n = 3` is `B` itself. `n = 5` has no
-   corresponding polyhedron, so the question is what replaces the construction.
-4. **Brunnian analogue.** Four components, any three falling apart, tetrahedral
-   symmetry. §5.7 shows the first-order invariants are obstructed; whether a
-   higher-order Brunnian link can carry the symmetry is open.
-5. **Full reflective symmetry.** `T_d ≅ S₄`, order 24. Does a representative
-   exist with the mirror symmetries too? `B` is amphichiral, so nothing obvious
-   forbids it.
-6. **Minimal crossing number.** Our diagram reduces to 28. A lower bound of
-   roughly 24 follows from each pair having to weave through two Borromean
-   triples; make that precise or drop it.
-7. **Hyperbolicity and the full symmetry group.** Is the complement hyperbolic,
-   and is its isometry group exactly the 12 rotations (or larger)? SnapPy answers
-   this in minutes and would sharpen Theorem A to "the symmetry is maximal".
-8. **Planar diagrams with cyclic symmetry.** Drawing a 3-dimensionally symmetric
-   link in the plane necessarily breaks the symmetry down to a cyclic subgroup;
-   which planar symmetry is achievable is a presentation question, separate from
-   the existence question. Probably a remark, not a result.
+### 8.0 Vocabulary first, because two of these need it
 
----
+**Linking number** counts how many times one loop passes through another, with
+sign. It is the crudest measure of "are these two hooked together". For the
+Borromean rings it is **0** for all three pairs — which is exactly the point:
+they are inseparable and the linking number cannot see it.
+
+**Milnor's triple invariant** `μ̄(i,j,k)` is the next thing up. It is an integer
+that detects *three-way* linking that no pairwise number can. It is defined only
+once all the pairwise linking numbers vanish (otherwise it is ambiguous). For
+the Borromean rings `μ̄ = ±1`; for three completely unlinked loops `μ̄ = 0`. There
+is a whole ladder: length-4 invariants `μ̄(i,j,k,l)` detect four-way linking that
+survives when all the triples vanish, and so on upward.
+
+**"Obstructed"** means: we can *prove* the thing does not exist, because the
+symmetry forces an invariant to be zero while the object we want requires it to
+be non-zero. It is a proof of impossibility, not a failed search. Worth being
+precise about, because an obstruction at one rung of the ladder says nothing
+about the rungs above it — which is exactly the situation in §8.4.
+
+### 8.1 Planar components without convexity
+
+Can all four components be planar? §5.4 forbids it when they are also convex,
+and §5.5 shows the only argument we have evaporates without convexity: a
+non-convex planar curve meets the key line in four or more points, and
+point-reflected interval systems can then nest.
+
+Status: **open, and I would guess possible.** The cheap experiment is to run the
+existing search restricted to planar, `r₁`-invariant, non-convex curves — a
+3-fold-symmetric star-shaped curve in each plane perpendicular to a 3-fold axis.
+That is a two-parameter family on top of what `scan.mjs` already does.
+
+### 8.1b Three kinds of symmetry, which must not be run together
+
+Everything below depends on keeping these apart. They are different questions
+with different answers.
+
+| | what it is | what indexes the components |
+|---|---|---|
+| **Cyclic**, `C_n` | one rotation axis, components in a single cycle | positions round a circle |
+| **Face-polyhedral** | one component per **face** of a polyhedron whose every vertex meets exactly three faces; a Borromean weave at each **vertex** | faces |
+| **Other transitive actions** | a polyhedral *group* permuting `n` objects that are not faces | whatever the objects are |
+
+Our theorem is face-polyhedral, on the tetrahedron. The author's rosette figures
+are cyclic. The two coincide nowhere except by accident.
+
+### 8.2 Cyclic ("circular") symmetry, and which `n` admit it
+
+The question: for which `n` is there an `n`-component link with a **cyclic**
+symmetry `C_n` — a single rotation axis, components permuted in one cycle — such
+that every 3-component sublink is `B`? Nothing here refers to faces or vertices.
+
+**First, a correction to the premise.** The 5-circle and 7-circle rosette images
+are examples of *cyclic symmetry*; they are almost certainly **not** examples of
+our property, because they are built from **round circles**, and the Borromean
+rings provably cannot be built from three round circles (Freedman–Skora 1987;
+Lindström–Zetterström). Those pictures show the symmetry we want on an object
+that does not have the linking we want. In any construction here, the components
+cannot be geometric circles.
+
+**What the symmetry costs, by `n`.** The number of conditions is the number of
+`C_n`-orbits of 3-subsets:
+
+| `n` | 3-subsets | orbits under `C_n` | conditions |
+|---|---|---|---|
+| 4 | 4 | 1 | **1** |
+| 5 | 10 | 2 | 2 |
+| 6 | 20 | 4 | 4 |
+| 7 | 35 | 5 | 5 |
+
+**`n = 4`, `C₄`: no obstruction.** Orientations are equivariant by §5.6 (the
+stabiliser is trivial), so `μ̄` is simply `C₄`-invariant, and the solution space
+is 1-dimensional, spanned by `(1,1,1,1)` — all four triples can be Borromean.
+Verified in `milnor-symmetry.mjs`. **This is the cheapest open question on the
+page**, a single condition, and it is genuinely not answered by our theorem:
+`A₄` has no element of order 4, so our link has no 4-fold symmetry.
+
+**`C₄` also has a bigger meaning.** A 4-fold rotation permuting the components
+cyclically, *together with* the tetrahedral rotations we already have, generates
+the rotation group of the cube, `O ≅ S₄`, order 24, acting on the four body
+diagonals. So "can we add `C₄`?" is "can the symmetry group be `O` rather than
+`T`?" — and §12.2 settles it with one computation.
+
+**`n = 6`, `C₆`:** four conditions. One of the four orbits (`{0,2,4}`, `{1,3,5}`)
+is stabilised by a 3-fold rotation, which is harmless — the Borromean rings have
+exactly that symmetry themselves. No obstruction identified. Strictly harder than
+`n = 4`; do `n = 4` first.
+
+**`n = 5`:** two conditions, and the author's hand-drawn 5-component diagram is
+a proposal for it. Worth checking directly: it is a drawing, so it can be typed
+in as a PD code and tested with the existing machinery.
+
+### 8.3 Face-polyhedral symmetry — which `n`
+
+**This is our construction, generalised, and it has nothing to do with §8.2.**
+One component per face; every vertex meets exactly three faces; a Borromean
+weave at each vertex.
+
+A polyhedron whose every vertex meets three faces (a *simple* or 3-valent
+polyhedron) with `F` faces has `V = 2F − 4` vertices and `E = 3F − 6` edges.
+Two separate requirements:
+
+- **(a) such a polyhedron exists with `n` faces.** True for every `n ≥ 4`.
+- **(b) its rotation group is transitive on faces**, so the components are all
+  equivalent, the conditions collapse into orbits, and one component generates
+  the link. True only for the **tetrahedron (4), cube (6), dodecahedron (12)** —
+  the Platonic solids with 3-valent vertices.
+
+**`n = 5`: (a) yes, (b) no — so face-polyhedral symmetry is not available.** The
+3-valent polyhedron with 5 faces is the triangular prism (2 triangles, 3
+squares, 6 vertices). Its faces fall into **two orbits**, and its rotation group
+is only `D₃`, order 6. So the components cannot all be equivalent, there is no
+single generating component, and the symmetry does not do the work it does for
+us. *The author's conclusion stands.* (My earlier claim that the dodecahedral
+compound rescues `n = 5` was wrong — see the aside below.)
+
+**Where the tetrahedron is genuinely unique.** "Every triple of components is a
+vertex" means `C(n,3) = 2n − 4`, i.e. `n(n−1) = 12`, i.e. **`n = 4` and nothing
+else** (checked to `n = 20`). For every other `n` the vertex-triples are a
+strict subset of all triples:
+
+| solid | faces `n` | vertices | `C(n,3)` | every triple a vertex? | face-transitive |
+|---|---|---|---|---|---|
+| tetrahedron | 4 | 4 | 4 | **yes** | yes |
+| triangular prism | 5 | 6 | 10 | no — 6 of 10 | **no** |
+| cube | 6 | 8 | 20 | no — 8 of 20 | yes |
+| dodecahedron | 12 | 20 | 220 | no — 20 of 220 | yes |
+
+So at `n = 6` the cube delivers **"the eight vertex-triples are Borromean"**,
+which is weaker than and different from "every triple is Borromean". Do not
+conflate them. If §6's constructive proof is genuinely local it gives the cube
+version for free, since all it uses is three faces per vertex.
+
+> **Aside — a different kind of group action, not this one.**
+> `/Users/neerajaabhyankar/Repos/origami-musings/vedoexecs/` holds five skew
+> quadrilaterals whose 20 vertices are exactly the 20 vertices of a dodecahedron,
+> four per loop: the classical compound of five tetrahedra. The icosahedral
+> rotation group permutes those five as `A₅` acts on five points, and `A₅` is
+> sharply 3-transitive, so all ten triples would lie in one orbit.
+> **But the five components are not faces of anything, and there is no
+> vertex/triple correspondence**, so this is not face-polyhedral symmetry and it
+> is not an `n = 5` analogue of our theorem. It is a third category — a
+> polyhedral group acting transitively on objects that are not faces — and
+> whether a Borromean-triple link can be built on it is a separate question with
+> none of our machinery behind it. Before anything else, compute the actual
+> symmetry group of those five loops: each is a 4-cycle through a tetrahedron's
+> vertices, invariant under only a `V₄` inside that tetrahedron's `A₄`, so the
+> configuration's group is probably well under 60. A short script settles it.
+
+### 8.4 The Brunnian version
+
+**The question.** Four components, tetrahedral symmetry, and removing any one
+makes the other three fall *completely apart* (three unlinked loops) — rather
+than leaving the Borromean rings. "Brunnian" is the standard word: every proper
+sublink is trivial, but the whole thing is linked. The Borromean rings are the
+3-component Brunnian link.
+
+**What we can prove.** For a 4-component Brunnian link all the triple invariants
+vanish by definition, so the first thing that can be non-zero is the **length-4**
+Milnor invariant `μ̄(i,j,k,l)` — four-way linking. The standard 4-component
+Brunnian links have it equal to `±1`. §5.7 shows a 3-fold rotation that fixes one
+component and cycles the other three **forces every length-4 invariant to zero**
+(the rotation acts on the relevant 2-dimensional space with characteristic
+polynomial `λ² + λ + 1`, which has no eigenvalue `+1` or `−1`, so nothing is
+fixed and nothing is anti-fixed). Tetrahedral symmetry contains such rotations.
+
+**So: the standard 4-component Brunnian links cannot be given tetrahedral
+symmetry.** That is a clean impossibility result, and it is the mirror image of
+our main theorem — same solid, opposite answer.
+
+**What it does not say.** It does not say no tetrahedrally symmetric 4-component
+Brunnian link exists. A Brunnian link whose length-4 invariants all vanish, with
+the linking only showing up at length 5 or beyond, is not touched by this
+argument. Whether one can carry the symmetry is open.
+
+### 8.5 Minimum crossing number
+
+Our diagram reduces to 28 crossings. Two things worth having:
+- a **lower bound**: each of the six pairs must weave through two different
+  Borromean triples, which should force roughly 24; make it precise or drop it;
+- whether the constructive link of §6 beats 28, which it plausibly will.
+
+Only worth a sentence in the paper unless the bound is sharp.
+
+### 8.6 (Not on the shortlist, but it answers 8.2) The complement
+
+See §12.2. One SnapPy run decides whether the symmetry group can be enlarged at
+all, and therefore settles the `C₄`/`O` half of §8.2 and the reflective question
+outright. Cheap, and it would upgrade Theorem A to a maximality statement.
 
 ## 9. Figures and tables to produce
 
@@ -351,9 +544,10 @@ sequel.
 
 ## 10. Order of work
 
-1. §7 rational 6-corner model. Everything downstream is cleaner once this exists.
-2. §5.6 re-derivation by hand, twice.
-3. Route B attempt; fall back to Route A.
+1. **§6 redesign the component for the constructive proof.** Everything else
+   waits on this, because it may change the link.
+2. §7 rational 6-corner model, of whatever §6 produces.
+3. §12.2 SnapPy run — cheap, and it settles §8.2 and §12.1 at once.
 4. Write §2–§3 (definitions, problem). These are short and fix the vocabulary.
 5. Write §5 proofs.
 6. Figures.
@@ -361,11 +555,75 @@ sequel.
 
 ## 11. Risks
 
-- **§5.6 sign bookkeeping.** Most likely place for a wrong statement. Mitigate by
-  deriving twice, independently, and by checking against the computed example.
-- **Route B may not come together**, leaving a paper whose central claim rests on
-  a table lookup plus a long Reidemeister sequence. Acceptable but weaker.
+- **Route B may not come together.** It is now the committed route, so the
+  fallback (print a Reidemeister sequence) must stay specified. Set a deadline.
+- **The redesign changes the link.** Everything downstream — coordinates,
+  figures, crossing number — is provisional until §6 lands.
 - **Rational rounding could break the link** at 6 corners. Fallback is 9 corners,
   where the separation is `0.152`.
 - **Scope creep from §8.** The adjacent problems are more interesting than the
   theorem. Resist; they are a sequel.
+
+---
+
+## 12. Two things that needed explaining
+
+Kept here because they will otherwise be re-asked.
+
+### 12.1 "Reflective symmetry, 24 elements"
+
+There are **three** groups in play and they are easy to confuse. All act on the
+same tetrahedron.
+
+| group | order | what is in it | effect on our 4 components |
+|---|---|---|---|
+| `T ≅ A₄` | 12 | rotations only | the even permutations |
+| `T_d ≅ S₄` | 24 | `T` **plus 12 mirror operations** | all 24 permutations |
+| `O ≅ S₄` | 24 | **rotations only**, of the cube | all 24, via the body diagonals |
+
+**`T` is what our link has.** It is all 12 rotations of the tetrahedron.
+
+**`T_d` adds mirrors.** A mirror reverses handedness. Asking for `T_d` asks
+whether the link can be laid out so that reflecting it in a plane gives back the
+*same* embedded link — so the link must equal its own mirror image, not merely
+be isotopic to it. Nothing obvious forbids this: `B` is amphichiral (equal to
+its own mirror image), so the local picture at each vertex can survive a
+reflection.
+
+**`O` adds 4-fold rotations instead.** `O` is abstractly the same group as `T_d`
+(`S₄`), but it sits in `SO(3)` differently: no mirrors, and it contains 90°
+rotations. Those act on the four body diagonals — our four components — as
+4-cycles. **This is exactly the `C₄` of §8.2.** So the author's "can we have
+circular symmetry at `n = 4`?" and "can we have 24 elements?" are the same
+question asked twice, as long as "24" means `O` and not `T_d`.
+
+### 12.2 "Is the complement hyperbolic, and is the symmetry group exactly 12?"
+
+**The complement** is what is left of the 3-sphere when the link is deleted —
+the air around the strings. It is a 3-manifold, and it is an invariant of the
+link: isotopic links have homeomorphic complements.
+
+**Hyperbolic** means that manifold carries a complete hyperbolic geometry
+(constant curvature −1). By Thurston, most link complements do. The payoff is
+**Mostow rigidity**: when such a geometry exists it is *unique*. So every
+symmetry of the link is forced to be a symmetry of that one geometry, the group
+of them is finite, and SnapPy computes it in seconds.
+
+**Why we want it.** Right now Theorem A says *this drawing* has 12 rotations.
+That leaves open whether some cleverer drawing of the same link has more. If the
+complement is hyperbolic and its symmetry group has order exactly 12, then:
+
+- no redrawing gains symmetry — 12 is the maximum, and Theorem A upgrades from
+  "here is a symmetric representative" to **"this is the most symmetric the link
+  can be"**;
+- §12.1 is answered outright: `T_d` and `O` are both impossible for *this* link,
+  because both have order 24 > 12;
+- and §8.2's `C₄` question becomes "not for this link — but possibly for a
+  different one", which is a sharper question.
+
+If instead the group comes back larger than 12, that is better news: it says a
+more symmetric representative exists and we should go find it.
+
+**Cost:** feed the link to SnapPy, call `M.symmetry_group()`. An afternoon,
+mostly spent getting the link into SnapPy's format. Highest information per hour
+of anything on this page.
