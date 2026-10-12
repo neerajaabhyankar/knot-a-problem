@@ -415,17 +415,11 @@ Verified in `milnor-symmetry.mjs`. **This is the cheapest open question on the
 page**, a single condition, and it is genuinely not answered by our theorem:
 `A₄` has no element of order 4, so our link has no 4-fold symmetry.
 
-**`C₄` is its own question, and does not presuppose `T`.** A link can have a
-4-fold axis and no tetrahedral symmetry at all; `C₄` has order 4 and `T` has
-order 12, and neither contains the other. So §8.2 at `n = 4` asks for *less*
-symmetry than this paper proves, along a different axis — not for more.
-
-What *is* true: if a single link had **both** `T` and a 4-fold rotation, the
-group they generate is larger than `T` and contains an element of order 4. The
-finite rotation groups of space are the cyclic and dihedral ones, `T` (12), `O`
-(24) and `I` (60); `I` has no element of order 4; so the group would have to be
-`O`, the rotation group of the cube, acting on the four body diagonals. That is
-a third question, stronger than either — see §12.1.
+**`C₄` is not a strengthening of this paper's result.** `C₄` has order 4 and `T`
+has order 12, and neither contains the other: a link can have a 4-fold axis and
+no tetrahedral symmetry, or the reverse. So `n = 4` here is a *sideways*
+question, asking for a different symmetry rather than more of the same one. It
+is still the cheapest thing on this list to attack.
 
 **`n = 6`, `C₆`:** four conditions. One of the four orbits (`{0,2,4}`, `{1,3,5}`)
 is stabilised by a 3-fold rotation, which is harmless — the Borromean rings have
@@ -493,7 +487,36 @@ version for free, since all it uses is three faces per vertex.
 > vertices, invariant under only a `V₄` inside that tetrahedron's `A₄`, so the
 > configuration's group is probably well under 60. A short script settles it.
 
-### 8.4 The Brunnian version
+### 8.4 Mirror symmetry: `T_d` rather than `T`
+
+`T_d ≅ S₄`, order 24, is the full symmetry group of the tetrahedron: the twelve
+rotations we already have, **plus twelve orientation-reversing operations**
+(reflections and rotary reflections). Unlike cyclic symmetry, this is a genuine
+strengthening — `T ⊂ T_d` — so it asks whether the construction can be improved,
+not replaced.
+
+**What it demands.** A reflection reverses handedness, so a `T_d`-symmetric
+embedding must be carried onto *itself* by a mirror, not merely onto something
+isotopic to it. Every crossing is exchanged with its opposite somewhere in the
+picture.
+
+**Why it is not obviously impossible.** The Borromean rings are amphichiral —
+equal to their own mirror image — so the local weave at each vertex can survive
+a reflection. Nothing in §5.6 rules it out either: a reflection negates `μ̄`, and
+the solution space there is 1-dimensional and spanned by `(−1,1,−1,1)`, so the
+reflected assignment is the same one up to the global sign that §5.6 already
+leaves free.
+
+**Why the current link almost certainly does not have it.** The components are
+corrugated with a handedness chosen by the search; nothing forced it to be
+mirror-symmetric. Checking is cheap — reflect the coordinates in a mirror plane
+of the tetrahedron and test whether the resulting point set is the original.
+
+**Status.** Open. §8.7 decides it outright: if the link's symmetry group has
+order exactly 12, `T_d` is impossible for this link, though possibly available
+for a different one satisfying the same two conditions.
+
+### 8.5 The Brunnian version
 
 **The question.** Four components, tetrahedral symmetry, and removing any one
 makes the other three fall *completely apart* (three unlinked loops) — rather
@@ -519,7 +542,7 @@ Brunnian link exists. A Brunnian link whose length-4 invariants all vanish, with
 the linking only showing up at length 5 or beyond, is not touched by this
 argument. Whether one can carry the symmetry is open.
 
-### 8.5 Minimum crossing number
+### 8.6 Minimum crossing number
 
 Our diagram reduces to 28 crossings. Two things worth having:
 - a **lower bound**: each of the six pairs must weave through two different
@@ -528,11 +551,12 @@ Our diagram reduces to 28 crossings. Two things worth having:
 
 Only worth a sentence in the paper unless the bound is sharp.
 
-### 8.6 (Not on the shortlist, but it answers 8.2) The complement
+### 8.7 The complement, and the maximum possible symmetry
 
-See §12.2. One SnapPy run decides whether the symmetry group can be enlarged at
-all, and therefore settles the `C₄`/`O` half of §8.2 and the reflective question
-outright. Cheap, and it would upgrade Theorem A to a maximality statement.
+See §12.2. One SnapPy run reports the largest symmetry group any drawing of this
+link could have, which settles §8.4 outright and upgrades Theorem A from "here
+is a symmetric representative" to a maximality statement. It says nothing about
+§8.2, whose links need not have `T` at all.
 
 ## 9. Figures and tables to produce
 
@@ -576,34 +600,21 @@ outright. Cheap, and it would upgrade Theorem A to a maximality statement.
 
 Kept here because they will otherwise be re-asked.
 
-### 12.1 Four different symmetry questions, which are not the same question
+### 12.1 Cyclic symmetry and mirror symmetry are unrelated questions
 
-An earlier draft of this plan claimed that "can we have a 4-fold rotation?" and
-"can we have 24 elements?" were the same question. **They are not.** There are
-two different groups of order 24 here, and the coincidence is one of size only.
+Two adjacent problems ask for a symmetry other than `T`, and they point in
+different directions. An earlier draft ran them together; they are not the same
+question and neither implies the other.
 
-| | order | orientation | relation to `T` | the question it asks |
+| | order | orientation | relation to `T` | asks |
 |---|---|---|---|---|
-| `C₄` | 4 | rotations | **neither contains the other** | can four loops be carried round one axis in a cycle? |
-| `T ≅ A₄` | 12 | rotations | — | **what this paper proves** |
-| `T_d ≅ S₄` | 24 | `T` **plus 12 reflections** | contains `T` | can the link be laid out equal to its own mirror image? |
-| `O ≅ S₄` | 24 | rotations only, of the cube | contains `T` **and** a `C₄` | can it have a 4-fold axis *and* the tetrahedral rotations together? |
+| `C₄` (§8.2) | 4 | rotations | **neither contains the other** | a 4-fold axis, components in one cycle — a *different*, smaller symmetry |
+| `T_d` (§8.4) | 24 | `T` plus 12 **reflections** | contains `T` | the same rotations plus mirrors — a genuine strengthening |
 
-Three things worth keeping straight.
-
-- **`C₄` is not a strengthening of this paper's result.** It is a different,
-  smaller symmetry. A link can have one and not the other. Asking for `C₄` at
-  `n = 4` is a sideways question, not an upward one.
-- **`T_d` and `O` are abstractly the same group (`S₄`) but sit differently in
-  space.** `T_d` contains reflections, which reverse handedness; `O` is all
-  rotations. Nothing in one implies anything in the other.
-- **`O` is what you get from `C₄` and `T` at once**, by the classification of
-  finite rotation groups (see §8.2). That is the only honest connection between
-  the 4-fold question and the 24-element question, and it needs *both* halves.
-
-For `T_d` specifically, nothing obvious forbids it: the Borromean rings are
-equal to their own mirror image, so the local picture at each corner can survive
-a reflection.
+The practical consequences differ accordingly. A positive answer for `C₄` would
+be a second theorem about a different symmetry; a positive answer for `T_d`
+would improve this one. And §8.7 bears only on `T_d`, since it reasons about
+*this* link, while `C₄` concerns links that need not have `T` at all.
 
 ### 12.2 "The complement", "hyperbolic", and why one computation settles §12.1
 
@@ -647,12 +658,12 @@ it reports the symmetries of the link rather than of any one picture of it.
 
 - If the answer is **exactly 12**, then no drawing does better. Theorem A
   strengthens from "here is a symmetric representative" to **"this is the most
-  symmetric this link can be"**, and both `T_d` and `O` from §12.1 are
-  impossible *for this link*, since both have order 24.
+  symmetric this link can be"**, and `T_d` (§8.4) is impossible *for this link*,
+  since it has order 24.
 - If the answer is **larger than 12**, better news: a more symmetric drawing
   exists and is worth finding.
 
-Note what it does *not* settle: `C₄` on its own (§8.2) concerns links that need
+Note what it does *not* settle: cyclic symmetry (§8.2) concerns links that need
 not have `T` at all, so a result about this link says nothing about those.
 
 **Cost.** Convert the link to SnapPy's format, call `M.symmetry_group()`. Half a
