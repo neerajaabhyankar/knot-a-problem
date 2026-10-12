@@ -1,116 +1,139 @@
-# What the paper says — 2 minute version
+# Plan: a short paper on the tetrahedral four-ring link
 
-## The result
+## The claim
 
-A 4-component link where **every 3 of the 4 are the Borromean rings**, with
-**tetrahedral symmetry**. We have it, with coordinates.
+Four loops in space, arranged so that **any three of them form the Borromean
+rings**, with the full rotational symmetry of a tetrahedron. Explicit
+coordinates exist and are verified.
 
-Pairwise-unlinked is free — it follows from triplewise-Borromean. And "the
-symmetry acts faithfully" already forces it to shuffle all 4 components around.
-So the problem has **two conditions, not three**, and one of your hypotheses is
-really a lemma.
+## Two conditions, not three
 
-## The one idea we borrow
+1. Every three of the four loops form the Borromean rings.
+2. All twelve rotations of a tetrahedron leave the arrangement unchanged.
 
-One ring per **face** of the tetrahedron. Choosing 3 of 4 faces = leaving one
-out = naming the **vertex** where the other three meet. So "any 3 are Borromean"
-= "the rings weave Borromean-style at each of the 4 corners", and the symmetry
-moves any corner to any other — four conditions collapse to one.
+"No two loops are linked" need not be assumed — it follows from (1), since no
+two Borromean rings are linked either. Both this and "the symmetry shuffles all
+four loops" become small lemmas rather than hypotheses.
 
-That's Kyle Miller's observation. Credited once, where it's used. Nothing else
-from that thread enters the paper.
+## The idea it rests on
+
+One loop per **face** of a tetrahedron. Four faces, four corners, and the three
+faces meeting at a corner are exactly the three avoiding the opposite face. So
+choosing three loops is the same as naming a corner, and the condition becomes
+"the loops weave in the Borromean pattern around each corner."
+
+The symmetry carries any corner to any other, so the four conditions are one
+condition. That is the whole reason the tetrahedron is the right shape.
+
+Due to Kyle Miller, cited once where it is used.
 
 ## Status
 
 | | |
 |---|---|
-| Existence, explicit coordinates | **done** |
-| Symmetry exact (12 rotations) | **done** — built in, not measured |
-| Pairwise linking numbers all 0 | **done** |
-| Triple invariants consistent with the symmetry | **done** — was the risky bit, now settled |
-| Convex planar rings impossible | **done**, clean proof |
-| **Each triple really is Borromean** | **the gap** |
+| Existence, explicit coordinates | done |
+| Symmetry exact, not approximate | done — built into the construction |
+| No two loops linked | done |
+| Symmetry compatible with the required linking | done |
+| Flat, bulge-free loops impossible | done, clean proof |
+| **Each triple really is the Borromean rings** | **the remaining gap** |
 
-## The gap, and the plan for it — route (B), as you chose
+## The gap, and how it closes
 
-Today we identify each triple by Jones polynomial + a table lookup. Not a
-self-contained proof.
+The triples are currently identified by computing a polynomial invariant and
+looking it up in a published table of small links. Strong evidence, not a proof.
 
-**Constructive route:** build the link so each triple is *visibly* Borromean —
-standard Borromean weave inside a ball at each vertex, and every connecting arc
-provably meets nothing. One triple proves all four, by the symmetry.
+**Plan: prove it by construction.** Build the link so that around each corner
+the three loops *visibly* form the standard Borromean picture, and every stretch
+of loop between corners demonstrably gets in nobody's way. By the symmetry,
+proving it at one corner proves it at all four.
 
-**This probably means redesigning the component.** The link we have was found by
-search and relaxed; it isn't built to make that argument true. Expect the
-redesign to produce a cleaner link, maybe with fewer crossings. **Everything
-downstream is provisional until this lands.**
+This likely means redesigning the loop — the current one was found by search and
+smoothed, not built to make that argument work. **Coordinates, figures and
+crossing counts stay provisional until this lands.**
 
-Bonus: a local proof doesn't care that it's a tetrahedron, only that every
-vertex meets 3 faces — so it should hand us the cube for free.
+Side effect: an argument using only "three faces meet at every corner" does not
+care that the solid is a tetrahedron, so it should hand over the cube version
+free.
 
-## Your two questions
+Fallback if the redesign fails: print an explicit sequence of standard diagram
+moves taking one triple to the standard Borromean picture. Certain, duller.
 
-**"Reflective symmetry, 24 elements?"** Three groups, easy to confuse:
-- **T**, order 12, rotations of the tetrahedron — *what we have*.
-- **T_d**, order 24 = T + **mirrors**. Asks: can the link equal its own mirror image?
-- **O**, order 24, **rotations of the cube**, no mirrors. Its 90° turns cycle the
-  4 body diagonals — **this is exactly your C₄ question**.
+## Open problems
 
-So "can we have circular symmetry at n=4?" and "can we have 24?" are the same
-question, if 24 means O.
+At most one or two reach the paper.
 
-**"Complement hyperbolic / symmetry group exactly 12?"** The *complement* is the
-air around the strings — delete the link from space and look at what's left.
-If it carries hyperbolic geometry (most do), that geometry is **unique**, so
-every symmetry of the link is a symmetry of it, and SnapPy computes the full
-list in seconds. Right now we only claim *this drawing* has 12 rotations. If the
-answer is "exactly 12", then no redrawing gets more, Theorem A upgrades to
-**"this is the most symmetric it can be"**, and both T_d and O are dead. If it
-comes back bigger, even better — a more symmetric version exists, go find it.
+**1. Flat loops with dents allowed.** Proved impossible when loops are flat
+*and* bulge-free. Nothing known once dents are allowed; probably possible.
+Cheap to test.
 
-One afternoon. Best information-per-hour on the list.
+**2. A single 4-fold axis, four loops.** Different and weaker than tetrahedral:
+one axis, four loops carried round it in a cycle. Not answered here — the
+tetrahedral group has no 4-fold rotation. One condition, no obstruction found.
+**The cheapest open question on this list.**
 
-## Adjacent problems — your five
+**3. Bigger symmetry groups.** Two distinct asks that both happen to have 24
+elements:
 
-**I was wrong last turn and you were right: polyhedral symmetry is not available
-at n=5.** The 5-faced 3-valent polyhedron is the triangular prism, but its faces
-split into 2 orbits (2 triangles, 3 squares) and its rotation group is only
-order 6 — no single generating component, no collapse of conditions. The
-dodecahedral five-tetrahedra compound in your `vedoexecs/` is a *third* kind of
-thing — a polyhedral group acting on objects that aren't faces — not an n=5
-analogue. Parked as its own question.
+| ask | contains | nature |
+|---|---|---|
+| tetrahedral + mirrors | the 12 | reflections; asks if the link equals its mirror image |
+| rotations of a cube | the 12, plus a 4-fold axis | rotations only; problem 2 and the present result at once |
 
-**Keeping cyclic and polyhedral strictly apart from here on:**
+Different questions, same size. Problem 7 settles both.
 
-1. **Non-convex planar rings.** Open, and I'd guess possible. Cheap experiment:
-   restrict the existing search to 3-fold-symmetric star-shaped planar curves.
-2. **Cyclic C_n.** Conditions = orbits of triples: n=4 → **1**, n=5 → 2,
-   n=6 → 4, n=7 → 5. **n=4 is the cheapest open question we have** and is *not*
-   answered by our theorem (A₄ has no order-4 element). No obstruction found.
-   ⚠️ Your rosette figures are **round circles**, and Borromean rings provably
-   can't be made of round circles — so they show the symmetry we want on an
-   object without the linking we want. Components can never be circles here.
-3. **Face-polyhedral.** Needs a face-transitive 3-valent polyhedron: only
-   tetrahedron (4), cube (6), dodecahedron (12). **n=4 is the unique case where
-   "every triple" = "every vertex"** (C(n,3) = 2n−4 only at n=4). At n=6 the
-   cube gives "the 8 vertex-triples are Borromean" — weaker than "all 20".
-4. **Brunnian.** = remove any one and the rest fall completely apart. We can
-   *prove* the standard 4-component ones **cannot** have tetrahedral symmetry.
-   Doesn't rule out exotic ones. Nice contrast result. See below for the words.
-5. **Min crossing number.** We see 28; a ~24 lower bound looks provable.
+**4. More loops, one per face.** Needs a solid with exactly three faces at every
+corner whose symmetry treats all faces alike: tetrahedron (4 loops), cube (6),
+dodecahedron (12). **Not available for 5** — the only 5-faced candidate is the
+triangular prism, whose faces come in two kinds and whose rotation group has six
+elements, so the loops cannot all be alike.
 
-## The vocabulary you asked about
+Worth stating plainly: **four is the only case where "any three loops" and "a
+corner" mean the same thing.** The cube has 8 corners but 20 ways to pick three
+of six faces, so the cube version proves the weaker claim that the 8
+corner-triples are Borromean.
 
-**Linking number** — how many times one loop passes through another. Crude. For
-Borromean rings it's **0** for all three pairs, which is the whole point: they're
-inseparable and this number can't see it.
+**5. The opposite condition.** Remove any one loop and the other three fall
+*completely apart*, still tetrahedral. The usual such links are provably
+impossible here; exotic ones are not ruled out. A clean contrast: same solid,
+opposite answer.
 
-**Milnor's triple invariant** — the next rung up. An integer that sees *three-way*
-linking. ±1 for Borromean, 0 for three unlinked loops. There's a whole ladder:
-length-4 invariants see four-way linking, and so on.
+**6. Fewest crossings.** Current diagram reduces to 28; a lower bound near 24
+looks provable.
 
-**"Obstructed"** — we can *prove* it doesn't exist, because the symmetry forces
-an invariant to be 0 while the thing we want needs it non-zero. For the Brunnian
-case: a 3-fold rotation forces every length-4 invariant to vanish, and the
-standard links need theirs to be ±1. An obstruction on one rung says nothing
-about the rungs above it.
+**7. The shape of the surrounding space.** Delete the link from space; the
+region left over has a shape that is itself an invariant of the link, and for
+links like this one that shape is **rigid** — there is exactly one, and a
+computer can list all its symmetries. That count is the most symmetry any
+drawing of this link could ever have. Twelve means the present result is best
+possible and problem 3 closes both ways; more means a better drawing exists.
+Half a day, and the most informative item here.
+
+## Order of work
+
+1. Redesign the loop for the constructive proof. Everything waits on this.
+2. Re-express as a polygon with whole-number coordinates, so crossings are
+   settled by exact arithmetic instead of floating point.
+3. Run the surrounding-space computation (problem 7).
+4. Definitions and problem statement; then proofs; then figures.
+
+## Plain meanings
+
+**Link** — several closed loops of string in space, not touching.
+
+**Borromean rings** — three loops, no two linked, that still cannot be pulled
+apart. Cut one and the other two fall free.
+
+**Linking number** — how many times one loop passes through another. It is 0
+for every pair of the Borromean rings, which is why something subtler is needed.
+
+**Triple linking number** — the next measure up, detecting three-way linking no
+pair-by-pair count can see: ±1 for the Borromean rings, 0 for three separate
+loops. There is a ladder of these, each seeing what the ones below miss.
+
+**Obstructed** — proved impossible: the symmetry forces one of these numbers to
+be 0 while the arrangement sought needs it non-zero. An impossibility proof, not
+a failed search. An obstruction on one rung says nothing about higher rungs.
+
+**Bulge-free (convex)** — no dents, so a straight line crosses the loop at most
+twice. Triangles and ellipses qualify; stars do not.

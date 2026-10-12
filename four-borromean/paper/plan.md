@@ -415,11 +415,17 @@ Verified in `milnor-symmetry.mjs`. **This is the cheapest open question on the
 page**, a single condition, and it is genuinely not answered by our theorem:
 `A₄` has no element of order 4, so our link has no 4-fold symmetry.
 
-**`C₄` also has a bigger meaning.** A 4-fold rotation permuting the components
-cyclically, *together with* the tetrahedral rotations we already have, generates
-the rotation group of the cube, `O ≅ S₄`, order 24, acting on the four body
-diagonals. So "can we add `C₄`?" is "can the symmetry group be `O` rather than
-`T`?" — and §12.2 settles it with one computation.
+**`C₄` is its own question, and does not presuppose `T`.** A link can have a
+4-fold axis and no tetrahedral symmetry at all; `C₄` has order 4 and `T` has
+order 12, and neither contains the other. So §8.2 at `n = 4` asks for *less*
+symmetry than this paper proves, along a different axis — not for more.
+
+What *is* true: if a single link had **both** `T` and a 4-fold rotation, the
+group they generate is larger than `T` and contains an element of order 4. The
+finite rotation groups of space are the cyclic and dihedral ones, `T` (12), `O`
+(24) and `I` (60); `I` has no element of order 4; so the group would have to be
+`O`, the rotation group of the cube, acting on the four body diagonals. That is
+a third question, stronger than either — see §12.1.
 
 **`n = 6`, `C₆`:** four conditions. One of the four orbits (`{0,2,4}`, `{1,3,5}`)
 is stabilised by a 3-fold rotation, which is harmless — the Borromean rings have
@@ -570,60 +576,84 @@ outright. Cheap, and it would upgrade Theorem A to a maximality statement.
 
 Kept here because they will otherwise be re-asked.
 
-### 12.1 "Reflective symmetry, 24 elements"
+### 12.1 Four different symmetry questions, which are not the same question
 
-There are **three** groups in play and they are easy to confuse. All act on the
-same tetrahedron.
+An earlier draft of this plan claimed that "can we have a 4-fold rotation?" and
+"can we have 24 elements?" were the same question. **They are not.** There are
+two different groups of order 24 here, and the coincidence is one of size only.
 
-| group | order | what is in it | effect on our 4 components |
-|---|---|---|---|
-| `T ≅ A₄` | 12 | rotations only | the even permutations |
-| `T_d ≅ S₄` | 24 | `T` **plus 12 mirror operations** | all 24 permutations |
-| `O ≅ S₄` | 24 | **rotations only**, of the cube | all 24, via the body diagonals |
+| | order | orientation | relation to `T` | the question it asks |
+|---|---|---|---|---|
+| `C₄` | 4 | rotations | **neither contains the other** | can four loops be carried round one axis in a cycle? |
+| `T ≅ A₄` | 12 | rotations | — | **what this paper proves** |
+| `T_d ≅ S₄` | 24 | `T` **plus 12 reflections** | contains `T` | can the link be laid out equal to its own mirror image? |
+| `O ≅ S₄` | 24 | rotations only, of the cube | contains `T` **and** a `C₄` | can it have a 4-fold axis *and* the tetrahedral rotations together? |
 
-**`T` is what our link has.** It is all 12 rotations of the tetrahedron.
+Three things worth keeping straight.
 
-**`T_d` adds mirrors.** A mirror reverses handedness. Asking for `T_d` asks
-whether the link can be laid out so that reflecting it in a plane gives back the
-*same* embedded link — so the link must equal its own mirror image, not merely
-be isotopic to it. Nothing obvious forbids this: `B` is amphichiral (equal to
-its own mirror image), so the local picture at each vertex can survive a
-reflection.
+- **`C₄` is not a strengthening of this paper's result.** It is a different,
+  smaller symmetry. A link can have one and not the other. Asking for `C₄` at
+  `n = 4` is a sideways question, not an upward one.
+- **`T_d` and `O` are abstractly the same group (`S₄`) but sit differently in
+  space.** `T_d` contains reflections, which reverse handedness; `O` is all
+  rotations. Nothing in one implies anything in the other.
+- **`O` is what you get from `C₄` and `T` at once**, by the classification of
+  finite rotation groups (see §8.2). That is the only honest connection between
+  the 4-fold question and the 24-element question, and it needs *both* halves.
 
-**`O` adds 4-fold rotations instead.** `O` is abstractly the same group as `T_d`
-(`S₄`), but it sits in `SO(3)` differently: no mirrors, and it contains 90°
-rotations. Those act on the four body diagonals — our four components — as
-4-cycles. **This is exactly the `C₄` of §8.2.** So the author's "can we have
-circular symmetry at `n = 4`?" and "can we have 24 elements?" are the same
-question asked twice, as long as "24" means `O` and not `T_d`.
+For `T_d` specifically, nothing obvious forbids it: the Borromean rings are
+equal to their own mirror image, so the local picture at each corner can survive
+a reflection.
 
-### 12.2 "Is the complement hyperbolic, and is the symmetry group exactly 12?"
+### 12.2 "The complement", "hyperbolic", and why one computation settles §12.1
 
-**The complement** is what is left of the 3-sphere when the link is deleted —
-the air around the strings. It is a 3-manifold, and it is an invariant of the
-link: isotopic links have homeomorphic complements.
+Written out from scratch, because the words are doing real work.
 
-**Hyperbolic** means that manifold carries a complete hyperbolic geometry
-(constant curvature −1). By Thurston, most link complements do. The payoff is
-**Mostow rigidity**: when such a geometry exists it is *unique*. So every
-symmetry of the link is forced to be a symmetry of that one geometry, the group
-of them is finite, and SnapPy computes it in seconds.
+**The complement.** Take the link out of space and keep what is left over — all
+the air around the strings, with four tunnels running through it where the loops
+used to be. That leftover region is a space in its own right, and its shape is
+determined by the link: deform the link without cutting it and the leftover
+region deforms along with it, never tearing. So anything true about that shape
+is a fact about the link.
 
-**Why we want it.** Right now Theorem A says *this drawing* has 12 rotations.
-That leaves open whether some cleverer drawing of the same link has more. If the
-complement is hyperbolic and its symmetry group has order exactly 12, then:
+**Hyperbolic.** Flat geometry is the one from school — angles in a triangle sum
+to 180°, parallel lines stay the same distance apart. Hyperbolic geometry is a
+consistent alternative where space curves away from itself everywhere: triangles
+have *less* than 180°, and there is steadily more room the further out you go.
+A crinkled lettuce leaf or a crocheted coral is a surface that has run out of
+flat room and gone hyperbolic. The same thing exists in three dimensions, and
+asking whether a space "is hyperbolic" asks whether distances can be measured
+inside it according to those rules, consistently and all the way out.
 
-- no redrawing gains symmetry — 12 is the maximum, and Theorem A upgrades from
-  "here is a symmetric representative" to **"this is the most symmetric the link
-  can be"**;
-- §12.1 is answered outright: `T_d` and `O` are both impossible for *this* link,
-  because both have order 24 > 12;
-- and §8.2's `C₄` question becomes "not for this link — but possibly for a
-  different one", which is a sharper question.
+For link complements the answer is usually yes. Thurston showed that apart from
+a short list of understood exceptions, this is what link complements are like.
 
-If instead the group comes back larger than 12, that is better news: it says a
-more symmetric representative exists and we should go find it.
+**Why hyperbolic is the useful case: it is rigid.** For a surface, being
+hyperbolic leaves freedom — a donut-shaped surface can be given infinitely many
+different flat geometries, long and thin or short and fat. In three dimensions
+that freedom disappears. Mostow's rigidity theorem says that if such a geometry
+exists at all, **there is exactly one of it.** No stretching, no squashing, no
+choices. The leftover region has one true shape, the way a soap film spanning a
+wire has one shape rather than a family of them.
 
-**Cost:** feed the link to SnapPy, call `M.symmetry_group()`. An afternoon,
-mostly spent getting the link into SnapPy's format. Highest information per hour
-of anything on this page.
+**The payoff.** Because the shape is forced, every symmetry of the link has to
+be a symmetry of that one rigid shape. Symmetries of a rigid object are finite
+in number and a computer can enumerate them; SnapPy does it in seconds.
+
+**What that buys for this paper.** At the moment the theorem says: *this
+particular drawing* has twelve rotations. It leaves open whether some cleverer
+drawing of the same link has more. The computation answers exactly that, because
+it reports the symmetries of the link rather than of any one picture of it.
+
+- If the answer is **exactly 12**, then no drawing does better. Theorem A
+  strengthens from "here is a symmetric representative" to **"this is the most
+  symmetric this link can be"**, and both `T_d` and `O` from §12.1 are
+  impossible *for this link*, since both have order 24.
+- If the answer is **larger than 12**, better news: a more symmetric drawing
+  exists and is worth finding.
+
+Note what it does *not* settle: `C₄` on its own (§8.2) concerns links that need
+not have `T` at all, so a result about this link says nothing about those.
+
+**Cost.** Convert the link to SnapPy's format, call `M.symmetry_group()`. Half a
+day, mostly format wrangling. Best information per hour on this page.
