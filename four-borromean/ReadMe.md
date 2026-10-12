@@ -349,7 +349,47 @@ nothing in this directory should reach into `knotlib`.
 | `artifact-data.mjs` | what the published page is built from |
 | `test.mjs` | the whole claim, as one falsifiable run |
 
-`node test.mjs` re-derives the verdict from the shipped curves in a few seconds.
+And the data, which the table above never covered. The pipeline runs left to
+right, each stage reading the previous stage's file:
+
+```
+search.mjs x4 seeds  ->  hits-*.txt
+best.mjs             ->  candidates.json     (re-checks every hit at full resolution)
+pick.mjs             ->  ranked.json         (ranks by crossing number of the whole link)
+final.mjs            ->  curves.json         (relaxes the top-ranked one, writes deliverables)
+optimise-polygon.mjs ->  polygons.json
+artifact-data.mjs    ->  artifact-data.json  (+ recipe.mjs appends the cutting lists)
+```
+
+| file | what |
+|---|---|
+| `hits-*.txt` | raw search output, four seeds. Inputs, not logs: `best.mjs` globs them |
+| `candidates.json` | every hit, re-checked at a resolution the search could not afford |
+| `ranked.json` | those candidates ordered by how simple the full diagram gets |
+| **`curves.json`** | **the shipped link.** 4 rings x 180 points. Everything rests on this |
+| `polygons.json` | the widened 6- and 9-corner arcs |
+| `artifact-data.json` | one third of one ring per shape, plus cutting lists — what the page is built from |
+| `tetrahedral-4-borromean.knot.json` | the same link as an editor scene file |
+| `winner.json` | **a dead end.** See below |
+
+Two things about this worth knowing before you touch it.
+
+**`winner.json` is not the answer's parameters,** despite the name. `polish.mjs`
+writes it and nothing reads it: the shipped curve comes down the other branch,
+through `ranked.json` and `final.mjs`. And `final.mjs` relaxes what it picks, so
+`wavyConfig(winner)` is not `curves.json` either — they differ by up to 1.6 in a
+coordinate. Anyone re-running `verify.mjs` on `winner.json` would be checking a
+different link from the shipped one. Either prune `polish.mjs` and `winner.json`,
+or wire `final.mjs` to read it; leaving both branches is the trap.
+
+**The parameter family is no longer the whole story.** Everything from `scan.mjs`
+through `verify.mjs` works on `wavyConfig` — ten numbers. After `final.mjs`
+relaxes, the link is 720 free coordinates constrained only by the group, and only
+`curves.json` describes it. `polygon.mjs` and `test.mjs` therefore read
+`curves.json`, never the parameters.
+
+`node test.mjs` re-derives the verdict from the shipped curves and the shipped
+polygons in a few seconds. 38 checks.
 
 ---
 
