@@ -1,117 +1,115 @@
 <title>Borromean at Every Vertex</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Overpass:wght@400;600&family=Overpass+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Overpass:wght@400;500;600&family=Overpass+Mono:wght@400;600&display=swap">
 <style>
+/* Layout: one reading column of ~66ch, with the viewer and the wide tables
+   allowed to break out to the full 1120px measure. */
 :root{
-  --ground:#eaedef; --surface:#f8f9fa; --sunk:#e1e5e8;
-  --ink:#111a20; --soft:#4e5b64; --faint:#7b878f; --rule:#ced5d9;
-  --accent:#186379;
-  --sA:#b3400e; --sB:#1c6a86; --sC:#9c7a17; --sD:#3d6d37;
+  --ground:#eef1f3; --surface:#f9fafb; --sunk:#e3e7ea; --rule:#cfd6da;
+  --ink:#101a21; --soft:#4d5a63; --faint:#7a868e;
+  --accent:#15617a; --accent-soft:#d6e7ee;
+  --sA:#b23f0d; --sB:#1a6885; --sC:#8f7013; --sD:#3b6b35;
+  --display:Newsreader,Georgia,"Times New Roman",serif;
+  --body:Overpass,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"Overpass Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --ground:#0d1317; --surface:#141c21; --sunk:#0a1013;
-    --ink:#e0e7eb; --soft:#93a1aa; --faint:#68767f; --rule:#25313a;
-    --accent:#6fb8d4;
-    --sA:#ec7440; --sB:#57b2d1; --sC:#e0ba44; --sD:#7cb96a;
+    --ground:#0c1216; --surface:#131b20; --sunk:#090f12; --rule:#243039;
+    --ink:#dfe6ea; --soft:#91a0a9; --faint:#67747d;
+    --accent:#6cb6d2; --accent-soft:#17323e;
+    --sA:#eb7340; --sB:#55b1d0; --sC:#dcb843; --sD:#7ab868;
+    color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --ground:#0d1317; --surface:#141c21; --sunk:#0a1013;
-  --ink:#e0e7eb; --soft:#93a1aa; --faint:#68767f; --rule:#25313a;
-  --accent:#6fb8d4;
-  --sA:#ec7440; --sB:#57b2d1; --sC:#e0ba44; --sD:#7cb96a;
+  --ground:#0c1216; --surface:#131b20; --sunk:#090f12; --rule:#243039;
+  --ink:#dfe6ea; --soft:#91a0a9; --faint:#67747d;
+  --accent:#6cb6d2; --accent-soft:#17323e;
+  --sA:#eb7340; --sB:#55b1d0; --sC:#dcb843; --sD:#7ab868;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{
   background:var(--ground); color:var(--ink);
-  font-family:Overpass,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  font-size:16.5px; line-height:1.62; margin:0;
+  font-family:var(--body); font-size:16.5px; line-height:1.62; margin:0;
   -webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:1120px; margin:0 auto; padding:0 24px 96px}
+.wrap{max-width:1120px; margin:0 auto; padding-inline:24px; padding-block:0 96px}
 .col{max-width:66ch}
 
-header{padding:64px 0 36px}
-.eyebrow{
-  font-family:"Overpass Mono",ui-monospace,monospace; font-size:12.5px;
-  letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin:0 0 18px;
-}
-h1{
-  font-family:Newsreader,Georgia,serif; font-weight:400; font-size:clamp(38px,6.4vw,64px);
-  line-height:1.04; letter-spacing:-.015em; margin:0 0 20px; text-wrap:balance;
-}
-.lede{font-size:20px; line-height:1.55; color:var(--soft); margin:0; max-width:60ch}
+header{padding-block:60px 30px}
+.eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin:0 0 16px}
+h1{font-family:var(--display); font-weight:500; font-size:clamp(36px,6vw,60px); line-height:1.05; letter-spacing:-.015em; margin:0 0 18px; text-wrap:balance}
+.lede{font-size:19.5px; line-height:1.56; color:var(--soft); margin:0; max-width:62ch}
 .lede strong{color:var(--ink); font-weight:600}
 
-h2{
-  font-family:Newsreader,Georgia,serif; font-weight:500; font-size:29px;
-  line-height:1.2; letter-spacing:-.01em; margin:0 0 14px; text-wrap:balance;
-}
-h3{font-size:15px; font-weight:600; letter-spacing:.02em; margin:0 0 8px}
-section{padding:52px 0 0}
+h2{font-family:var(--display); font-weight:500; font-size:28px; line-height:1.22; letter-spacing:-.01em; margin:0 0 14px; text-wrap:balance}
+h3{font-size:14px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--faint); margin:0 0 10px}
+section{padding-block:48px 0}
 p{margin:0 0 16px}
 a{color:var(--accent); text-underline-offset:3px}
 
-/* ---- the viewer ---- */
-.stage{
-  background:var(--surface); border:1px solid var(--rule); border-radius:3px;
-  overflow:hidden; margin-top:34px;
-}
-canvas{display:block; width:100%; height:min(62vh,600px); cursor:grab; touch-action:none}
+/* a linked term: hover gives a plain-words definition, click gives the article */
+a.t{color:inherit; text-decoration:none; border-bottom:1px dashed var(--accent); cursor:help}
+a.t:hover{color:var(--accent); border-bottom-style:solid}
+/* a symbol defined on this page only */
+.v{font-family:var(--mono); font-size:.93em; border-bottom:1px dotted var(--faint); cursor:help; white-space:nowrap}
+
+/* ---- viewer ---- */
+.stage{background:var(--surface); border:1px solid var(--rule); border-radius:3px; overflow:hidden; margin-top:30px}
+canvas{display:block; width:100%; height:min(60vh,580px); cursor:grab; touch-action:none}
 canvas.dragging{cursor:grabbing}
-.rail{
-  display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px;
-  padding:12px 16px; border-top:1px solid var(--rule); background:var(--sunk);
-}
-.railgroup{display:flex; align-items:center; gap:8px}
-.raillabel{
-  font-family:"Overpass Mono",ui-monospace,monospace; font-size:11px;
-  letter-spacing:.11em; text-transform:uppercase; color:var(--faint);
-}
-button{
-  font-family:"Overpass Mono",ui-monospace,monospace; font-size:12.5px;
-  color:var(--soft); background:transparent; border:1px solid var(--rule);
-  border-radius:2px; padding:5px 11px; cursor:pointer; transition:.15s;
-}
+.rail{display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; padding:11px 14px; border-top:1px solid var(--rule); background:var(--sunk)}
+.railgroup{display:flex; align-items:center; gap:7px; flex-wrap:wrap; min-width:0}
+.raillabel{font-family:var(--mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint)}
+button{font-family:var(--mono); font-size:12.5px; color:var(--soft); background:transparent; border:1px solid var(--rule); border-radius:2px; padding:5px 10px; cursor:pointer; transition:.15s}
 button:hover{border-color:var(--faint); color:var(--ink)}
 button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
-button[aria-pressed="true"]{border-color:currentColor}
-.strand{display:inline-flex; align-items:center; gap:7px}
-.strand .dot{width:11px; height:11px; border-radius:50%; background:currentColor; flex:none}
-.strand[aria-pressed="false"]{opacity:.4}
+button[aria-pressed="true"]{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+.strand{display:inline-flex; align-items:center; gap:6px}
+.strand .dot{width:10px; height:10px; border-radius:50%; background:currentColor; flex:none}
+.strand[aria-pressed="true"]{background:transparent}
+.strand[aria-pressed="false"]{opacity:.38; border-color:var(--rule)}
 .strand[aria-pressed="false"] .dot{background:transparent; box-shadow:inset 0 0 0 2px currentColor}
-#sA{color:var(--sA)} #sB{color:var(--sB)} #sC{color:var(--sC)} #sD{color:var(--sD)}
-.readout{
-  font-family:"Overpass Mono",ui-monospace,monospace; font-size:12.5px;
-  color:var(--faint); margin-left:auto; text-align:right;
-}
+#sA{color:var(--sA); border-color:var(--sA)} #sB{color:var(--sB); border-color:var(--sB)}
+#sC{color:var(--sC); border-color:var(--sC)} #sD{color:var(--sD); border-color:var(--sD)}
+.readout{font-family:var(--mono); font-size:12px; color:var(--faint); margin-left:auto; text-align:right; min-width:0}
 .readout b{color:var(--ink); font-weight:600}
 
-/* ---- results ---- */
-.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin:28px 0}
-.cell{background:var(--surface); padding:18px 20px}
-.cell .num{font-family:"Overpass Mono",ui-monospace,monospace; font-size:27px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums; display:block; margin-bottom:2px}
-.cell .cap{font-size:13.5px; color:var(--soft); line-height:1.4}
+/* ---- data ---- */
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin:26px 0}
+.cell{background:var(--surface); padding:16px 18px}
+.cell .num{font-family:var(--mono); font-size:25px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums; display:block; margin-bottom:2px}
+.cell .cap{font-size:13.5px; color:var(--soft); line-height:1.42}
 
-.scroller{overflow-x:auto; margin:24px 0}
-table{border-collapse:collapse; width:100%; min-width:520px; font-size:14.5px}
-th,td{text-align:left; padding:9px 14px 9px 0; border-bottom:1px solid var(--rule)}
-th{font-family:"Overpass Mono",ui-monospace,monospace; font-size:11px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint); font-weight:400}
-td.n{font-family:"Overpass Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+.scroller{overflow-x:auto; margin:22px 0}
+table{border-collapse:collapse; width:100%; min-width:480px; font-size:14.5px}
+th,td{text-align:left; padding:8px 14px 8px 0; border-bottom:1px solid var(--rule); vertical-align:top}
+th{font-family:var(--mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint); font-weight:400}
+td.n{font-family:var(--mono); font-variant-numeric:tabular-nums}
 .yes{color:var(--sD); font-weight:600}
 
-figure{margin:28px 0}
-figcaption{font-size:14px; color:var(--soft); margin-top:12px; max-width:56ch}
-.fig{width:100%; height:auto; display:block}
+figure{margin:26px 0}
+figcaption{font-size:14px; color:var(--soft); margin-top:10px; max-width:58ch}
+.fig{width:100%; max-width:100%; height:auto; display:block}
 
-.note{border-left:2px solid var(--rule); padding:2px 0 2px 20px; margin:26px 0; color:var(--soft); font-size:15.5px}
+.note{border-left:2px solid var(--accent); background:var(--surface); padding:14px 18px; margin:24px 0; color:var(--soft); font-size:15.5px}
 .note b{color:var(--ink)}
+.note p:last-child{margin-bottom:0}
 
-code,kbd{font-family:"Overpass Mono",ui-monospace,monospace; font-size:.92em; background:var(--sunk); padding:1px 5px; border-radius:2px}
+code{font-family:var(--mono); font-size:.9em; background:var(--sunk); padding:1px 5px; border-radius:2px}
 
-footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); color:var(--faint); font-size:14px}
+dl.gloss{display:grid; grid-template-columns:minmax(90px,170px) 1fr; gap:0; margin:22px 0; border-top:1px solid var(--rule)}
+dl.gloss dt{font-family:var(--mono); font-size:13px; color:var(--ink); padding:9px 14px 9px 0; border-bottom:1px solid var(--rule); min-width:0; overflow-wrap:break-word}
+dl.gloss dd{margin:0; padding:9px 0; border-bottom:1px solid var(--rule); color:var(--soft); font-size:14.5px; min-width:0}
+@media (max-width:520px){
+  dl.gloss{grid-template-columns:1fr}
+  dl.gloss dt{border-bottom:none; padding-bottom:0}
+}
+
+footer{margin-top:60px; padding-top:20px; border-top:1px solid var(--rule); color:var(--faint); font-size:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -119,8 +117,17 @@ footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); colo
 <header>
   <p class="eyebrow">math.stackexchange 2981717 &mdash; a retracted claim, reinstated</p>
   <h1>Borromean at Every Vertex</h1>
-  <p class="lede">Four rings with the full rotational symmetry of a tetrahedron. <strong>Take any one away and the other three are the Borromean rings</strong> &mdash; and because the symmetry moves any component onto any other, that is one fact rather than four.</p>
+  <p class="lede">Four rings arranged so that <strong>removing any one of them leaves the <a class="t" href="https://en.wikipedia.org/wiki/Borromean_rings" title="Three rings in which no two are linked, yet all three cannot be pulled apart.">Borromean rings</a></strong> &mdash; and arranged with the full rotational symmetry of a <a class="t" href="https://en.wikipedia.org/wiki/Tetrahedron" title="The solid with four triangular faces, four corners and six edges.">tetrahedron</a>, so that the four ways of doing this are one fact rather than four coincidences.</p>
 </header>
+
+<section style="padding-top:34px">
+  <div class="col">
+    <h3>If you are new to this</h3>
+    <p>A <b>link</b> is a set of closed loops of string floating in space, none of them touching. Each loop is a <b>component</b>. Two links count as the same if you can deform one into the other by moving the strings around without cutting them or passing one through another &mdash; the technical name is an <a class="t" href="https://en.wikipedia.org/wiki/Ambient_isotopy" title="A continuous deformation of space that carries one link onto the other. No cutting, no passing through.">ambient isotopy</a>.</p>
+    <p>The <a class="t" href="https://en.wikipedia.org/wiki/Borromean_rings" title="Three rings in which no two are linked, yet all three cannot be pulled apart.">Borromean rings</a> are three loops with a surprising property: pick any two of them and they come apart freely, yet all three together cannot be separated. Cut one and the other two fall apart.</p>
+    <p>The question here, asked on Mathematics Stack&nbsp;Exchange in 2018, is the next one along: <b>is there a set of four loops such that throwing away any single one leaves the Borromean rings behind?</b> The answer is yes. What follows is a version with as much symmetry as the shape can carry.</p>
+  </div>
+</section>
 
 <div class="stage">
   <canvas id="view"></canvas>
@@ -132,128 +139,238 @@ footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); colo
       <button id="sC" class="strand" aria-pressed="true"><span class="dot"></span>C</button>
       <button id="sD" class="strand" aria-pressed="true"><span class="dot"></span>D</button>
     </div>
+    <div class="railgroup" id="shapes">
+      <span class="raillabel">Shape</span>
+      <button data-v="smooth" aria-pressed="true">smooth</button>
+      <button data-v="p6" aria-pressed="false">6 corners</button>
+      <button data-v="p9" aria-pressed="false">9 corners</button>
+      <button data-v="p24" aria-pressed="false">24 corners</button>
+    </div>
     <div class="railgroup">
       <span class="raillabel">Look down</span>
       <button id="ax3">3-fold axis</button>
       <button id="ax2">2-fold axis</button>
       <button id="axg">off-axis</button>
     </div>
-    <div class="railgroup">
-      <button id="spin" aria-pressed="true">pause</button>
-    </div>
+    <div class="railgroup"><button id="spin" aria-pressed="true">pause</button></div>
     <div class="readout" id="readout">drag to turn</div>
   </div>
 </div>
 
 <section>
   <div class="col">
-    <h2>One ring per face, one weave per vertex</h2>
-    <p>Put a ring on each of the tetrahedron&rsquo;s four faces. The four ways of choosing three faces are exactly the four <em>vertices</em>, because the three faces meeting at a vertex are the three that miss the opposite one. So &ldquo;remove any ring and the rest are Borromean&rdquo; says the rings weave Borromean-style around each of the four corners &mdash; and the tetrahedral group carries any corner onto any other.</p>
-    <p>That is the observation in Kyle Miller&rsquo;s answer to the original question. He drew a link with it, claimed tetrahedral symmetry, and retracted the claim a comment later. He was right to: his diagram, and the four-triangle redrawing that followed it, have 3-fold symmetry only. The link above has all twelve rotations.</p>
+    <h2>One ring per face, one weave per corner</h2>
+    <p>A tetrahedron has four triangular <b>faces</b> and four <b>corners</b> (vertices). Put one ring on each face. Label the faces and rings <span class="v" title="The four rings, one per face of the tetrahedron.">A, B, C, D</span>, and label the corners <span class="v" title="The four corners of the tetrahedron. Corner v1 is where faces B, C and D meet.">v1, v2, v3, v4</span>, so that corner <span class="v" title="The corner opposite face A.">v1</span> is the one <em>opposite</em> face&nbsp;A.</p>
+    <p>Now the key coincidence. Choosing three of the four rings is the same as leaving one out &mdash; and the three faces that meet at a corner are exactly the three that miss the opposite face. <b>So the four choices of three rings correspond exactly to the four corners.</b> &ldquo;Remove any ring and the rest are Borromean&rdquo; is the same statement as &ldquo;the rings weave Borromean-style around every corner&rdquo;.</p>
+    <p>That is why the tetrahedron is the right shape for the problem, and it is the observation in Kyle Miller&rsquo;s <a href="https://math.stackexchange.com/a/2992328">answer</a> to the original question. He drew a link using it, claimed tetrahedral symmetry, and withdrew the claim one comment later. He was right to withdraw it: his diagram, and Darth Geek&rsquo;s <a href="https://math.stackexchange.com/a/2996699">four-triangle redrawing</a> of it, have 3-fold symmetry only &mdash; one rotation axis, not four.</p>
+
+    <h3 style="margin-top:34px">What &ldquo;tetrahedral symmetry&rdquo; means here</h3>
+    <p>The <a class="t" href="https://en.wikipedia.org/wiki/Tetrahedral_symmetry" title="The 12 rotations of space that carry a regular tetrahedron onto itself.">rotation group of the tetrahedron</a>, written <span class="v" title="The group of 12 rotations carrying a regular tetrahedron to itself.">T</span>, consists of 12 rotations that carry the solid onto itself: the identity, eight 120&deg; turns about the four corner-to-face axes, and three 180&deg; turns about the axes joining opposite edge midpoints. Saying the link has tetrahedral symmetry means every one of those 12 rotations maps the set of four rings onto itself, permuting them.</p>
+    <p>Here the symmetry is not measured and hoped for &mdash; it is built in. Only one twelfth of the link is stored: one third of one ring. The rest is generated by applying the rotations. There is nowhere for the symmetry to leak out of, so it holds exactly, not to within a tolerance.</p>
   </div>
 
   <div class="grid">
-    <div class="cell"><span class="num">12</span><span class="cap">rotations in the symmetry group, exact by construction rather than to a tolerance</span></div>
-    <div class="cell"><span class="num">0</span><span class="cap">linking number, for all six pairs &mdash; the Gauss integral lands on it to 12 decimal places</span></div>
-    <div class="cell"><span class="num">6</span><span class="cap">crossings each sublink reduces to under R1 and R2, the Borromean minimum</span></div>
-    <div class="cell"><span class="num">28</span><span class="cap">crossings in the whole four-ring diagram, which is close to the floor for this link</span></div>
+    <div class="cell"><span class="num">12</span><span class="cap">rotations in the symmetry group, exact by construction</span></div>
+    <div class="cell"><span class="num">0</span><span class="cap"><a class="t" href="https://en.wikipedia.org/wiki/Linking_number" title="A whole number counting how many times one loop passes through another, with sign. Zero means they are not hooked in this sense.">linking number</a> for all six pairs, to 12 decimal places</span></div>
+    <div class="cell"><span class="num">6</span><span class="cap">crossings each three-ring sublink reduces to &mdash; the Borromean minimum</span></div>
+    <div class="cell"><span class="num">28</span><span class="cap">crossings in the full four-ring diagram, after simplification</span></div>
+  </div>
+
+  <div class="col">
+    <h3>How each row below was checked</h3>
+    <p>To identify a link, you flatten it into a <b>diagram</b>: a picture of its shadow from some direction, with a note at every <a class="t" href="https://en.wikipedia.org/wiki/Knot_theory" title="The study of closed loops in space up to deformation. A diagram is a flat picture of a link recording which strand passes over which.">crossing</a> saying which strand passes over. Different viewing directions give different diagrams of the same link, so anything read off one picture has to be an <b>invariant</b> &mdash; a quantity that cannot change when the picture does.</p>
+    <p>Three were used. The <a class="t" href="https://en.wikipedia.org/wiki/Linking_number" title="A whole number counting how many times one loop passes through another, with sign.">linking number</a> of each pair, which must be 0. The <a class="t" href="https://en.wikipedia.org/wiki/Jones_polynomial" title="A polynomial computed from a link diagram that is the same for every diagram of the same link. A strong fingerprint.">Jones polynomial</a>, which must match the Borromean rings coefficient for coefficient. And the number of crossings left after applying <a class="t" href="https://en.wikipedia.org/wiki/Reidemeister_move" title="The three local picture-changes that alter a link diagram without changing the link: untwist a kink, slide one strand off another, slide a strand past a crossing.">Reidemeister moves</a>, the standard operations that redraw a diagram without changing what it depicts.</p>
   </div>
 
   <div class="scroller">
   <table>
-    <thead><tr><th>Drop this ring</th><th>Weave at</th><th>Projects to</th><th>Reduces to</th><th>Linking</th><th>Jones</th></tr></thead>
+    <caption class="sr" style="position:absolute;left:-9999px">Verification of each three-ring sublink</caption>
+    <thead><tr><th>Remove ring</th><th>Weave at</th><th>Shadow has</th><th>Reduces to</th><th>Linking</th><th>Jones</th></tr></thead>
     <tbody>
-      <tr><td>A</td><td>vertex 1</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
-      <tr><td>B</td><td>vertex 2</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
-      <tr><td>C</td><td>vertex 3</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
-      <tr><td>D</td><td>vertex 4</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+      <tr><td>A</td><td>corner v1</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+      <tr><td>B</td><td>corner v2</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+      <tr><td>C</td><td>corner v3</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
+      <tr><td>D</td><td>corner v4</td><td class="n">14</td><td class="n">6</td><td class="n">0, 0, 0</td><td class="yes">Borromean</td></tr>
     </tbody>
   </table>
   </div>
-  <p class="col" style="color:var(--soft);font-size:15px">Each row is an independent computation: a fresh search over 128 projection directions, a fresh Reidemeister reduction, a fresh Jones polynomial. The four agree coefficient for coefficient with the Borromean rings, and with each other &mdash; which is what the symmetry predicts and therefore what would have exposed a bug.</p>
+  <p class="col" style="color:var(--soft);font-size:15px">Each row is computed independently: a fresh search over 128 viewing directions, a fresh Reidemeister reduction, a fresh Jones polynomial. All four agree with the Borromean rings and with each other, which is what the symmetry predicts &mdash; so a disagreement would have exposed a bug.</p>
 </section>
 
 <section>
   <div class="col">
-    <h2>Why it cannot be four flat triangles</h2>
-    <p>The natural first attempt &mdash; a flat triangle lying in each face plane &mdash; is not merely hard to get right. It is impossible, and the reason is a single picture.</p>
-    <p>Two of the rings live in two face planes, which meet along the line through their shared edge. A <em>convex</em> curve cuts that line in two points, so each ring contributes an interval, and two convex curves in different planes are linked exactly when their intervals interleave. Borromean rings made of flat pieces work because their intervals <em>nest</em>.</p>
-    <p>Now bring in the symmetry. The half-turn that swaps these two rings maps that line to itself, reflecting it in the midpoint of the edge. So one interval is forced to be the mirror image of the other through that midpoint &mdash; and two intervals that are point reflections of each other can be disjoint, or interleaved, but never nested.</p>
+    <h2>Four flat triangles cannot work</h2>
+    <p>The obvious thing to try is the picture everyone draws: a flat triangle lying in each of the four face planes. It fails, and not by bad luck. Here is the whole argument.</p>
+    <p>Take two of the rings. The planes of their two faces meet along one straight line <span class="v" title="The line where two face planes of the tetrahedron meet. It contains the edge shared by those two faces.">L</span> &mdash; the line containing the edge those faces share. A <a class="t" href="https://en.wikipedia.org/wiki/Convex_curve" title="A closed curve with no dents: any straight line meets it at most twice. Triangles, circles and ellipses are convex.">convex</a> curve meets a straight line in at most two points, so each ring cuts out one <b>interval</b> on <span class="v" title="The line where the two face planes meet.">L</span>. Call them <span class="v" title="The interval cut on line L by the first ring.">I&#8321;</span> and <span class="v" title="The interval cut on line L by the second ring.">I&#8322;</span>. Two flat convex curves in different planes are linked precisely when their intervals <b>interleave</b>, and the Borromean weave needs the intervals to <b>nest</b> instead &mdash; one wholly inside the other.</p>
+    <p>Now add the symmetry. Among the 12 rotations is a half-turn that swaps these two rings. It maps the line <span class="v" title="The line where the two face planes meet.">L</span> to itself, flipping it end-for-end about <span class="v" title="The midpoint of the tetrahedron edge shared by the two faces.">m</span>, the midpoint of the shared edge. So <span class="v" title="The interval cut on L by the second ring.">I&#8322;</span> is forced to be the mirror image of <span class="v" title="The interval cut on L by the first ring.">I&#8321;</span> through that point. And an interval and its point-reflection can be disjoint, or interleaved &mdash; but never nested.</p>
   </div>
 
   <figure>
-    <svg class="fig" viewBox="0 0 720 250" role="img" aria-label="Three number lines showing that nesting is impossible under point reflection">
+    <svg class="fig" viewBox="0 0 760 258" role="img" aria-label="Three number lines showing that nesting is impossible under point reflection">
       <defs><style>
-        .lbl{font-family:"Overpass Mono",monospace;font-size:12px;fill:var(--faint);letter-spacing:.08em}
-        .vd{font-family:Overpass,sans-serif;font-size:13.5px;fill:var(--soft)}
-        .axis{stroke:var(--rule);stroke-width:1.5}
-        .tick{stroke:var(--faint);stroke-width:1.5}
+        .lbl{font-family:"Overpass Mono",monospace;font-size:11.5px;fill:var(--faint);letter-spacing:.08em}
+        .vd{font-family:Overpass,sans-serif;font-size:13px;fill:var(--soft)}
+        .ax{stroke:var(--rule);stroke-width:1.5}
+        .tk{stroke:var(--faint);stroke-width:1.5}
         .m{font-family:"Overpass Mono",monospace;font-size:11px;fill:var(--faint)}
       </style></defs>
-
-      <g transform="translate(0,34)">
-        <text class="lbl" x="0" y="-12">DISJOINT</text>
-        <line class="axis" x1="0" y1="18" x2="470" y2="18"/>
-        <line class="tick" x1="235" y1="10" x2="235" y2="26"/><text class="m" x="230" y="42">m</text>
-        <line x1="60" y1="18" x2="170" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round"/>
-        <line x1="300" y1="18" x2="410" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round"/>
-        <text class="vd" x="500" y="23">unlinked, but each ring bounds a disk the other misses &mdash; it splits off</text>
+      <g transform="translate(0,36)">
+        <text class="lbl" x="0" y="-13">DISJOINT</text>
+        <line class="ax" x1="0" y1="18" x2="360" y2="18"/>
+        <line class="tk" x1="180" y1="10" x2="180" y2="26"/><text class="m" x="175" y="42">m</text>
+        <line x1="44" y1="18" x2="130" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round"/>
+        <line x1="230" y1="18" x2="316" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round"/>
+        <text class="vd" x="392" y="23">unlinked, but each ring then bounds a disc the other misses: it falls off</text>
       </g>
-
-      <g transform="translate(0,118)">
-        <text class="lbl" x="0" y="-12">INTERLEAVED</text>
-        <line class="axis" x1="0" y1="18" x2="470" y2="18"/>
-        <line class="tick" x1="235" y1="10" x2="235" y2="26"/><text class="m" x="230" y="42">m</text>
-        <line x1="60" y1="18" x2="300" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round"/>
-        <line x1="170" y1="18" x2="410" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round"/>
-        <text class="vd" x="500" y="23">Hopf-linked &mdash; linking number &plusmn;1, so no triple is Borromean</text>
+      <g transform="translate(0,122)">
+        <text class="lbl" x="0" y="-13">INTERLEAVED</text>
+        <line class="ax" x1="0" y1="18" x2="360" y2="18"/>
+        <line class="tk" x1="180" y1="10" x2="180" y2="26"/><text class="m" x="175" y="42">m</text>
+        <line x1="44" y1="18" x2="230" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round"/>
+        <line x1="130" y1="18" x2="316" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round"/>
+        <text class="vd" x="392" y="23">linked, with linking number &plusmn;1, so no triple is Borromean</text>
       </g>
-
-      <g transform="translate(0,202)">
-        <text class="lbl" x="0" y="-12">NESTED</text>
-        <line class="axis" x1="0" y1="18" x2="470" y2="18"/>
-        <line class="tick" x1="235" y1="10" x2="235" y2="26"/><text class="m" x="230" y="42">m</text>
-        <line x1="120" y1="18" x2="350" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round" opacity=".28"/>
-        <line x1="170" y1="18" x2="300" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round" opacity=".28"/>
-        <text class="vd" x="500" y="23">what Borromean needs &mdash; and reflection in m rules it out</text>
+      <g transform="translate(0,208)">
+        <text class="lbl" x="0" y="-13">NESTED</text>
+        <line class="ax" x1="0" y1="18" x2="360" y2="18"/>
+        <line class="tk" x1="180" y1="10" x2="180" y2="26"/><text class="m" x="175" y="42">m</text>
+        <line x1="92" y1="18" x2="268" y2="18" stroke="var(--sB)" stroke-width="7" stroke-linecap="round" opacity=".26"/>
+        <line x1="130" y1="18" x2="230" y2="18" stroke="var(--sC)" stroke-width="7" stroke-linecap="round" opacity=".26"/>
+        <text class="vd" x="392" y="23">what Borromean needs &mdash; and the half-turn rules it out</text>
       </g>
     </svg>
-    <figcaption>Reflecting an interval through <span style="font-family:'Overpass Mono',monospace">m</span> sends <span style="font-family:'Overpass Mono',monospace">[a, b]</span> to <span style="font-family:'Overpass Mono',monospace">[&minus;b, &minus;a]</span>. For one to contain the other you would need <span style="font-family:'Overpass Mono',monospace">a + b</span> to be both &ge;&nbsp;0 and &le;&nbsp;0 at once, so the two intervals coincide and the rings touch. Nesting is unavailable, and with it the Borromean weave.</figcaption>
+    <figcaption>Reflecting the interval <code>[a, b]</code> through <code>m</code> (taken as the origin) gives <code>[&minus;b, &minus;a]</code>. For one to sit inside the other you would need <code>a + b</code> to be both at least 0 and at most 0, so the two intervals coincide and the rings touch. Nesting is unavailable, and the Borromean weave goes with it.</figcaption>
   </figure>
 
   <div class="col">
-    <p>A sweep of 132 flat-triangle configurations over size and twist confirms it, and confirms nothing else ever happens: every one is either the four-ring unlink or has all six linking numbers equal to &plusmn;1. There is no third outcome, which is exactly what the argument says.</p>
-    <p><strong>So the rings have to leave their planes.</strong> That is the retracted claim turned into something you can act on, and the rings above are corrugated for precisely this reason.</p>
+    <p>A sweep of 132 flat-triangle arrangements over size and twist confirms it, and confirms that nothing else ever happens: every one is either four unlinked rings or has all six linking numbers equal to &plusmn;1. There is no third outcome, which is exactly what the argument predicts.</p>
+    <p><strong>So the rings have to leave their planes.</strong> That is the withdrawn claim turned into something actionable, and it is why the rings here are corrugated rather than flat.</p>
   </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>Building one out of paper</h2>
+    <p>The rings above can be replaced by <a class="t" href="https://en.wikipedia.org/wiki/Polygonal_chain" title="A chain of straight segments joined end to end. Here a closed one: a polygon whose corners need not lie in a plane.">polygons</a> &mdash; straight edges with sharp corners &mdash; without changing the link. Use the <b>Shape</b> buttons on the viewer to switch. This is not a drawing option: shortening a ring to a few straight edges moves the strand, and move it far enough and it cuts through a neighbour. Every polygon below was re-verified from scratch, and the coarser ones genuinely fail.</p>
+    <p><b>Six straight edges per ring is enough.</b> Below that, every arrangement tried either collapses to a different link or has rings touching.</p>
+    <p>Because each ring repeats three times under its own 120&deg; rotation, a ring with 6 corners has only <b>2 distinct corners</b>, repeated three times round. That is the whole cutting list. All four rings are congruent, so one strip pattern builds the entire model four times over.</p>
+  </div>
+
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Shape</th><th>Corners per ring</th><th>Distinct corners</th><th>Closest approach</th><th>Verified</th></tr></thead>
+    <tbody>
+      <tr><td>smooth</td><td class="n">&mdash;</td><td class="n">&mdash;</td><td class="n">0.252</td><td class="yes">yes</td></tr>
+      <tr><td>6 corners</td><td class="n">6</td><td class="n">2</td><td class="n">0.109</td><td class="yes">yes</td></tr>
+      <tr><td>9 corners</td><td class="n">9</td><td class="n">3</td><td class="n">0.152</td><td class="yes">yes</td></tr>
+      <tr><td>24 corners</td><td class="n">24</td><td class="n">8</td><td class="n">0.203</td><td class="yes">yes</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="col" style="color:var(--soft);font-size:15px"><b>Closest approach</b> is the smallest distance between any two strands, in the model&rsquo;s own units, where the whole link is roughly 2.5 units across. It is the margin a physical model has before two pieces collide, so bigger is easier to build. The corner positions of the 6- and 9-corner rings were nudged to widen it, under a step limit small enough that no strand could cross another during the nudging &mdash; so the link type is preserved by construction, and was re-checked afterwards anyway.</p>
+
+  <div class="col">
+    <h3 style="margin-top:30px">Cutting list</h3>
+    <p>A closed polygon in space is fixed, up to rigid motion, by three numbers at each corner: the <b>edge length</b> leaving it, the <b>turn angle</b> through it (how sharply the strand changes direction, 0&deg; meaning dead straight), and the <a class="t" href="https://en.wikipedia.org/wiki/Torsion_of_a_curve" title="How far the strand twists out of the plane of the previous two edges. Zero means the next edge stays in that plane.">torsion</a> (how far the next edge rotates out of the plane of the previous two). Repeat the rows three times to close one ring, then build four identical rings.</p>
+  </div>
+  <div id="recipe"></div>
 </section>
 
 <section>
   <div class="col">
     <h2>What is proved, and what is not</h2>
-    <p>Each of the four sublinks is a three-component link with every linking number zero, a six-crossing diagram, and the Borromean rings&rsquo; Jones polynomial. The Borromean rings are the only Brunnian three-component link with six crossings, so that settles it &mdash; <em>given the link table</em>.</p>
+    <p>Each of the four three-ring sublinks is a three-component link with every linking number zero, a six-crossing diagram, and the Borromean rings&rsquo; Jones polynomial. The Borromean rings are the only <a class="t" href="https://en.wikipedia.org/wiki/Brunnian_link" title="A link that falls completely apart as soon as any single component is removed. The Borromean rings are the simplest one.">Brunnian</a> three-component link with six crossings, so that settles it &mdash; <em>given the published link tables</em>.</p>
     <div class="note">
-      <b>The missing certificate.</b> What is not in hand is a self-contained one: an explicit sequence of Reidemeister moves carrying each sublink onto the standard six-crossing diagram. Two things block it. There is no six-crossing Borromean diagram to compare against &mdash; the three-ellipse model never projects below eight, over four thousand sampled directions. And the simplifier applies R1 and R2 only, so all four reduced diagrams stall with eight available R3 moves and nothing else. Building R3 closes the gap outright.
+      <p><b>The missing certificate.</b> What is not in hand is a self-contained proof: an explicit sequence of Reidemeister moves carrying each sublink onto the standard six-crossing Borromean diagram. Two things block it. There is no six-crossing Borromean diagram here to compare against, because the three-ellipse model never projects below eight crossings over four thousand sampled directions. And the simplifier implements only the first two Reidemeister moves, so all four reduced diagrams stall with eight available third-type moves and nothing else. Implementing the third move closes the gap outright.</p>
     </div>
-    <p>Worth keeping straight: the <em>other</em> reading of &ldquo;four Borromean rings&rdquo; &mdash; remove any one and the rest fall <em>apart</em> &mdash; goes the other way. A three-fold symmetry fixing one ring and cycling the other three acts on the relevant two-dimensional space with characteristic polynomial <span style="font-family:'Overpass Mono',monospace">&lambda;&sup2;&nbsp;+&nbsp;&lambda;&nbsp;+&nbsp;1</span>, which has no eigenvalue +1 or &minus;1. Every length-four Milnor invariant is therefore forced to vanish, and the standard four-component Brunnian links admit no such symmetry at all. Same tetrahedron, opposite answer.</p>
+    <p>One distinction worth keeping straight, because the words are nearly the same. The <em>other</em> reading of &ldquo;four Borromean rings&rdquo; &mdash; remove any one and the rest fall <b>apart</b>, a four-component <a class="t" href="https://en.wikipedia.org/wiki/Brunnian_link" title="A link that falls completely apart as soon as any single component is removed.">Brunnian</a> link &mdash; comes out the opposite way. There, a 3-fold rotation that fixes one ring and cycles the other three acts on a certain two-dimensional space of <a class="t" href="https://en.wikipedia.org/wiki/Link_group" title="Milnor's invariants: numbers extracted from the fundamental group of the link complement that detect linking the linking number cannot see.">Milnor invariants</a> with <a class="t" href="https://en.wikipedia.org/wiki/Characteristic_polynomial" title="The polynomial whose roots are the eigenvalues of a matrix.">characteristic polynomial</a> <code>&lambda;&sup2; + &lambda; + 1</code>, which has no <a class="t" href="https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors" title="A direction a transformation leaves fixed, scaled by its eigenvalue.">eigenvalue</a> +1 or &minus;1. Every length-four Milnor invariant is therefore forced to vanish, so the standard four-component Brunnian links admit no such symmetry at all. Same tetrahedron, opposite answer.</p>
   </div>
 </section>
 
+<section>
+  <div class="col">
+    <h2>Every term and symbol used here</h2>
+  </div>
+  <dl class="gloss">
+    <dt>A, B, C, D</dt><dd>The four rings. Ring A sits on face A of the tetrahedron.</dd>
+    <dt>v1 &hellip; v4</dt><dd>The four corners of the tetrahedron. Corner v<em>k</em> is opposite face <em>k</em>, so the three faces meeting at v<em>k</em> are the other three.</dd>
+    <dt>T</dt><dd>The tetrahedral rotation group: the 12 rotations of space that carry a regular tetrahedron onto itself.</dd>
+    <dt>L</dt><dd>The straight line where two face planes meet. It contains the tetrahedron edge those two faces share.</dd>
+    <dt>m</dt><dd>The midpoint of that shared edge. The half-turn swapping the two rings flips L end-for-end about m.</dd>
+    <dt>I&#8321;, I&#8322;</dt><dd>The intervals that two flat rings cut out on the line L.</dd>
+    <dt>link</dt><dd>A set of closed loops in space, none touching any other.</dd>
+    <dt>component</dt><dd>One loop of a link. This link has four.</dd>
+    <dt>sublink</dt><dd>What is left after discarding some components. Each of the four three-ring sublinks here is the Borromean rings.</dd>
+    <dt>diagram</dt><dd>A flat picture of a link from some viewing direction, recording at every crossing which strand passes over.</dd>
+    <dt>crossing</dt><dd>A place where two strands cross in the picture. Their number depends on the direction you look from, so it is not by itself a property of the link.</dd>
+    <dt>invariant</dt><dd>A quantity computed from a diagram that comes out the same for every diagram of the same link. Linking number and the Jones polynomial are two.</dd>
+    <dt>linking number</dt><dd>A whole number counting, with sign, how often one loop passes through another. Zero for all six pairs here.</dd>
+    <dt>Jones polynomial</dt><dd>A polynomial fingerprint of a link. Two links with different Jones polynomials are certainly different; the converse is not guaranteed, which is why it is evidence rather than proof.</dd>
+    <dt>Reidemeister move</dt><dd>One of three local edits to a diagram that redraw it without changing the link: untwist a kink, slide one strand clear of another, slide a strand past a crossing.</dd>
+    <dt>Brunnian</dt><dd>Describes a link that falls completely apart the moment any one component is removed. The Borromean rings are the simplest example.</dd>
+    <dt>convex</dt><dd>Describes a curve with no dents, so that a straight line meets it at most twice. Triangles and ellipses are convex.</dd>
+    <dt>closest approach</dt><dd>The smallest distance between any two strands, in the model&rsquo;s own units. The link is about 2.5 units across.</dd>
+    <dt>turn angle</dt><dd>How sharply a polygon changes direction at a corner. 0&deg; is dead straight.</dd>
+    <dt>torsion</dt><dd>How far a polygon&rsquo;s next edge rotates out of the plane set by the previous two. 0&deg; keeps it flat.</dd>
+  </dl>
+</section>
+
 <footer>
-  Built and checked with <code>knotlib</code> in the knot-a-problem repo. Everything here re-derives from <code>four-borromean/test.mjs</code>: symmetry asserted point-set-wise on all four group generators, linking by the Gauss integral, link type by projection and Jones.
+  Built and checked with <code>knotlib</code> in the knot-a-problem repo, on the <code>four-borromean</code> branch. Everything here re-derives from <code>test.mjs</code> and <code>search-polygon.mjs</code>: symmetry asserted point-set-wise on all four group generators, linking by the Gauss integral, link type by projection and Jones polynomial.
 </footer>
 </div>
 
 <script>
-const DATA = [[[0.513,-0.871,-0.179],[0.559,-0.865,-0.207],[0.599,-0.853,-0.237],[0.631,-0.836,-0.27],[0.656,-0.812,-0.302],[0.672,-0.779,-0.332],[0.68,-0.739,-0.359],[0.683,-0.692,-0.38],[0.68,-0.639,-0.396],[0.673,-0.582,-0.404],[0.664,-0.522,-0.407],[0.653,-0.461,-0.406],[0.644,-0.402,-0.402],[0.635,-0.347,-0.398],[0.629,-0.297,-0.395],[0.625,-0.252,-0.397],[0.622,-0.215,-0.405],[0.62,-0.186,-0.423],[0.618,-0.165,-0.451],[0.614,-0.15,-0.49],[0.607,-0.142,-0.54],[0.594,-0.14,-0.602],[0.576,-0.142,-0.672],[0.55,-0.148,-0.748],[0.517,-0.155,-0.827],[0.474,-0.164,-0.907],[0.424,-0.173,-0.984],[0.368,-0.181,-1.054],[0.307,-0.187,-1.116],[0.243,-0.191,-1.164],[0.178,-0.192,-1.199],[0.114,-0.189,-1.221],[0.054,-0.183,-1.228],[0.001,-0.172,-1.22],[-0.045,-0.157,-1.201],[-0.083,-0.136,-1.173],[-0.111,-0.111,-1.137],[-0.129,-0.079,-1.097],[-0.14,-0.042,-1.056],[-0.143,0,-1.015],[-0.142,0.048,-0.978],[-0.137,0.101,-0.947],[-0.131,0.158,-0.922],[-0.127,0.218,-0.903],[-0.127,0.28,-0.89],[-0.131,0.341,-0.882],[-0.141,0.402,-0.878],[-0.158,0.459,-0.875],[-0.179,0.513,-0.871],[-0.207,0.559,-0.865],[-0.237,0.599,-0.853],[-0.27,0.631,-0.836],[-0.302,0.656,-0.812],[-0.332,0.672,-0.779],[-0.359,0.68,-0.739],[-0.38,0.683,-0.692],[-0.396,0.68,-0.639],[-0.404,0.673,-0.582],[-0.407,0.664,-0.522],[-0.406,0.653,-0.461],[-0.402,0.644,-0.402],[-0.398,0.635,-0.347],[-0.395,0.629,-0.297],[-0.397,0.625,-0.252],[-0.405,0.622,-0.215],[-0.423,0.62,-0.186],[-0.451,0.618,-0.165],[-0.49,0.614,-0.15],[-0.54,0.607,-0.142],[-0.602,0.594,-0.14],[-0.672,0.576,-0.142],[-0.748,0.55,-0.148],[-0.827,0.517,-0.155],[-0.907,0.474,-0.164],[-0.984,0.424,-0.173],[-1.054,0.368,-0.181],[-1.116,0.307,-0.187],[-1.164,0.243,-0.191],[-1.199,0.178,-0.192],[-1.221,0.114,-0.189],[-1.228,0.054,-0.183],[-1.22,0.001,-0.172],[-1.201,-0.045,-0.157],[-1.173,-0.083,-0.136],[-1.137,-0.111,-0.111],[-1.097,-0.129,-0.079],[-1.056,-0.14,-0.042],[-1.015,-0.143,0],[-0.978,-0.142,0.048],[-0.947,-0.137,0.101],[-0.922,-0.131,0.158],[-0.903,-0.127,0.218],[-0.89,-0.127,0.28],[-0.882,-0.131,0.341],[-0.878,-0.141,0.402],[-0.875,-0.158,0.459],[-0.871,-0.179,0.513],[-0.865,-0.207,0.559],[-0.853,-0.237,0.599],[-0.836,-0.27,0.631],[-0.812,-0.302,0.656],[-0.779,-0.332,0.672],[-0.739,-0.359,0.68],[-0.692,-0.38,0.683],[-0.639,-0.396,0.68],[-0.582,-0.404,0.673],[-0.522,-0.407,0.664],[-0.461,-0.406,0.653],[-0.402,-0.402,0.644],[-0.347,-0.398,0.635],[-0.297,-0.395,0.629],[-0.252,-0.397,0.625],[-0.215,-0.405,0.622],[-0.186,-0.423,0.62],[-0.165,-0.451,0.618],[-0.15,-0.49,0.614],[-0.142,-0.54,0.607],[-0.14,-0.602,0.594],[-0.142,-0.672,0.576],[-0.148,-0.748,0.55],[-0.155,-0.827,0.517],[-0.164,-0.907,0.474],[-0.173,-0.984,0.424],[-0.181,-1.054,0.368],[-0.187,-1.116,0.307],[-0.191,-1.164,0.243],[-0.192,-1.199,0.178],[-0.189,-1.221,0.114],[-0.183,-1.228,0.054],[-0.172,-1.22,0.001],[-0.157,-1.201,-0.045],[-0.136,-1.173,-0.083],[-0.111,-1.137,-0.111],[-0.079,-1.097,-0.129],[-0.042,-1.056,-0.14],[0,-1.015,-0.143],[0.048,-0.978,-0.142],[0.101,-0.947,-0.137],[0.158,-0.922,-0.131],[0.218,-0.903,-0.127],[0.28,-0.89,-0.127],[0.341,-0.882,-0.131],[0.402,-0.878,-0.141],[0.459,-0.875,-0.158]],[[0.513,0.871,0.179],[0.559,0.865,0.207],[0.599,0.853,0.237],[0.631,0.836,0.27],[0.656,0.812,0.302],[0.672,0.779,0.332],[0.68,0.739,0.359],[0.683,0.692,0.38],[0.68,0.639,0.396],[0.673,0.582,0.404],[0.664,0.522,0.407],[0.653,0.461,0.406],[0.644,0.402,0.402],[0.635,0.347,0.398],[0.629,0.297,0.395],[0.625,0.252,0.397],[0.622,0.215,0.405],[0.62,0.186,0.423],[0.618,0.165,0.451],[0.614,0.15,0.49],[0.607,0.142,0.54],[0.594,0.14,0.602],[0.576,0.142,0.672],[0.55,0.148,0.748],[0.517,0.155,0.827],[0.474,0.164,0.907],[0.424,0.173,0.984],[0.368,0.181,1.054],[0.307,0.187,1.116],[0.243,0.191,1.164],[0.178,0.192,1.199],[0.114,0.189,1.221],[0.054,0.183,1.228],[0.001,0.172,1.22],[-0.045,0.157,1.201],[-0.083,0.136,1.173],[-0.111,0.111,1.137],[-0.129,0.079,1.097],[-0.14,0.042,1.056],[-0.143,0,1.015],[-0.142,-0.048,0.978],[-0.137,-0.101,0.947],[-0.131,-0.158,0.922],[-0.127,-0.218,0.903],[-0.127,-0.28,0.89],[-0.131,-0.341,0.882],[-0.141,-0.402,0.878],[-0.158,-0.459,0.875],[-0.179,-0.513,0.871],[-0.207,-0.559,0.865],[-0.237,-0.599,0.853],[-0.27,-0.631,0.836],[-0.302,-0.656,0.812],[-0.332,-0.672,0.779],[-0.359,-0.68,0.739],[-0.38,-0.683,0.692],[-0.396,-0.68,0.639],[-0.404,-0.673,0.582],[-0.407,-0.664,0.522],[-0.406,-0.653,0.461],[-0.402,-0.644,0.402],[-0.398,-0.635,0.347],[-0.395,-0.629,0.297],[-0.397,-0.625,0.252],[-0.405,-0.622,0.215],[-0.423,-0.62,0.186],[-0.451,-0.618,0.165],[-0.49,-0.614,0.15],[-0.54,-0.607,0.142],[-0.602,-0.594,0.14],[-0.672,-0.576,0.142],[-0.748,-0.55,0.148],[-0.827,-0.517,0.155],[-0.907,-0.474,0.164],[-0.984,-0.424,0.173],[-1.054,-0.368,0.181],[-1.116,-0.307,0.187],[-1.164,-0.243,0.191],[-1.199,-0.178,0.192],[-1.221,-0.114,0.189],[-1.228,-0.054,0.183],[-1.22,-0.001,0.172],[-1.201,0.045,0.157],[-1.173,0.083,0.136],[-1.137,0.111,0.111],[-1.097,0.129,0.079],[-1.056,0.14,0.042],[-1.015,0.143,0],[-0.978,0.142,-0.048],[-0.947,0.137,-0.101],[-0.922,0.131,-0.158],[-0.903,0.127,-0.218],[-0.89,0.127,-0.28],[-0.882,0.131,-0.341],[-0.878,0.141,-0.402],[-0.875,0.158,-0.459],[-0.871,0.179,-0.513],[-0.865,0.207,-0.559],[-0.853,0.237,-0.599],[-0.836,0.27,-0.631],[-0.812,0.302,-0.656],[-0.779,0.332,-0.672],[-0.739,0.359,-0.68],[-0.692,0.38,-0.683],[-0.639,0.396,-0.68],[-0.582,0.404,-0.673],[-0.522,0.407,-0.664],[-0.461,0.406,-0.653],[-0.402,0.402,-0.644],[-0.347,0.398,-0.635],[-0.297,0.395,-0.629],[-0.252,0.397,-0.625],[-0.215,0.405,-0.622],[-0.186,0.423,-0.62],[-0.165,0.451,-0.618],[-0.15,0.49,-0.614],[-0.142,0.54,-0.607],[-0.14,0.602,-0.594],[-0.142,0.672,-0.576],[-0.148,0.748,-0.55],[-0.155,0.827,-0.517],[-0.164,0.907,-0.474],[-0.173,0.984,-0.424],[-0.181,1.054,-0.368],[-0.187,1.116,-0.307],[-0.191,1.164,-0.243],[-0.192,1.199,-0.178],[-0.189,1.221,-0.114],[-0.183,1.228,-0.054],[-0.172,1.22,-0.001],[-0.157,1.201,0.045],[-0.136,1.173,0.083],[-0.111,1.137,0.111],[-0.079,1.097,0.129],[-0.042,1.056,0.14],[0,1.015,0.143],[0.048,0.978,0.142],[0.101,0.947,0.137],[0.158,0.922,0.131],[0.218,0.903,0.127],[0.28,0.89,0.127],[0.341,0.882,0.131],[0.402,0.878,0.141],[0.459,0.875,0.158]],[[-0.513,-0.871,0.179],[-0.559,-0.865,0.207],[-0.599,-0.853,0.237],[-0.631,-0.836,0.27],[-0.656,-0.812,0.302],[-0.672,-0.779,0.332],[-0.68,-0.739,0.359],[-0.683,-0.692,0.38],[-0.68,-0.639,0.396],[-0.673,-0.582,0.404],[-0.664,-0.522,0.407],[-0.653,-0.461,0.406],[-0.644,-0.402,0.402],[-0.635,-0.347,0.398],[-0.629,-0.297,0.395],[-0.625,-0.252,0.397],[-0.622,-0.215,0.405],[-0.62,-0.186,0.423],[-0.618,-0.165,0.451],[-0.614,-0.15,0.49],[-0.607,-0.142,0.54],[-0.594,-0.14,0.602],[-0.576,-0.142,0.672],[-0.55,-0.148,0.748],[-0.517,-0.155,0.827],[-0.474,-0.164,0.907],[-0.424,-0.173,0.984],[-0.368,-0.181,1.054],[-0.307,-0.187,1.116],[-0.243,-0.191,1.164],[-0.178,-0.192,1.199],[-0.114,-0.189,1.221],[-0.054,-0.183,1.228],[-0.001,-0.172,1.22],[0.045,-0.157,1.201],[0.083,-0.136,1.173],[0.111,-0.111,1.137],[0.129,-0.079,1.097],[0.14,-0.042,1.056],[0.143,0,1.015],[0.142,0.048,0.978],[0.137,0.101,0.947],[0.131,0.158,0.922],[0.127,0.218,0.903],[0.127,0.28,0.89],[0.131,0.341,0.882],[0.141,0.402,0.878],[0.158,0.459,0.875],[0.179,0.513,0.871],[0.207,0.559,0.865],[0.237,0.599,0.853],[0.27,0.631,0.836],[0.302,0.656,0.812],[0.332,0.672,0.779],[0.359,0.68,0.739],[0.38,0.683,0.692],[0.396,0.68,0.639],[0.404,0.673,0.582],[0.407,0.664,0.522],[0.406,0.653,0.461],[0.402,0.644,0.402],[0.398,0.635,0.347],[0.395,0.629,0.297],[0.397,0.625,0.252],[0.405,0.622,0.215],[0.423,0.62,0.186],[0.451,0.618,0.165],[0.49,0.614,0.15],[0.54,0.607,0.142],[0.602,0.594,0.14],[0.672,0.576,0.142],[0.748,0.55,0.148],[0.827,0.517,0.155],[0.907,0.474,0.164],[0.984,0.424,0.173],[1.054,0.368,0.181],[1.116,0.307,0.187],[1.164,0.243,0.191],[1.199,0.178,0.192],[1.221,0.114,0.189],[1.228,0.054,0.183],[1.22,0.001,0.172],[1.201,-0.045,0.157],[1.173,-0.083,0.136],[1.137,-0.111,0.111],[1.097,-0.129,0.079],[1.056,-0.14,0.042],[1.015,-0.143,0],[0.978,-0.142,-0.048],[0.947,-0.137,-0.101],[0.922,-0.131,-0.158],[0.903,-0.127,-0.218],[0.89,-0.127,-0.28],[0.882,-0.131,-0.341],[0.878,-0.141,-0.402],[0.875,-0.158,-0.459],[0.871,-0.179,-0.513],[0.865,-0.207,-0.559],[0.853,-0.237,-0.599],[0.836,-0.27,-0.631],[0.812,-0.302,-0.656],[0.779,-0.332,-0.672],[0.739,-0.359,-0.68],[0.692,-0.38,-0.683],[0.639,-0.396,-0.68],[0.582,-0.404,-0.673],[0.522,-0.407,-0.664],[0.461,-0.406,-0.653],[0.402,-0.402,-0.644],[0.347,-0.398,-0.635],[0.297,-0.395,-0.629],[0.252,-0.397,-0.625],[0.215,-0.405,-0.622],[0.186,-0.423,-0.62],[0.165,-0.451,-0.618],[0.15,-0.49,-0.614],[0.142,-0.54,-0.607],[0.14,-0.602,-0.594],[0.142,-0.672,-0.576],[0.148,-0.748,-0.55],[0.155,-0.827,-0.517],[0.164,-0.907,-0.474],[0.173,-0.984,-0.424],[0.181,-1.054,-0.368],[0.187,-1.116,-0.307],[0.191,-1.164,-0.243],[0.192,-1.199,-0.178],[0.189,-1.221,-0.114],[0.183,-1.228,-0.054],[0.172,-1.22,-0.001],[0.157,-1.201,0.045],[0.136,-1.173,0.083],[0.111,-1.137,0.111],[0.079,-1.097,0.129],[0.042,-1.056,0.14],[0,-1.015,0.143],[-0.048,-0.978,0.142],[-0.101,-0.947,0.137],[-0.158,-0.922,0.131],[-0.218,-0.903,0.127],[-0.28,-0.89,0.127],[-0.341,-0.882,0.131],[-0.402,-0.878,0.141],[-0.459,-0.875,0.158]],[[-0.513,0.871,-0.179],[-0.559,0.865,-0.207],[-0.599,0.853,-0.237],[-0.631,0.836,-0.27],[-0.656,0.812,-0.302],[-0.672,0.779,-0.332],[-0.68,0.739,-0.359],[-0.683,0.692,-0.38],[-0.68,0.639,-0.396],[-0.673,0.582,-0.404],[-0.664,0.522,-0.407],[-0.653,0.461,-0.406],[-0.644,0.402,-0.402],[-0.635,0.347,-0.398],[-0.629,0.297,-0.395],[-0.625,0.252,-0.397],[-0.622,0.215,-0.405],[-0.62,0.186,-0.423],[-0.618,0.165,-0.451],[-0.614,0.15,-0.49],[-0.607,0.142,-0.54],[-0.594,0.14,-0.602],[-0.576,0.142,-0.672],[-0.55,0.148,-0.748],[-0.517,0.155,-0.827],[-0.474,0.164,-0.907],[-0.424,0.173,-0.984],[-0.368,0.181,-1.054],[-0.307,0.187,-1.116],[-0.243,0.191,-1.164],[-0.178,0.192,-1.199],[-0.114,0.189,-1.221],[-0.054,0.183,-1.228],[-0.001,0.172,-1.22],[0.045,0.157,-1.201],[0.083,0.136,-1.173],[0.111,0.111,-1.137],[0.129,0.079,-1.097],[0.14,0.042,-1.056],[0.143,0,-1.015],[0.142,-0.048,-0.978],[0.137,-0.101,-0.947],[0.131,-0.158,-0.922],[0.127,-0.218,-0.903],[0.127,-0.28,-0.89],[0.131,-0.341,-0.882],[0.141,-0.402,-0.878],[0.158,-0.459,-0.875],[0.179,-0.513,-0.871],[0.207,-0.559,-0.865],[0.237,-0.599,-0.853],[0.27,-0.631,-0.836],[0.302,-0.656,-0.812],[0.332,-0.672,-0.779],[0.359,-0.68,-0.739],[0.38,-0.683,-0.692],[0.396,-0.68,-0.639],[0.404,-0.673,-0.582],[0.407,-0.664,-0.522],[0.406,-0.653,-0.461],[0.402,-0.644,-0.402],[0.398,-0.635,-0.347],[0.395,-0.629,-0.297],[0.397,-0.625,-0.252],[0.405,-0.622,-0.215],[0.423,-0.62,-0.186],[0.451,-0.618,-0.165],[0.49,-0.614,-0.15],[0.54,-0.607,-0.142],[0.602,-0.594,-0.14],[0.672,-0.576,-0.142],[0.748,-0.55,-0.148],[0.827,-0.517,-0.155],[0.907,-0.474,-0.164],[0.984,-0.424,-0.173],[1.054,-0.368,-0.181],[1.116,-0.307,-0.187],[1.164,-0.243,-0.191],[1.199,-0.178,-0.192],[1.221,-0.114,-0.189],[1.228,-0.054,-0.183],[1.22,-0.001,-0.172],[1.201,0.045,-0.157],[1.173,0.083,-0.136],[1.137,0.111,-0.111],[1.097,0.129,-0.079],[1.056,0.14,-0.042],[1.015,0.143,0],[0.978,0.142,0.048],[0.947,0.137,0.101],[0.922,0.131,0.158],[0.903,0.127,0.218],[0.89,0.127,0.28],[0.882,0.131,0.341],[0.878,0.141,0.402],[0.875,0.158,0.459],[0.871,0.179,0.513],[0.865,0.207,0.559],[0.853,0.237,0.599],[0.836,0.27,0.631],[0.812,0.302,0.656],[0.779,0.332,0.672],[0.739,0.359,0.68],[0.692,0.38,0.683],[0.639,0.396,0.68],[0.582,0.404,0.673],[0.522,0.407,0.664],[0.461,0.406,0.653],[0.402,0.402,0.644],[0.347,0.398,0.635],[0.297,0.395,0.629],[0.252,0.397,0.625],[0.215,0.405,0.622],[0.186,0.423,0.62],[0.165,0.451,0.618],[0.15,0.49,0.614],[0.142,0.54,0.607],[0.14,0.602,0.594],[0.142,0.672,0.576],[0.148,0.748,0.55],[0.155,0.827,0.517],[0.164,0.907,0.474],[0.173,0.984,0.424],[0.181,1.054,0.368],[0.187,1.116,0.307],[0.191,1.164,0.243],[0.192,1.199,0.178],[0.189,1.221,0.114],[0.183,1.228,0.054],[0.172,1.22,0.001],[0.157,1.201,-0.045],[0.136,1.173,-0.083],[0.111,1.137,-0.111],[0.079,1.097,-0.129],[0.042,1.056,-0.14],[0,1.015,-0.143],[-0.048,0.978,-0.142],[-0.101,0.947,-0.137],[-0.158,0.922,-0.131],[-0.218,0.903,-0.127],[-0.28,0.89,-0.127],[-0.341,0.882,-0.131],[-0.402,0.878,-0.141],[-0.459,0.875,-0.158]]];
-const NAMES = ['A','B','C','D'];
+const VARIANTS = {"smooth":{"label":"smooth","corners":180,"gap":0.252,"arc":[[0.5126,-0.8713,-0.1793],[0.5507,-0.8665,-0.2008],[0.5845,-0.859,-0.2247],[0.6135,-0.8479,-0.2502],[0.6373,-0.8325,-0.2765],[0.656,-0.8122,-0.3023],[0.6695,-0.787,-0.3269],[0.6782,-0.7567,-0.3491],[0.6824,-0.7217,-0.3683],[0.6827,-0.6824,-0.3839],[0.6799,-0.6394,-0.3956],[0.6745,-0.5936,-0.4033],[0.6675,-0.546,-0.4071],[0.6596,-0.4975,-0.4077],[0.6514,-0.4493,-0.4058],[0.6437,-0.4023,-0.4023],[0.6368,-0.3574,-0.3984],[0.6312,-0.3157,-0.3953],[0.6269,-0.2777,-0.3946],[0.6238,-0.244,-0.3973],[0.6218,-0.215,-0.4047],[0.6203,-0.191,-0.4179],[0.6188,-0.1718,-0.4377],[0.6166,-0.1574,-0.4646],[0.6129,-0.1476,-0.4988],[0.6069,-0.1418,-0.5402],[0.5977,-0.1397,-0.5883],[0.5846,-0.1405,-0.6423],[0.567,-0.1439,-0.7011],[0.5445,-0.149,-0.7634],[0.5167,-0.1554,-0.8274],[0.4838,-0.1624,-0.8917],[0.4458,-0.1695,-0.9543],[0.4032,-0.1762,-1.0136],[0.3567,-0.1822,-1.068],[0.3072,-0.187,-1.1159],[0.2558,-0.1903,-1.1562],[0.2035,-0.1918,-1.188],[0.1516,-0.1912,-1.2107],[0.1014,-0.1884,-1.224],[0.0539,-0.183,-1.2281],[0.0103,-0.1749,-1.2236],[-0.0285,-0.1638,-1.211],[-0.062,-0.1496,-1.1916],[-0.0895,-0.1321,-1.1665],[-0.1111,-0.1111,-1.1373],[-0.1268,-0.0865,-1.1053],[-0.1369,-0.0582,-1.0721],[-0.1422,-0.0263,-1.0391],[-0.1434,0.0092,-1.0075],[-0.1416,0.0481,-0.9785],[-0.1379,0.0901,-0.9528],[-0.1335,0.1348,-0.931],[-0.1294,0.1817,-0.9133],[-0.1267,0.2302,-0.8997],[-0.1265,0.2797,-0.89],[-0.1295,0.3293,-0.8834],[-0.1361,0.3782,-0.8792],[-0.1466,0.4256,-0.8765],[-0.1611,0.4706,-0.8742]]},"p6":{"label":"6 corners","corners":6,"gap":0.109,"arc":[[0.8515,-0.232,-0.3237],[-0.2176,-0.0112,-0.8433]],"recipe":[{"edge":1.209,"turn":124.7,"torsion":113.1},{"edge":1.063,"turn":90.6,"torsion":-99.4}]},"p9":{"label":"9 corners","corners":9,"gap":0.152,"arc":[[0.601,-0.7252,-0.2012],[0.6178,-0.0454,-0.5328],[0.0297,-0.5202,-1.2048]],"recipe":[{"edge":0.757,"turn":63.3,"torsion":-54.1},{"edge":1.011,"turn":98.3,"torsion":133.3},{"edge":1.241,"turn":124.9,"torsion":-82.5}]},"p24":{"label":"24 corners","corners":24,"gap":0.203,"arc":[[0.6695,-0.787,-0.3269],[0.6514,-0.4493,-0.4058],[0.6203,-0.191,-0.4179],[0.5445,-0.149,-0.7634],[0.2558,-0.1903,-1.1562],[-0.0895,-0.1321,-1.1665],[-0.1379,0.0901,-0.9528],[-0.1611,0.4706,-0.8742]],"recipe":[{"edge":0.347,"turn":65.8,"torsion":34.6},{"edge":0.26,"turn":11.1,"torsion":-148.9},{"edge":0.356,"turn":79.2,"torsion":70.9},{"edge":0.489,"turn":26.6,"torsion":41.3},{"edge":0.35,"turn":53.8,"torsion":31.3},{"edge":0.312,"turn":75.5,"torsion":90.4},{"edge":0.389,"turn":32.5,"torsion":117.7},{"edge":0.273,"turn":35.7,"torsion":70.9}]}};
+
+// Ring A is stored as one third of itself; R3 completes it, and the three
+// half-turns make rings B, C and D. Same two operations as the repo uses, so
+// the page's geometry is the verified geometry rather than a copy of it.
+const R3 = (p) => [p[2], p[0], p[1]];
+const G = [ (p)=>p, (p)=>[p[0],-p[1],-p[2]], (p)=>[-p[0],p[1],-p[2]], (p)=>[-p[0],-p[1],p[2]] ];
+
+function buildRings(arc){
+  const b = arc.map(R3), c = b.map(R3);
+  const ringA = [...arc, ...b, ...c];
+  return G.map(g => ringA.map(g));
+}
+// Straight edges are drawn as straight edges; the extra points exist only so
+// the depth sort has something to sort. They sit exactly on the edge, so the
+// corners stay sharp.
+function densify(ring, per){
+  if (per <= 1) return { pts: ring, cornerEvery: 1 };
+  const out = [];
+  for (let i = 0; i < ring.length; i++){
+    const a = ring[i], b = ring[(i+1)%ring.length];
+    for (let k = 0; k < per; k++){
+      const t = k/per;
+      out.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]);
+    }
+  }
+  return { pts: out, cornerEvery: per };
+}
+
+let current = 'smooth', MODEL = null;
+function setVariant(key){
+  current = key;
+  const v = VARIANTS[key];
+  const rings = buildRings(v.arc);
+  const per = Math.max(1, Math.round(150 / rings[0].length));
+  MODEL = { key, corners: v.corners, gap: v.gap, isPoly: key !== 'smooth',
+            rings: rings.map(r => densify(r, per)) };
+  renderRecipe(key);
+  setReadout();
+}
+
 const cv = document.getElementById('view'), ctx = cv.getContext('2d');
+const NAMES = ['A','B','C','D'];
 const shown = [true,true,true,true];
 let M = [1,0,0, 0,1,0, 0,0,1];
 let spinning = true, dragging = false, last = null;
 
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const mul = (A,B) => { const C=new Array(9); for(let i=0;i<3;i++) for(let j=0;j<3;j++){ let s=0; for(let k=0;k<3;k++) s+=A[i*3+k]*B[k*3+j]; C[i*3+j]=s; } return C; };
-const apply = (m,p) => [m[0]*p[0]+m[1]*p[1]+m[2]*p[2], m[3]*p[0]+m[4]*p[1]+m[5]*p[2], m[6]*p[0]+m[7]*p[1]+m[8]*p[2]];
+const ap = (m,p) => [m[0]*p[0]+m[1]*p[1]+m[2]*p[2], m[3]*p[0]+m[4]*p[1]+m[5]*p[2], m[6]*p[0]+m[7]*p[1]+m[8]*p[2]];
 const rotX = (a) => [1,0,0, 0,Math.cos(a),-Math.sin(a), 0,Math.sin(a),Math.cos(a)];
 const rotY = (a) => [Math.cos(a),0,Math.sin(a), 0,1,0, -Math.sin(a),0,Math.cos(a)];
 
@@ -280,50 +397,77 @@ function draw(){
   const cols = [css('--sA'), css('--sB'), css('--sC'), css('--sD')];
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = ground; ctx.fillRect(0,0,W,H);
+  if (!MODEL) return;
 
-  const scale = Math.min(W,H) * 0.36;
-  const cx = W/2, cy = H/2;
-  const chunks = [];
-  DATA.forEach((pts, ci) => {
+  const scale = Math.min(W,H) * 0.36, cx = W/2, cy = H/2;
+  const items = [];
+  MODEL.rings.forEach((ring, ci) => {
     if (!shown[ci]) return;
-    const n = pts.length;
-    const P = pts.map(p => { const q = apply(M,p); return [cx + q[0]*scale, cy - q[1]*scale, q[2]]; });
-    for (let s = 0; s < n; s += CHUNK) {
-      const run = [];
-      let depth = 0;
-      for (let k = 0; k <= CHUNK; k++) { const q = P[(s+k)%n]; run.push(q); depth += q[2]; }
-      chunks.push({ ci, depth: depth/(CHUNK+1), run });
+    const pts = ring.pts, n = pts.length;
+    const P = pts.map(p => { const q = ap(M,p); return [cx + q[0]*scale, cy - q[1]*scale, q[2]]; });
+    for (let s = 0; s < n; s += CHUNK){
+      const run = []; let depth = 0;
+      for (let k = 0; k <= CHUNK; k++){ const q = P[(s+k)%n]; run.push(q); depth += q[2]; }
+      items.push({ kind:'seg', ci, depth: depth/(CHUNK+1), run });
+    }
+    if (MODEL.isPoly){
+      for (let i = 0; i < n; i += ring.cornerEvery){
+        items.push({ kind:'dot', ci, depth: P[i][2], at: P[i] });
+      }
     }
   });
-  chunks.sort((a,b) => a.depth - b.depth);
+  items.sort((a,b) => a.depth - b.depth);
 
-  // Each chunk is stroked twice: once wide in the ground colour, which is what
-  // cuts the strand behind it, then once in its own. The ground pass uses BUTT
-  // caps deliberately — a round cap overhangs the chunk's own ends by half its
-  // width and erases the next chunk of the SAME curve, which at this scale
-  // turns every ring into a dashed line. Butt caps keep the sideways gap, which
-  // is the whole point, and drop the lengthways overhang, which was the bug.
+  // Each segment is stroked twice: once wide in the ground colour, which is
+  // what cuts the strand behind it, then once in its own colour. The ground
+  // pass uses BUTT caps on purpose - a round cap overhangs the chunk's own ends
+  // and erases the next chunk of the SAME ring, which turns every ring into a
+  // dashed line. Butt caps keep the sideways gap and drop the lengthways one.
   const w0 = Math.max(4.5, Math.min(W,H) * 0.016);
-  for (const c of chunks) {
-    const t = 1 + 0.16 * c.depth;
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(c.run[0][0], c.run[0][1]);
-    for (let i=1;i<c.run.length;i++) ctx.lineTo(c.run[i][0], c.run[i][1]);
-    ctx.lineCap = 'butt';
-    ctx.strokeStyle = ground; ctx.lineWidth = w0*t + 7; ctx.stroke();
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = cols[c.ci]; ctx.lineWidth = w0*t; ctx.stroke();
+  for (const it of items){
+    const t = 1 + 0.16 * it.depth;
+    if (it.kind === 'seg'){
+      ctx.lineJoin = MODEL.isPoly ? 'miter' : 'round';
+      ctx.miterLimit = 6;
+      ctx.beginPath();
+      ctx.moveTo(it.run[0][0], it.run[0][1]);
+      for (let i=1;i<it.run.length;i++) ctx.lineTo(it.run[i][0], it.run[i][1]);
+      ctx.lineCap = 'butt';
+      ctx.strokeStyle = ground; ctx.lineWidth = w0*t + 7; ctx.stroke();
+      ctx.lineCap = MODEL.isPoly ? 'butt' : 'round';
+      ctx.strokeStyle = cols[it.ci]; ctx.lineWidth = w0*t; ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(it.at[0], it.at[1], w0*t*0.62, 0, Math.PI*2);
+      ctx.fillStyle = ground; ctx.fill();
+      ctx.lineWidth = Math.max(1.6, w0*t*0.3); ctx.strokeStyle = cols[it.ci]; ctx.stroke();
+    }
   }
 }
 
 function setReadout(){
   const off = NAMES.filter((_,i)=>!shown[i]);
   const el = document.getElementById('readout');
-  el.innerHTML = off.length === 1
+  const shape = MODEL ? (MODEL.isPoly ? `${MODEL.corners} corners &middot; gap ${MODEL.gap}` : `smooth &middot; gap ${MODEL.gap}`) : '';
+  const lead = off.length === 1
     ? `${off[0]} hidden &mdash; <b>these three are the Borromean rings</b>`
-    : off.length === 0 ? 'drag to turn &middot; hide a ring to see the Borromean rings'
+    : off.length === 0 ? 'drag to turn &middot; hide a ring'
     : `${off.length} rings hidden`;
+  el.innerHTML = `${lead}<br>${shape}`;
+}
+
+function renderRecipe(key){
+  const host = document.getElementById('recipe');
+  const v = VARIANTS[key];
+  if (!v.recipe){
+    host.innerHTML = `<p style="color:var(--soft);max-width:66ch">The smooth rings have no cutting list. Pick a polygon shape on the viewer &mdash; <b>6 corners</b>, <b>9 corners</b> or <b>24 corners</b> &mdash; and its list appears here.</p>`;
+    return;
+  }
+  const rows = v.recipe.map((r,i) => `<tr><td class="n">${i+1}</td><td class="n">${r.edge.toFixed(3)}</td><td class="n">${r.turn.toFixed(1)}&deg;</td><td class="n">${r.torsion > 0 ? '+' : ''}${r.torsion.toFixed(1)}&deg;</td></tr>`).join('');
+  host.innerHTML = `<div class="scroller"><table>
+    <thead><tr><th>Corner</th><th>Edge length</th><th>Turn angle</th><th>Torsion</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    <p class="col" style="color:var(--soft);font-size:15px">${v.corners} corners per ring, so these ${v.recipe.length} rows repeat three times round. Lengths are in the model&rsquo;s own units; scale them all by the same factor to choose a physical size.</p>`;
 }
 
 let raf;
@@ -340,7 +484,7 @@ cv.addEventListener('pointermove', e => {
   last = [e.clientX, e.clientY];
   M = mul(mul(rotX(dy), rotY(dx)), M);
 });
-const stop = e => { dragging = false; cv.classList.remove('dragging'); };
+const stop = () => { dragging = false; cv.classList.remove('dragging'); };
 cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
 
 NAMES.forEach((n,i) => {
@@ -351,6 +495,13 @@ NAMES.forEach((n,i) => {
     setReadout();
   });
 });
+document.querySelectorAll('#shapes button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#shapes button').forEach(o => o.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    setVariant(b.dataset.v);
+  });
+});
 document.getElementById('ax3').addEventListener('click', () => { M = frameFor([1,1,1]); spinning = false; syncSpin(); });
 document.getElementById('ax2').addEventListener('click', () => { M = frameFor([0,0,1]); spinning = false; syncSpin(); });
 document.getElementById('axg').addEventListener('click', () => { M = frameFor([0.37,0.91,0.21]); spinning = false; syncSpin(); });
@@ -359,7 +510,7 @@ function syncSpin(){ spinBtn.textContent = spinning ? 'pause' : 'spin'; spinBtn.
 spinBtn.addEventListener('click', () => { spinning = !spinning; syncSpin(); });
 
 addEventListener('resize', size);
-size(); setReadout(); syncSpin();
+size(); setVariant('smooth'); syncSpin();
 M = frameFor([1,1,1]);
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { spinning = false; syncSpin(); }
 loop();
