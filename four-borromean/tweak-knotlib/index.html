@@ -1,0 +1,725 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Corner tweaker — tetrahedral 4-Borromean</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+/* The strand palette is the editor's, value for value (editor/src/style.css):
+   one saturation and one lightness, nine hues, so anything picked here looks
+   like it came out of the same box as a hand-drawn knot. */
+:root{
+  --strand-s:60; --strand-l:56;
+  --strand-1:#d2784b; --strand-2:#d2d24b; --strand-3:#78d24b;
+  --strand-4:#4bd278; --strand-5:#4bd2d2; --strand-6:#4b78d2;
+  --strand-7:#784bd2; --strand-8:#d24bd2; --strand-9:#d24b78;
+  /* The picture itself is the editor's page colour, light theme or dark: the
+     strand palette is tuned against this black and reads wrong on anything
+     paler, and a printed diagram should look the same here as it does there. */
+  --stage:#0a0b0e;
+  --ground:#eef1f3; --surface:#f9fafb; --sunk:#e3e7ea; --rule:#cfd6da;
+  --ink:#101a21; --soft:#4d5a63; --faint:#7a868e;
+  --accent:#15617a; --accent-soft:#d6e7ee; --warn:#a3400f;
+  --body:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --ground:#0c1216; --surface:#131b20; --sunk:#090f12; --rule:#243039;
+  --ink:#dfe6ea; --soft:#91a0a9; --faint:#67747d;
+  --accent:#6cb6d2; --accent-soft:#17323e; --warn:#e08a52; color-scheme:dark;
+}}
+*{box-sizing:border-box}
+body{margin:0; background:var(--ground); color:var(--ink); font-family:var(--body); font-size:15px}
+.wrap{max-width:1040px; margin:0 auto; padding:18px 16px 40px}
+h1{font-size:17px; font-weight:600; margin:0 0 2px}
+.sub{color:var(--soft); font-size:13.5px; margin:0 0 14px}
+.stage{background:var(--surface); border:1px solid var(--rule); border-radius:3px; overflow:hidden; position:relative}
+canvas{display:block; width:100%; height:min(66vh,620px); cursor:grab; touch-action:none}
+canvas.orbit{cursor:grabbing} canvas.over{cursor:crosshair} canvas.strand{cursor:pointer}
+.rail{display:flex; flex-wrap:wrap; align-items:center; gap:9px 16px; padding:10px 12px; border-top:1px solid var(--rule); background:var(--sunk)}
+.grp{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+.lab{font-family:var(--mono); font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint)}
+button{font-family:var(--mono); font-size:12.5px; color:var(--soft); background:transparent; border:1px solid var(--rule); border-radius:2px; padding:4px 9px; cursor:pointer}
+button:hover{border-color:var(--faint); color:var(--ink)}
+button[aria-pressed=true]{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
+button:disabled{opacity:.35; cursor:default}
+.ring .dot{width:9px; height:9px; border-radius:50%; background:currentColor; display:inline-block; margin-right:5px; vertical-align:-1px}
+.ring[aria-pressed=false]{opacity:.4}
+.ring.sel{border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)}
+/* the colour swatch and its panel, after editor/src/swatches.js */
+#swatches button{width:24px; height:24px; padding:0; border-radius:2px; border:1px solid var(--rule)}
+#swatches button.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+#palette{display:none; position:absolute; z-index:5; background:var(--surface); border:1px solid var(--rule);
+         border-radius:3px; padding:9px; box-shadow:0 8px 24px rgba(0,0,0,.22)}
+#palette.open{display:block}
+#palette .grid{display:grid; grid-template-columns:repeat(3,22px); gap:5px}
+#palette .chip{width:22px; height:22px; padding:0; border:1px solid transparent; border-radius:2px; cursor:pointer}
+#palette .chip.on{border-color:var(--ink)}
+#palette label{display:block; margin-top:8px; font-family:var(--mono); font-size:10px; letter-spacing:.11em;
+               text-transform:uppercase; color:var(--faint)}
+#palette input{width:100%; margin-top:4px; accent-color:var(--accent)}
+.read{display:flex; flex-wrap:wrap; gap:4px 18px; padding:9px 12px; border-top:1px solid var(--rule);
+      font-family:var(--mono); font-size:12px; color:var(--faint)}
+.read b{color:var(--ink); font-weight:600} .read .w{color:var(--warn)} .read .a{color:var(--accent)}
+.note{color:var(--soft); font-size:13.5px; line-height:1.55; margin:16px 0 0; max-width:74ch}
+.note code{font-family:var(--mono); font-size:12.5px; background:var(--sunk); padding:1px 4px; border-radius:2px}
+kbd{font-family:var(--mono); font-size:11.5px; border:1px solid var(--rule); border-bottom-width:2px; border-radius:3px; padding:0 4px}
+</style>
+
+<div class="wrap">
+<h1>Corner tweaker — tetrahedral 4-Borromean</h1>
+<p class="sub">Drag any corner. Its eleven symmetric twins move with it, and the drag is capped so no strand can pass through another.</p>
+
+<div class="stage">
+  <canvas id="view"></canvas>
+  <div id="palette"></div>
+  <div class="rail">
+    <div class="grp"><span class="lab">corners</span><span id="counts"></span></div>
+    <div class="grp"><span class="lab">start</span>
+      <button id="sClear" aria-pressed="true">clear</button><button id="sRoomy">roomy</button>
+    </div>
+    <div class="grp"><span class="lab">show</span><span id="ringbtns"></span></div>
+    <div class="grp"><span class="lab">colour</span><span id="swatches"></span></div>
+    <div class="grp"><span class="lab">view</span>
+      <button id="ax3">3-fold</button><button id="ax2">2-fold</button><button id="axc">clearest</button>
+      <button id="spin" aria-pressed="false">spin</button>
+    </div>
+    <div class="grp"><span class="lab">edit</span>
+      <button id="undo">undo</button><button id="reset">reset</button>
+      <button id="expArc">save arc</button><button id="expScene">save .knot.json</button>
+    </div>
+  </div>
+  <div class="read" id="read"></div>
+</div>
+
+<p class="note" id="help"></p>
+</div>
+
+<script src="starts.js"></script>
+<script>
+// ---------------------------------------------------------------- the group
+// Ring A is one third of itself under the 3-fold rotation R3; the three
+// half-turns make B, C and D. Same two operations as the parent directory, so
+// what is on screen is the verified geometry rather than a copy of it — and
+// editing a corner of the stored arc moves all twelve of its images at once,
+// which is what keeps the link exactly tetrahedral at every moment of a drag.
+const R3    = (p) => [p[2], p[0], p[1]];
+const R3inv = (p) => [p[1], p[2], p[0]];
+const G = [ (p)=>p, (p)=>[p[0],-p[1],-p[2]], (p)=>[-p[0],p[1],-p[2]], (p)=>[-p[0],-p[1],p[2]] ];
+const NAMES = ['A','B','C','D'];
+const MOD = navigator.platform.includes('Mac') ? '&#8984;' : 'ctrl+';
+
+const ringA = (arc) => { const b = arc.map(R3); return [...arc, ...b, ...b.map(R3)]; };
+const buildRings = (arc) => G.map((g) => ringA(arc).map(g));
+
+// ---------------------------------------------------------------- the palette
+// The editor's nine strand colours, and its rule: saturation and lightness are
+// locked, only hue moves, so every colour the picker can make belongs to the set.
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PALETTE = Array.from({ length: 9 }, (_, i) => css(`--strand-${i+1}`));
+const STRAND_S = Number(css('--strand-s')), STRAND_L = Number(css('--strand-l'));
+const hueColor = (h) => `hsl(${((h % 360) + 360) % 360} ${STRAND_S}% ${STRAND_L}%)`;
+function colorHue(value){
+  const hsl = /hsl\(\s*([\d.]+)/.exec(value);
+  if (hsl) return Number(hsl[1]);
+  const hex = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value.trim());
+  if (!hex) return 0;
+  const [r,g,b] = [1,2,3].map((i) => parseInt(hex[i],16)/255);
+  const max = Math.max(r,g,b), span = max - Math.min(r,g,b);
+  if (!span) return 0;
+  const sixth = max === r ? (g-b)/span : max === g ? (b-r)/span + 2 : (r-g)/span + 4;
+  return ((sixth*60) % 360 + 360) % 360;
+}
+const DEFAULT_COLOURS = [PALETTE[0], PALETTE[5], PALETTE[1], PALETTE[3]]; // ember, azure, citron, jade
+
+// ------------------------------------------------- distances between EDGES
+// Vertex sampling is the wrong measure with long straight edges: two edges can
+// pass close with every corner far from every other corner. Everything that
+// decides whether a drag is allowed is edge-to-edge.
+const sub = (a,b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+const dot = (a,b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+const len = (a) => Math.hypot(a[0], a[1], a[2]);
+
+function segDist(p0,p1,q0,q1){
+  const u = sub(p1,p0), v = sub(q1,q0), w = sub(p0,q0);
+  const a = dot(u,u), b = dot(u,v), c = dot(v,v), d = dot(u,w), e = dot(v,w);
+  const D = a*c - b*b;
+  let s = D < 1e-12 ? 0 : (b*e - c*d)/D;
+  s = Math.max(0, Math.min(1, s));
+  let t = Math.max(0, Math.min(1, (b*s + e)/(c > 1e-12 ? c : 1)));
+  s = Math.max(0, Math.min(1, (b*t - d)/(a > 1e-12 ? a : 1)));
+  return Math.hypot(w[0] + s*u[0] - t*v[0], w[1] + s*u[1] - t*v[1], w[2] + s*u[2] - t*v[2]);
+}
+const edgesOf = (ring) => ring.map((p,i) => [p, ring[(i+1) % ring.length]]);
+
+/** Closest approach anywhere in the link: ring to ring, and each ring to itself. */
+function gapOf(rings){
+  const E = rings.map(edgesOf);
+  let best = Infinity;
+  for (let a = 0; a < E.length; a++){
+    for (let b = a+1; b < E.length; b++)
+      for (const [p0,p1] of E[a]) for (const [q0,q1] of E[b])
+        best = Math.min(best, segDist(p0,p1,q0,q1));
+    const n = E[a].length;
+    for (let i = 0; i < n; i++) for (let j = i+2; j < n; j++){
+      if (i === 0 && j === n-1) continue;
+      best = Math.min(best, segDist(E[a][i][0], E[a][i][1], E[a][j][0], E[a][j][1]));
+    }
+  }
+  return best;
+}
+
+/** Edge lengths and turn angles — the two ways a drag can make a shape degenerate. */
+function shapeOf(rings){
+  const r = rings[0], n = r.length;
+  const L = r.map((p,i) => len(sub(r[(i+1)%n], p)));
+  const turn = r.map((b,i) => {
+    const u = sub(b, r[(i-1+n)%n]), v = sub(r[(i+1)%n], b);
+    return Math.acos(Math.max(-1, Math.min(1, dot(u,v)/(len(u)*len(v))))) * 180/Math.PI;
+  });
+  const rms = Math.sqrt(r.reduce((s,p) => s + dot(p,p), 0) / n);
+  return { minEdge: Math.min(...L), turnMax: Math.max(...turn), rms };
+}
+
+// ------------------------------------------------------------ what a drag may do
+// THE GUARANTEE, and it is the whole reason the tool is safe to play with.
+// Let `gap` be the current closest approach between two strands. Every point of
+// the link is an isometric image of the arc, so moving one arc corner by d
+// moves no point of the link further than |d|. Two strands can therefore
+// approach each other by at most 2|d| in a step, and 2|d| < gap means they
+// cannot meet: the link type is preserved BY CONSTRUCTION, not by re-checking.
+// The pointer is free to run ahead; the corner follows at this speed limit.
+const STEP = 0.45;    // of the current gap, so 2*STEP < 1
+const FLOOR = 0.02;   // never let the link get tighter than this, cap or no cap
+// Degrees. A corner sharper than this is on its way to a spike: the strand
+// doubles back, and knotlib then calls every direction degenerate — a 147.8°
+// shape came back "no usable direction among 512", unreadable rather than
+// wrong. The parent optimiser refuses past 125 and the shipped shapes sit at
+// exactly that, so 132 leaves room to play without leaving the checkable range.
+const TURN_MAX = 132;
+const EDGE_MIN = 0.1; // of the ring's own size; stops corners collapsing together
+
+let CORNERS = 12, SHAPE = 'clear', arc = null, rings = null, gap = 0, shape = null;
+const edited = {};    // "12/clear" -> arc, so switching counts does not lose work
+let colours = [...DEFAULT_COLOURS];
+// Undo covers colour as well as geometry: a recolour you cannot take back is
+// worse than one you cannot make, and localStorage means it would otherwise
+// outlive the session.
+const history = [];
+const snapshot = () => ({ arc: arc.map((p) => [...p]), colours: [...colours] });
+let blocked = 0;      // frames since the last refused move, for the readout
+
+const key = () => `${CORNERS}/${SHAPE}`;
+const startOf = () => STARTS[CORNERS][SHAPE] ?? STARTS[CORNERS].clear;
+
+function store(){
+  try { localStorage.setItem('tweak-knotlib-2', JSON.stringify({ edited, colours })); } catch {}
+}
+
+function setArc(next){
+  arc = next.map((p) => [...p]);
+  rings = buildRings(arc);
+  gap = gapOf(rings);
+  shape = shapeOf(rings);
+  edited[key()] = arc.map((p) => [...p]);
+  crossings = null;
+  store();
+}
+
+function setCount(m, which = SHAPE){
+  CORNERS = m;
+  SHAPE = STARTS[m][which] ? which : 'clear';
+  setArc(edited[key()] ?? startOf().arc);
+  history.length = 0;
+  for (const b of document.querySelectorAll('#counts button'))
+    b.setAttribute('aria-pressed', String(+b.dataset.m === m));
+  document.getElementById('sClear').setAttribute('aria-pressed', String(SHAPE === 'clear'));
+  document.getElementById('sRoomy').setAttribute('aria-pressed', String(SHAPE === 'roomy'));
+  document.getElementById('sRoomy').disabled = !STARTS[m].roomy;
+  document.getElementById('sClear').disabled = !STARTS[m].clear;
+  draw(); readout();
+}
+
+/**
+ * Move corner `ci` of ring `ri` by `world`, as far as the speed limit allows.
+ * The corner is an image of arc corner `ci % k` under R3^floor(ci/k) then g[ri];
+ * both are rotations, so the arc moves by the inverse of those applied to the
+ * world delta, and the other eleven images follow from the rebuild.
+ */
+function dragCorner(ri, ci, world){
+  const k = arc.length, rot = Math.floor(ci / k);
+  let d = G[ri](world);                      // the half-turns are involutions
+  for (let i = 0; i < rot; i++) d = R3inv(d);
+
+  const cap = STEP * gap;
+  const m = len(d);
+  if (m > cap) d = d.map((x) => x * cap/m);  // the speed limit, not a rejection
+
+  const trial = arc.map((p) => [...p]);
+  trial[ci % k] = [trial[ci % k][0]+d[0], trial[ci % k][1]+d[1], trial[ci % k][2]+d[2]];
+  const next = buildRings(trial);
+  const g2 = gapOf(next), s2 = shapeOf(next);
+  if (g2 < FLOOR || s2.turnMax > TURN_MAX || s2.minEdge < EDGE_MIN * s2.rms){
+    blocked = 18; return false;              // refused: a strand, a spike or a collapse
+  }
+  arc = trial; rings = next; gap = g2; shape = s2;
+  edited[key()] = arc.map((p) => [...p]);
+  crossings = null;
+  if (m > cap) blocked = 2;                  // capped, not refused — a softer warning
+  return true;
+}
+
+// ------------------------------------------------------------------ the view
+const cv = document.getElementById('view'), ctx = cv.getContext('2d');
+const shown = [true,true,true,true];
+let M = [1,0,0, 0,1,0, 0,0,1], spinning = false, W = 0, H = 0, scale = 1, cx = 0, cy = 0;
+let mode = null, last = null, down = null, grabbed = null, hover = null, hoverRing = null, crossings = null;
+
+const mul = (A,B) => { const C = new Array(9);
+  for (let i=0;i<3;i++) for (let j=0;j<3;j++){ let s=0; for (let k=0;k<3;k++) s+=A[i*3+k]*B[k*3+j]; C[i*3+j]=s; } return C; };
+const ap  = (m,p) => [m[0]*p[0]+m[1]*p[1]+m[2]*p[2], m[3]*p[0]+m[4]*p[1]+m[5]*p[2], m[6]*p[0]+m[7]*p[1]+m[8]*p[2]];
+const apT = (m,p) => [m[0]*p[0]+m[3]*p[1]+m[6]*p[2], m[1]*p[0]+m[4]*p[1]+m[7]*p[2], m[2]*p[0]+m[5]*p[1]+m[8]*p[2]];
+const rotX = (a) => [1,0,0, 0,Math.cos(a),-Math.sin(a), 0,Math.sin(a),Math.cos(a)];
+const rotY = (a) => [Math.cos(a),0,Math.sin(a), 0,1,0, -Math.sin(a),0,Math.cos(a)];
+
+function frameFor(d){
+  const n = len(d), w = d.map((x) => x/n);
+  const s = Math.abs(w[0]) < 0.9 ? [1,0,0] : [0,1,0];
+  let u = [s[1]*w[2]-s[2]*w[1], s[2]*w[0]-s[0]*w[2], s[0]*w[1]-s[1]*w[0]];
+  const un = len(u); u = u.map((x) => x/un);
+  const v = [w[1]*u[2]-w[2]*u[1], w[2]*u[0]-w[0]*u[2], w[0]*u[1]-w[1]*u[0]];
+  return [u[0],u[1],u[2], v[0],v[1],v[2], w[0],w[1],w[2]];
+}
+
+function size(){
+  const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  scale = Math.min(W,H) * 0.34; cx = W/2; cy = H/2;
+}
+const screenOf = (p) => { const q = ap(M,p); return [cx + q[0]*scale, cy - q[1]*scale, q[2]]; };
+
+/** Straight edges stay straight; the extra points exist only for the depth sort. */
+const PER = 6;
+function densify(ring){
+  const out = [];
+  for (let i = 0; i < ring.length; i++){
+    const a = ring[i], b = ring[(i+1) % ring.length];
+    for (let k = 0; k < PER; k++) out.push([a[0]+(b[0]-a[0])*k/PER, a[1]+(b[1]-a[1])*k/PER, a[2]+(b[2]-a[2])*k/PER]);
+  }
+  return out;
+}
+
+const CHUNK = 3;
+function draw(){
+  const ground = css('--stage');
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = ground; ctx.fillRect(0,0,W,H);
+  const items = [];
+  const twins = grabbed ? grabbed.ci % arc.length : (hover ? hover.ci % arc.length : -1);
+
+  rings.forEach((ring, ri) => {
+    if (!shown[ri]) return;
+    const P = densify(ring).map(screenOf), n = P.length;
+    for (let s = 0; s < n; s += CHUNK){
+      const run = []; let depth = 0;
+      for (let k = 0; k <= CHUNK; k++){ const q = P[(s+k)%n]; run.push(q); depth += q[2]; }
+      items.push({ kind:'seg', ri, depth: depth/(CHUNK+1), run });
+    }
+    ring.forEach((p, ci) => {
+      const q = screenOf(p);
+      items.push({ kind:'dot', ri, ci, depth: q[2], at: q, twin: ci % arc.length === twins });
+    });
+  });
+  items.sort((a,b) => a.depth - b.depth);
+
+  // Two strokes per run: a wide one in the page colour, which is what cuts the
+  // strand behind it, then the colour. Butt caps, or the ground pass eats the
+  // next chunk of the same ring and every ring turns into a dashed line.
+  const w0 = Math.max(4, Math.min(W,H) * 0.015);
+  for (const it of items){
+    const t = 1 + 0.16 * it.depth;
+    // A selection dims the rest rather than hiding it: the point of selecting a
+    // ring here is usually to see where it goes among the others.
+    if (it.kind === 'seg'){
+      ctx.lineJoin = 'miter'; ctx.miterLimit = 6; ctx.lineCap = 'butt';
+      ctx.beginPath(); ctx.moveTo(it.run[0][0], it.run[0][1]);
+      for (let i = 1; i < it.run.length; i++) ctx.lineTo(it.run[i][0], it.run[i][1]);
+      ctx.strokeStyle = ground; ctx.lineWidth = w0*t + 7; ctx.stroke();
+      ctx.strokeStyle = colours[it.ri]; ctx.lineWidth = w0*t; ctx.stroke();
+    } else {
+      const held = grabbed && grabbed.ri === it.ri && grabbed.ci === it.ci;
+      const near = hover && hover.ri === it.ri && hover.ci === it.ci;
+      const r = w0*t*(held || near ? 0.95 : 0.6);
+      ctx.beginPath(); ctx.arc(it.at[0], it.at[1], r, 0, Math.PI*2);
+      ctx.fillStyle = it.twin ? colours[it.ri] : ground; ctx.fill();
+      ctx.lineWidth = Math.max(1.6, w0*t*0.3); ctx.strokeStyle = colours[it.ri]; ctx.stroke();
+      if (held){ ctx.beginPath(); ctx.arc(it.at[0], it.at[1], r + 6, 0, Math.PI*2);
+                 ctx.strokeStyle = css('--accent'); ctx.lineWidth = 2; ctx.stroke(); }
+    }
+  }
+  ctx.font = `600 12px ${css('--mono') || 'monospace'}`;
+  if (blocked > 0){
+    blocked--;
+    ctx.fillStyle = css('--warn');
+    ctx.fillText('held back — a strand is as close as it may come', 14, H - 14);
+  }
+}
+
+/** The corner nearest the pointer, front-most first, within grabbing distance. */
+function pick(x, y){
+  let best = null;
+  rings.forEach((ring, ri) => {
+    if (!shown[ri]) return;
+    ring.forEach((p, ci) => {
+      const q = screenOf(p), d = Math.hypot(q[0]-x, q[1]-y);
+      if (d < 16 && (!best || q[2] > best.z || (Math.abs(q[2]-best.z) < 0.05 && d < best.d)))
+        best = { ri, ci, z: q[2], d };
+    });
+  });
+  return best;
+}
+
+/** The ring whose strand passes under the pointer — selection, not dragging. */
+function pickRing(x, y){
+  const d2 = (px,py, a,b) => {
+    const vx = b[0]-a[0], vy = b[1]-a[1];
+    const t = Math.max(0, Math.min(1, ((px-a[0])*vx + (py-a[1])*vy) / (vx*vx + vy*vy || 1)));
+    return Math.hypot(a[0]+t*vx - px, a[1]+t*vy - py);
+  };
+  let best = null;
+  rings.forEach((ring, ri) => {
+    if (!shown[ri]) return;
+    const P = ring.map(screenOf);
+    P.forEach((p, i) => {
+      const q = P[(i+1) % P.length];
+      const d = d2(x, y, p, q);
+      const z = (p[2] + q[2]) / 2;
+      if (d < 10 && (!best || z > best.z)) best = { ri, d, z };
+    });
+  });
+  return best ? best.ri : null;
+}
+
+// --------------------------------------------------------- crossings in view
+// The number the whole exercise is about: how busy the picture is from here.
+function countCrossings(m = M){
+  const P = rings.map((ring) => ring.map((p) => { const q = ap(m,p); return [q[0], q[1]]; }));
+  const segs = [];
+  P.forEach((ring, ri) => ring.forEach((p,i) => segs.push({ ri, i, a: p, b: ring[(i+1)%ring.length] })));
+  // Both parameters strictly inside (0,1): an edge ending ON another edge is a
+  // degenerate picture, not a crossing, and counting it would reward exactly
+  // the views that are hardest to read.
+  const cross = (p1,p2,p3,p4) => {
+    const r = [p2[0]-p1[0], p2[1]-p1[1]], s = [p4[0]-p3[0], p4[1]-p3[1]];
+    const d = r[0]*s[1] - r[1]*s[0];
+    if (Math.abs(d) < 1e-12) return false;          // parallel, or a zero-length edge
+    const qp = [p3[0]-p1[0], p3[1]-p1[1]];
+    const t = (qp[0]*s[1] - qp[1]*s[0]) / d;
+    const u = (qp[0]*r[1] - qp[1]*r[0]) / d;
+    return t > 0 && t < 1 && u > 0 && u < 1;
+  };
+  let n = 0;
+  for (let i = 0; i < segs.length; i++) for (let j = i+1; j < segs.length; j++){
+    const A = segs[i], B = segs[j];
+    if (A.ri === B.ri){
+      const L = P[A.ri].length;
+      if (A.i === B.i || (A.i+1)%L === B.i || (B.i+1)%L === A.i) continue;
+    }
+    if (cross(A.a, A.b, B.a, B.b)) n++;
+  }
+  return n;
+}
+
+/** Fibonacci sphere, as knotlib does it — the fewest crossings wins. */
+function clearestView(){
+  let best = null;
+  const n = 240, phi = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < n; i++){
+    const y = 1 - (2*i)/(n-1), r = Math.sqrt(Math.max(0, 1 - y*y)), a = phi*i;
+    const m = frameFor([Math.cos(a)*r, y, Math.sin(a)*r]);
+    const c = countCrossings(m);
+    if (!best || c < best.c) best = { c, m };
+  }
+  M = best.m; crossings = best.c;
+}
+
+function readout(){
+  if (crossings === null) crossings = countCrossings();
+  const start = startOf();
+  const touched = JSON.stringify(arc) !== JSON.stringify(start.arc);
+  document.getElementById('read').innerHTML =
+    `<span>corners <b>${CORNERS}</b> per ring, <b>${arc.length}</b> distinct` +
+      `${touched ? ' <b class="w">&middot; edited</b>' : ''}</span>` +
+    `<span>closest approach <b class="${gap < 0.05 ? 'w' : ''}">${gap.toFixed(4)}</b> ` +
+      `<span style="opacity:.7">(${SHAPE} start ${start.gap})</span></span>` +
+    `<span>crossings in this view <b>${crossings}</b></span>` +
+    `<span>start's sublinks <b>${start.sublinkAfter ?? start.sublinks ?? '--'}</b> ` +
+      `<span style="opacity:.7">crossings after R1/R2</span></span>` +
+    `<span>shortest edge <b>${shape.minEdge.toFixed(2)}</b></span>` +
+    `<span>sharpest turn <b>${shape.turnMax.toFixed(0)}&deg;</b></span>` +
+    (shown.every(Boolean) ? '' :
+      `<span class="a">showing <b class="a">${NAMES.filter((_,i) => shown[i]).join(' ') || 'nothing'}</b>` +
+      `${shown.filter(Boolean).length === 3 ? ' &mdash; the Borromean rings' : ''}</span>`);
+}
+
+// ------------------------------------------------------------------- input
+cv.addEventListener('pointerdown', (e) => {
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  closePalette();
+  grabbed = pick(x, y);
+  if (grabbed) history.push(snapshot());
+  mode = grabbed ? 'drag' : 'orbit';
+  last = [x, y]; down = [x, y];
+  cv.setPointerCapture(e.pointerId);
+  cv.className = mode;
+  draw();
+});
+
+cv.addEventListener('pointermove', (e) => {
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  if (!mode){
+    const was = hover; hover = pick(x, y);
+    hoverRing = hover ? null : pickRing(x, y);
+    cv.className = hover ? 'over' : hoverRing !== null ? 'strand' : '';
+    if ((was && was.ci) !== (hover && hover.ci) || (was === null) !== (hover === null)) draw();
+    return;
+  }
+  const dx = x - last[0], dy = y - last[1];
+  last = [x, y];
+  if (mode === 'orbit'){
+    M = mul(mul(rotX(dy*0.008), rotY(dx*0.008)), M);
+    crossings = null;
+  } else {
+    // Screen motion, read back into the world through the view rotation: across
+    // the screen by default, along the line of sight with Shift held.
+    const world = e.shiftKey ? apT(M, [0, 0, -dy/scale]) : apT(M, [dx/scale, -dy/scale, 0]);
+    dragCorner(grabbed.ri, grabbed.ci, world);
+  }
+  draw(); readout();
+});
+
+const release = (e) => {
+  // A press on a corner that never moved is a click, not an edit.
+  if (mode === 'drag' && history.length && JSON.stringify(history[history.length-1].arc) === JSON.stringify(arc))
+    history.pop();
+  mode = null; grabbed = null; down = null; cv.className = '';
+  store();
+  draw(); readout();
+};
+cv.addEventListener('pointerup', release);
+cv.addEventListener('pointercancel', release);
+
+addEventListener('keydown', (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key === 'z'){ e.preventDefault(); undo(); return; }
+  if (e.key === 'Escape'){ closePalette(); return; }
+  if (e.target.tagName === 'INPUT') return;
+  const n = NAMES.indexOf(e.key.toUpperCase());
+  if (n >= 0) toggleRing(n);                 // A-D show and hide their ring
+});
+
+function undo(){
+  const prev = history.pop();
+  if (!prev) return;
+  colours = [...prev.colours];
+  paintRingButtons();
+  setArc(prev.arc);
+  draw(); readout();
+}
+
+function toggleRing(i){
+  shown[i] = !shown[i];
+  document.querySelector(`#ringbtns button[data-ri="${i}"]`).setAttribute('aria-pressed', String(shown[i]));
+  crossings = null; draw(); readout();
+}
+
+
+// ------------------------------------------------------------------ the rail
+const counts = document.getElementById('counts');
+for (const m of Object.keys(STARTS).map(Number).sort((a,b) => a-b)){
+  const b = document.createElement('button');
+  b.textContent = m; b.dataset.m = m;
+  b.addEventListener('click', () => setCount(m));
+  counts.append(b);
+}
+document.getElementById('sClear').onclick = () => setCount(CORNERS, 'clear');
+document.getElementById('sRoomy').onclick = () => setCount(CORNERS, 'roomy');
+
+// A ring button shows and hides its ring. Nothing else: an earlier version
+// made it a selection instead, which left no obvious way to drop a ring and
+// see the Borromean rings underneath — the one thing this link is for.
+const ringbtns = document.getElementById('ringbtns');
+NAMES.forEach((n,i) => {
+  const b = document.createElement('button');
+  b.className = 'ring'; b.dataset.ri = i; b.setAttribute('aria-pressed', 'true');
+  b.title = `Show or hide ring ${n}  (key: ${n})`;
+  b.innerHTML = `<span class="dot"></span>${n}`;
+  b.addEventListener('click', () => toggleRing(i));
+  ringbtns.append(b);
+});
+const paintRingButtons = () => NAMES.forEach((_, i) => {
+  document.querySelector(`#ringbtns button[data-ri="${i}"]`).style.color = colours[i];
+  const sw = document.querySelector(`#swatches button[data-ri="${i}"]`);
+  if (sw) sw.style.background = colours[i];
+});
+
+// The colour swatch, after editor/src/swatches.js: nine presets and one hue
+// strip, saturation and lightness locked, so every colour belongs to the set.
+const paletteEl = document.getElementById('palette');
+paletteEl.innerHTML =
+  `<div class="grid">${PALETTE.map((c) => `<button class="chip" data-color="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>` +
+  `<label>Hue<input type="range" min="0" max="359" step="1"></label>`;
+const slider = paletteEl.querySelector('input');
+slider.style.background = `linear-gradient(to right, ${Array.from({length:13}, (_,i) => hueColor(i*30)).join(',')})`;
+
+function closePalette(){
+  paletteEl.classList.remove('open');
+  for (const b of document.querySelectorAll('#swatches button')) b.classList.remove('active');
+}
+// Clicking anywhere else closes it, as the editor's swatches do.
+addEventListener('pointerdown', (e) => {
+  if (!paletteEl.classList.contains('open')) return;
+  if (paletteEl.contains(e.target) || e.target.closest('#swatches')) return;
+  closePalette();
+});
+// One ring at a time, always, and which ring is never in doubt: the palette
+// belongs to the swatch that opened it.
+let target = 0;
+function applyColour(c, record = true){
+  if (colours[target] === c) return;
+  if (record) history.push(snapshot());  // undoable, like any other edit
+  colours[target] = c;
+  for (const chip of paletteEl.querySelectorAll('.chip'))
+    chip.classList.toggle('on', chip.dataset.color === c);
+  paintSwatches(); store(); draw(); readout();
+}
+
+const swatchbox = document.getElementById('swatches');
+NAMES.forEach((n, i) => {
+  const b = document.createElement('button');
+  b.dataset.ri = i;
+  b.title = `Colour of ring ${n}`;
+  b.addEventListener('click', () => openPalette(i, b));
+  swatchbox.append(b);
+});
+const paintSwatches = () => NAMES.forEach((n, i) => {
+  const b = swatchbox.querySelector(`button[data-ri="${i}"]`);
+  b.style.background = colours[i];
+  b.textContent = '';
+});
+
+function openPalette(i, button){
+  const wasOpen = paletteEl.classList.contains('open') && target === i;
+  closePalette();
+  if (wasOpen) return;                   // clicking the open swatch closes it
+  target = i;
+  const r = button.getBoundingClientRect(), st = document.querySelector('.stage').getBoundingClientRect();
+  paletteEl.style.left = `${Math.min(r.left - st.left, st.width - 110)}px`;
+  paletteEl.style.top = `${r.top - st.top - 132}px`;
+  paletteEl.classList.add('open'); button.classList.add('active');
+  slider.value = Math.round(colorHue(colours[i]));
+  for (const chip of paletteEl.querySelectorAll('.chip'))
+    chip.classList.toggle('on', chip.dataset.color === colours[i]);
+}
+paletteEl.addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (chip) applyColour(chip.dataset.color);
+});
+// One undo step per slider drag, not per pixel of it: the hue strip fires
+// `input` continuously, and an undo stack full of neighbouring hues is no
+// undo at all.
+let sliding = false;
+slider.addEventListener('pointerdown', () => { sliding = false; });
+slider.addEventListener('input', () => { applyColour(hueColor(slider.value), !sliding); sliding = true; });
+slider.addEventListener('change', () => { sliding = false; });
+
+document.getElementById('ax3').onclick = () => { M = frameFor([1,1,1]); crossings = null; draw(); readout(); };
+document.getElementById('ax2').onclick = () => { M = frameFor([0,0,1]); crossings = null; draw(); readout(); };
+document.getElementById('axc').onclick = () => { clearestView(); draw(); readout(); };
+document.getElementById('undo').onclick = undo;
+document.getElementById('reset').onclick = () => {
+  history.push(snapshot());
+  colours = [...DEFAULT_COLOURS];        // the way back from a recolour, after a reload too
+  paintRingButtons();
+  setArc(startOf().arc); draw(); readout();
+};
+const spinBtn = document.getElementById('spin');
+spinBtn.onclick = () => { spinning = !spinning; spinBtn.setAttribute('aria-pressed', String(spinning)); };
+
+// --------------------------------------------------------------------- saving
+const r5 = (x) => Math.round(x * 1e5) / 1e5;
+
+/** The editor's own scene format: all four rings, as the link only exists whole. */
+function sceneJSON(){
+  const k = 0.32 / gap;                 // the editor's working scale, as final.mjs uses
+  return JSON.stringify({
+    format: 'knot-a-problem/scene', version: 1, saved: new Date().toISOString(),
+    by: 'four-borromean/tweak-knotlib', curves: [0,1,2,3].map((i) => ({
+      name: `Tetrahedral 4-Borromean (${CORNERS} corners) — face ${NAMES[i]}`,
+      color: colours[i], radius: 0.075, closed: true, by: 'agent',
+      points: rings[i].map((p) => p.map((x) => r5(x*k))),
+    })),
+  }, null, 1);
+}
+
+function save(name, text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+document.getElementById('expArc').onclick = () => save(`arc-${CORNERS}-${SHAPE}.json`, JSON.stringify({
+  format: 'four-borromean/tweak', corners: CORNERS, start: SHAPE, gap: r5(gap),
+  crossings, from: startOf().gap, colours, arc: arc.map((p) => p.map(r5)),
+}, null, 1));
+document.getElementById('expScene').onclick = () =>
+  save(`tweaked-${CORNERS}-${SHAPE}.knot.json`, sceneJSON());
+
+document.getElementById('help').innerHTML =
+  `<b>Drag a corner</b> and its eleven twins — two more on the same ring, three on each of the others — ` +
+  `move with it, so the link stays exactly tetrahedral. Hold <kbd>shift</kbd> to push the corner away from you ` +
+  `instead of across the screen. Drag the background to turn the link; <kbd>${MOD}z</kbd> undoes, ` +
+  `geometry and colour alike, and <b>reset</b> puts both back to the start of whichever shape is loaded. ` +
+  `<br><br><b>A, B, C and D show and hide their ring</b> — the buttons, or the keys. Hide one and the three left ` +
+  `are the Borromean rings, which is what this link is for. The four swatches beside them recolour one ring each, ` +
+  `from the editor's palette; <kbd>esc</kbd> closes the picker. Rings cannot be deleted or duplicated: all four ` +
+  `are generated from the one arc you are editing, and without them it is not this link. ` +
+  `<br><br>The corner follows your pointer at a speed limit of <b>0.45 &times; the current closest approach</b>, ` +
+  `so two strands can never close the gap between them in one step: <b>the link type cannot change, whatever you do</b>. ` +
+  `When the shape would spike or collapse instead, the move is refused outright and the canvas says so. ` +
+  `<br><br><b>Only multiples of three are offered</b>, and that is the symmetry rather than a shortcut: each ring ` +
+  `repeats three times under its own 120&deg; turn, so a ring with 3k corners has only k distinct ones — ` +
+  `the 24-corner link is eight corners of work, the 6-corner link is two. ` +
+  `<br><br>Two starting shapes per count, each the best found for one thing and neither for both. ` +
+  `<b>clear</b> is hill-climbed to show the <b>fewest crossings in its best view</b>, keeping clearance above 0.06. ` +
+  `<b>roomy</b> is hill-climbed for the <b>largest closest approach</b> — up to twice the gap, and a busier picture. ` +
+  `Both are knotlib-confirmed: all four three-ring sublinks are the Borromean rings. ` +
+  `<br><br><b>Crossings in this view</b> counts strands crossing in the picture as drawn, and ` +
+  `<b>clearest</b> searches 240 directions for the fewest. A view down a symmetry axis is usually the busiest, ` +
+  `and it drops crossings exactly on top of one another, which knotlib refuses as degenerate — so turn a little ` +
+  `off-axis before exporting one. <b>Start's sublinks</b> is a different number: drop any one ring and the other ` +
+  `three are the Borromean rings, and that is how many crossings each of those four three-ring diagrams still has ` +
+  `after knotlib simplifies it with Reidemeister I and II. Six is the Borromean minimum; a bigger number is a ` +
+  `messier drawing of the same link, not a different one. ` +
+  `<br><br>To re-verify a shape you have tweaked: <code>save arc</code>, then ` +
+  `<code>node check.mjs arc-${'<n>'}-${'<start>'}.json</code>. ` +
+  `<code>save .knot.json</code> writes all four rings as a scene the main editor opens.`;
+
+// ------------------------------------------------------------------- start
+try {
+  const saved = JSON.parse(localStorage.getItem('tweak-knotlib-2') || '{}');
+  Object.assign(edited, saved.edited || {});
+  if (Array.isArray(saved.colours) && saved.colours.length === 4) colours = saved.colours;
+} catch {}
+paintRingButtons(); paintSwatches();
+addEventListener('resize', () => { size(); draw(); });
+size();
+M = frameFor([1,1,1]);
+setCount(12);
+(function loop(){
+  if (spinning && !mode){ M = mul(rotY(0.0035), M); crossings = null; draw(); }
+  else if (blocked > 0) draw();
+  requestAnimationFrame(loop);
+})();
+</script>

@@ -1,0 +1,10 @@
+corners  off    gap thinned -> widened   edges min/max  turn   sublinks     verdict
+      6   17    0.0376 -> 0.1180          1.07/1.28    125   8/8/12/8     ALL FOUR BORROMEAN
+      9    1    0.0393 -> 0.1537          0.75/1.28    125   6/10/12/12   ALL FOUR BORROMEAN
+     12   11    0.0736 -> 0.2084          0.59/0.89    123   6/6/6/6      ALL FOUR BORROMEAN
+     15    1    0.1279 -> 0.1279          0.38/0.76     88   6/6/6/6      ALL FOUR BORROMEAN
+     18    7    0.1590 -> 0.1590          0.31/0.67     77   8/10/8/10    ALL FOUR BORROMEAN
+     21    4    0.1864 -> 0.1864          0.31/0.53     82   6/10/10/10   ALL FOUR BORROMEAN
+     24    6    0.2026 -> 0.2026          0.26/0.49     79   6/6/6/6      ALL FOUR BORROMEAN
+
+wrote starts.js: 6, 9, 12, 15, 18, 21, 24 corners per ring
