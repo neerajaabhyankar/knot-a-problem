@@ -15,13 +15,17 @@ export class Scene {
     this.curves = [];
   }
 
-  addCurve(points, { closed = true, color = null, name = null, radius = DEFAULT_RADIUS, by = 'human' } = {}) {
+  addCurve(points, { closed = true, color = null, name = null, radius = DEFAULT_RADIUS, by = 'human', straight = false } = {}) {
     const curve = {
       id: `c${nextId++}`,
       name: name ?? `curve ${this.curves.length + 1}`,
       color: color ?? PALETTE[this.curves.length % PALETTE.length],
       radius,
       closed,
+      // A drawn strand is a spline through its points; a polygon is not. With
+      // `straight`, the points ARE the shape and the corners stay corners —
+      // which is what a woven-polyhedron model is made of.
+      straight,
       // Who last touched this. The top-level plan wants it once an agent can
       // drive the editor, and a field is far cheaper now than a migration then.
       by,

@@ -47,6 +47,14 @@ const scene = [
   { name: 'second', color: '#4bd2d2', radius: 0.12, closed: false, points: ring(17, 0.6, 1.2) },
 ];
 
+// A polygon: its points ARE its shape, and the file has to say so or the
+// corners come back rounded off by the spline. Kept out of `scene` because the
+// OBJ and VECT checks below count its vertices.
+const withPolygon = [
+  ...scene,
+  { name: 'third', color: '#78d24b', radius: 0.05, closed: true, straight: true, points: ring(5, 1.1, -1.4) },
+];
+
 // --- round trip ---------------------------------------------------------------
 
 const text = stringify(serialize(scene));
@@ -61,6 +69,27 @@ check(
   back.curves.every((c, i) => c.closed === scene[i].closed && c.radius === scene[i].radius),
   'open/closed and thickness survive',
   back.curves.map((c) => `${c.closed ? 'loop' : 'arc'}@${c.radius}`).join(' '),
+);
+
+// --- sharp corners -----------------------------------------------------------
+
+const poly = parse(stringify(serialize(withPolygon)));
+check(
+  poly.curves.map((c) => !!c.straight).join(',') === 'false,false,true',
+  'sharp corners survive the round trip',
+  poly.curves.map((c) => `${c.name}:${!!c.straight}`).join(' '),
+);
+// A scene written before `straight` existed must load unchanged, and a curve
+// that never asked for corners must not grow the field when it is saved again.
+const written = JSON.parse(stringify(serialize(withPolygon)));
+check(
+  !('straight' in written.curves[0]) && written.curves[2].straight === true,
+  'only the polygon carries the flag',
+  Object.keys(written.curves[0]).join(','),
+);
+check(
+  parse(stringify(serialize(poly.curves))).curves[2].straight === true,
+  'and it survives a second save',
 );
 
 const worst = Math.max(

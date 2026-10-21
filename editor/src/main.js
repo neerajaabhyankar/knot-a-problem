@@ -720,7 +720,7 @@ function insertScene({ curves, camera }, { face = false, label = 'loaded' } = {}
 
   record();
   const added = incoming.map((c) =>
-    model.addCurve(c.points, { closed: c.closed, color: c.color, radius: c.radius, name: c.name }),
+    model.addCurve(c.points, { closed: c.closed, color: c.color, radius: c.radius, name: c.name, straight: c.straight }),
   );
   refresh();
   setSelection(added.map((c) => c.id));

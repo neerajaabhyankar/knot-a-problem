@@ -579,12 +579,25 @@ const vec = vec3;
 
 function stampOf(curve) {
   const p = curve.points;
-  return `${curve.closed}|${curve.color}|${curve.radius}|${p.length}|${p[0]?.join(',')}|${p[p.length - 1]?.join(',')}`;
+  return `${curve.closed}|${!!curve.straight}|${curve.color}|${curve.radius}|${p.length}|${p[0]?.join(',')}|${p[p.length - 1]?.join(',')}`;
 }
 
-/** Curve record -> smooth three.js curve. Centripetal avoids cusps and loops. */
+/**
+ * Curve record -> three.js curve. Centripetal Catmull-Rom avoids cusps and
+ * loops on a hand-drawn strand.
+ *
+ * A `straight` curve is a polygon instead: edge-to-edge line segments, so a
+ * corner stays a corner. Everything downstream — the tube, `sampleCurve`, and
+ * so the crossing finder and the projections — goes through here, so the whole
+ * app agrees about what the shape is.
+ */
 export function toSpline(curve) {
-  return new THREE.CatmullRomCurve3(curve.points.map(vec), curve.closed, 'centripetal', 0.5);
+  if (!curve.straight) return new THREE.CatmullRomCurve3(curve.points.map(vec), curve.closed, 'centripetal', 0.5);
+  const path = new THREE.CurvePath();
+  const pts = curve.points.map(vec);
+  const last = curve.closed ? pts.length : pts.length - 1;
+  for (let i = 0; i < last; i++) path.add(new THREE.LineCurve3(pts[i], pts[(i + 1) % pts.length]));
+  return path;
 }
 
 /** Dense world-space sample of a curve. Closed curves don't repeat the seam. */
@@ -596,7 +609,12 @@ export function sampleCurve(curve, n) {
 
 function buildTubeMesh(curve) {
   const spline = toSpline(curve);
-  const segments = Math.max(120, curve.points.length * 12);
+  // A polygon needs segment boundaries ON its corners, or the tube rounds them
+  // off again at a coarser scale: an exact multiple of the edge count puts a
+  // ring of vertices exactly where each corner is.
+  const segments = curve.straight
+    ? curve.points.length * 24
+    : Math.max(120, curve.points.length * 12);
   const radius = curve.radius ?? DEFAULT_RADIUS;
   const geom = new THREE.TubeGeometry(spline, segments, radius, 16, curve.closed);
   const mat = new THREE.MeshStandardMaterial({
