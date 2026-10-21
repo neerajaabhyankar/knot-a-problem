@@ -1,0 +1,109 @@
+{
+ "format": "knot-a-problem/scene",
+ "version": 1,
+ "saved": "2026-10-20T23:33:30.512Z",
+ "by": "himalayan-peaks/build.mjs",
+ "curves": [
+  {
+   "name": "Gasherbrum — frame 1",
+   "color": "#d2784b",
+   "radius": 0.165,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     0,
+     1.55563,
+     -1.55563
+    ],
+    [
+     -1.55563,
+     0,
+     1.55563
+    ],
+    [
+     1.55563,
+     -1.55563,
+     0
+    ]
+   ]
+  },
+  {
+   "name": "Gasherbrum — frame 2",
+   "color": "#d2d24b",
+   "radius": 0.165,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     0,
+     -1.55563,
+     1.55563
+    ],
+    [
+     -1.55563,
+     0,
+     -1.55563
+    ],
+    [
+     1.55563,
+     1.55563,
+     0
+    ]
+   ]
+  },
+  {
+   "name": "Gasherbrum — frame 3",
+   "color": "#78d24b",
+   "radius": 0.165,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     1.55563,
+     0,
+     -1.55563
+    ],
+    [
+     -1.55563,
+     -1.55563,
+     0
+    ],
+    [
+     0,
+     1.55563,
+     1.55563
+    ]
+   ]
+  },
+  {
+   "name": "Gasherbrum — frame 4",
+   "color": "#4bd278",
+   "radius": 0.165,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     -1.55563,
+     1.55563,
+     0
+    ],
+    [
+     0,
+     -1.55563,
+     -1.55563
+    ],
+    [
+     1.55563,
+     0,
+     1.55563
+    ]
+   ]
+  }
+ ],
+ "note": "Four intersecting triangles (Robert J. Lang, Himalayan Peaks). Planar frames, tetrahedral symmetry."
+}

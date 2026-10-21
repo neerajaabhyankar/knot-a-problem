@@ -1,0 +1,219 @@
+{
+ "format": "knot-a-problem/scene",
+ "version": 1,
+ "saved": "2026-10-20T23:33:30.514Z",
+ "by": "himalayan-peaks/build.mjs",
+ "curves": [
+  {
+   "name": "Makalu — frame 1",
+   "color": "#d2784b",
+   "radius": 0.10871,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     1.77984,
+     1.1,
+     -0.67984
+    ],
+    [
+     -0.67984,
+     1.77984,
+     -1.1
+    ],
+    [
+     -2.2,
+     0,
+     0
+    ],
+    [
+     -0.67984,
+     -1.77984,
+     1.1
+    ],
+    [
+     1.77984,
+     -1.1,
+     0.67984
+    ]
+   ]
+  },
+  {
+   "name": "Makalu — frame 2",
+   "color": "#d2d24b",
+   "radius": 0.10871,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     -1.77984,
+     -1.1,
+     -0.67984
+    ],
+    [
+     0.67984,
+     -1.77984,
+     -1.1
+    ],
+    [
+     2.2,
+     0,
+     0
+    ],
+    [
+     0.67984,
+     1.77984,
+     1.1
+    ],
+    [
+     -1.77984,
+     1.1,
+     0.67984
+    ]
+   ]
+  },
+  {
+   "name": "Makalu — frame 3",
+   "color": "#78d24b",
+   "radius": 0.10871,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     0,
+     -2.2,
+     0
+    ],
+    [
+     1.1,
+     -0.67984,
+     -1.77984
+    ],
+    [
+     0.67984,
+     1.77984,
+     -1.1
+    ],
+    [
+     -0.67984,
+     1.77984,
+     1.1
+    ],
+    [
+     -1.1,
+     -0.67984,
+     1.77984
+    ]
+   ]
+  },
+  {
+   "name": "Makalu — frame 4",
+   "color": "#4bd278",
+   "radius": 0.10871,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     1.77984,
+     -1.1,
+     -0.67984
+    ],
+    [
+     0,
+     0,
+     -2.2
+    ],
+    [
+     -1.77984,
+     1.1,
+     -0.67984
+    ],
+    [
+     -1.1,
+     0.67984,
+     1.77984
+    ],
+    [
+     1.1,
+     -0.67984,
+     1.77984
+    ]
+   ]
+  },
+  {
+   "name": "Makalu — frame 5",
+   "color": "#4bd2d2",
+   "radius": 0.10871,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     0,
+     2.2,
+     0
+    ],
+    [
+     -1.1,
+     0.67984,
+     -1.77984
+    ],
+    [
+     -0.67984,
+     -1.77984,
+     -1.1
+    ],
+    [
+     0.67984,
+     -1.77984,
+     1.1
+    ],
+    [
+     1.1,
+     0.67984,
+     1.77984
+    ]
+   ]
+  },
+  {
+   "name": "Makalu — frame 6",
+   "color": "#4b78d2",
+   "radius": 0.10871,
+   "closed": true,
+   "straight": true,
+   "by": "agent",
+   "points": [
+    [
+     1.1,
+     0.67984,
+     -1.77984
+    ],
+    [
+     -1.1,
+     -0.67984,
+     -1.77984
+    ],
+    [
+     -1.77984,
+     -1.1,
+     0.67984
+    ],
+    [
+     0,
+     0,
+     2.2
+    ],
+    [
+     1.77984,
+     1.1,
+     0.67984
+    ]
+   ]
+  }
+ ],
+ "note": "Six intersecting pentagons (Robert J. Lang, Himalayan Peaks). Planar frames, icosahedral symmetry."
+}
