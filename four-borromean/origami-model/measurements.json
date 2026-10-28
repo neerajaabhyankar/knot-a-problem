@@ -1,0 +1,335 @@
+{
+ "sheet": 150,
+ "blank": [
+  50,
+  150
+ ],
+ "scale": 78.04293798030633,
+ "units": [
+  {
+   "name": "long",
+   "blank": [
+    43.2,
+    148
+   ],
+   "stripWidth": 39.3,
+   "flap": 3.9,
+   "axis": 117.8,
+   "faces": [
+    13.1,
+    13.1,
+    13.1
+   ],
+   "creases": [
+    13.1,
+    26.2
+   ],
+   "points": [
+    {
+     "across": 0,
+     "start": 0,
+     "end": 111.7
+    },
+    {
+     "across": 13.1,
+     "start": 1.7,
+     "end": 124.1
+    },
+    {
+     "across": 26.2,
+     "start": 3.4,
+     "end": 122.6
+    },
+    {
+     "across": 39.3,
+     "start": 0,
+     "end": 111.7
+    }
+   ],
+   "cuts": [
+    {
+     "end": "start",
+     "angles": [
+      82.41514546606213,
+      82.86370035653944,
+      104.48613712889176
+     ]
+    },
+    {
+     "end": "end",
+     "angles": [
+      46.60587016633166,
+      96.44826765661384,
+      129.77527811267902
+     ]
+    }
+   ],
+   "sectionAngles": [
+    60,
+    60,
+    60
+   ],
+   "openEnd": {
+    "end": "the end without the tongue",
+    "rim": [
+     {
+      "face": 0,
+      "mm": 13.2
+     },
+     {
+      "face": 1,
+      "mm": 13.2
+     },
+     {
+      "face": 2,
+      "mm": 13.5
+     }
+    ],
+    "diagonals": []
+   },
+   "tongue": {
+    "face": 1,
+    "width": 12.5,
+    "depth": 23.9,
+    "base": [
+     {
+      "across": 13.4,
+      "from": 124.1
+     },
+     {
+      "across": 25.9,
+      "from": 122.6
+     }
+    ],
+    "tip": [
+     {
+      "across": 13.4,
+      "from": 148
+     },
+     {
+      "across": 25.9,
+      "from": 146.6
+     }
+    ]
+   },
+   "turnAfter": 88.2,
+   "angleAfter": 91.8
+  },
+  {
+   "name": "short",
+   "blank": [
+    43.2,
+    133.8
+   ],
+   "stripWidth": 39.3,
+   "flap": 3.9,
+   "axis": 90.9,
+   "faces": [
+    13.1,
+    13.1,
+    13.1
+   ],
+   "creases": [
+    13.1,
+    26.2
+   ],
+   "points": [
+    {
+     "across": 0,
+     "start": 0,
+     "end": 98.7
+    },
+    {
+     "across": 13.1,
+     "start": 12.4,
+     "end": 100.3
+    },
+    {
+     "across": 26.2,
+     "start": 10.9,
+     "end": 96.9
+    },
+    {
+     "across": 39.3,
+     "start": 0,
+     "end": 98.7
+    }
+   ],
+   "cuts": [
+    {
+     "end": "start",
+     "angles": [
+      46.60587016633175,
+      96.44826765661372,
+      129.775278112679
+     ]
+    },
+    {
+     "end": "end",
+     "angles": [
+      82.86370972541818,
+      104.48613694754131,
+      82.41513630619926
+     ]
+    }
+   ],
+   "sectionAngles": [
+    60,
+    60,
+    60
+   ],
+   "openEnd": {
+    "end": "the end without the tongue",
+    "rim": [
+     {
+      "face": 0,
+      "mm": 18
+     },
+     {
+      "face": 1,
+      "mm": 13.2
+     },
+     {
+      "face": 2,
+      "mm": 17
+     }
+    ],
+    "diagonals": []
+   },
+   "tongue": {
+    "face": 0,
+    "width": 12.5,
+    "depth": 33.5,
+    "base": [
+     {
+      "across": 0.3,
+      "from": 98.7
+     },
+     {
+      "across": 12.8,
+      "from": 100.3
+     }
+    ],
+    "tip": [
+     {
+      "across": 0.3,
+      "from": 132.2
+     },
+     {
+      "across": 12.8,
+      "from": 133.8
+     }
+    ]
+   },
+   "turnAfter": 151,
+   "angleAfter": 29
+  }
+ ],
+ "checks": {
+  "ring": {
+   "turns": [
+    151,
+    88.2,
+    151,
+    88.2,
+    151,
+    88.2
+   ],
+   "measuredAngles": [
+    29,
+    91.8,
+    29,
+    91.8,
+    29,
+    91.8
+   ],
+   "diagonals": [
+    {
+     "between": [
+      0,
+      2
+     ],
+     "mm": 151
+    },
+    {
+     "between": [
+      0,
+      3
+     ],
+     "mm": 135.7
+    },
+    {
+     "between": [
+      0,
+      4
+     ],
+     "mm": 151
+    },
+    {
+     "between": [
+      1,
+      3
+     ],
+     "mm": 58.3
+    },
+    {
+     "between": [
+      1,
+      4
+     ],
+     "mm": 135.7
+    },
+    {
+     "between": [
+      1,
+      5
+     ],
+     "mm": 58.3
+    },
+    {
+     "between": [
+      2,
+      4
+     ],
+     "mm": 151
+    },
+    {
+     "between": [
+      2,
+      5
+     ],
+     "mm": 135.7
+    },
+    {
+     "between": [
+      3,
+      5
+     ],
+     "mm": 58.3
+    }
+   ],
+   "cornerRadii": [
+    93.8,
+    48.2,
+    93.8,
+    48.2,
+    93.8,
+    48.2
+   ],
+   "swing": {
+    "above": 34.5,
+    "below": -34.5
+   },
+   "depth": 75,
+   "spanAcross": 181.3,
+   "jointMismatch": 0.0000172
+  },
+  "model": {
+   "sphere": 181.3,
+   "paperWidest": 181.2,
+   "cornerWidest": 177.1,
+   "ringCentreOffset": 9.8,
+   "closest": 7.6
+  }
+ }
+}

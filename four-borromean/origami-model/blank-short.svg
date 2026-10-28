@@ -1,0 +1,44 @@
+<svg width="290" height="416" viewBox="0 0 290 430" xmlns="http://www.w3.org/2000/svg" class="blank">
+<style>
+  .paper{fill:#fbfaf7;stroke:#ddd}
+  .cut{fill:#ffffff;stroke:#111;stroke-width:1.6}
+  .fold{stroke:#c0392b;stroke-width:1.2;stroke-dasharray:6 4;fill:none}
+  .tongue{fill:#eef5fb;stroke:#111;stroke-width:1.6}
+  .dot{fill:#111}
+  .pt{font:11px sans-serif;fill:#111;text-anchor:middle}
+  .dim{font:10px sans-serif;fill:#666;text-anchor:middle}
+  .tick{stroke:#666}
+  .title{font:12px sans-serif;fill:#111}
+</style>
+  <rect x="34" y="34" width="112.32000000000001" height="347.88000000000005" class="paper"/>
+  <polygon points="34,381.88000000000005 68.06,349.64000000000004 102.12,353.54 136.18,381.88000000000005 136.18,125.26000000000002 102.12,129.94 68.06,121.10000000000004 34,125.26000000000002" class="cut"/>
+  <polygon points="34.78,125.26000000000002 34.78,38.16000000000006 67.28,34 67.28,121.10000000000004" class="tongue"/>
+    <line x1="34.78" y1="125.26000000000002" x2="67.28" y2="121.10000000000004" class="fold"/>
+  <line x1="68.06" y1="349.64000000000004" x2="68.06" y2="121.10000000000004" class="fold"/><line x1="102.12" y1="353.54" x2="102.12" y2="129.94" class="fold"/>
+  <line x1="136.18" y1="381.88000000000005" x2="136.18" y2="125.26000000000002" class="fold"/>
+  
+    <circle cx="34" cy="381.88000000000005" r="2.4" class="dot"/>
+    <text x="34" y="395.88000000000005" class="pt">P0</text>
+    <circle cx="34" cy="125.26000000000002" r="2.4" class="dot"/>
+    <text x="34" y="118.26000000000002" class="pt">Q0</text>
+    <circle cx="68.06" cy="349.64000000000004" r="2.4" class="dot"/>
+    <text x="68.06" y="363.64000000000004" class="pt">P1</text>
+    <circle cx="68.06" cy="121.10000000000004" r="2.4" class="dot"/>
+    <text x="68.06" y="114.10000000000004" class="pt">Q1</text>
+    <circle cx="102.12" cy="353.54" r="2.4" class="dot"/>
+    <text x="102.12" y="367.54" class="pt">P2</text>
+    <circle cx="102.12" cy="129.94" r="2.4" class="dot"/>
+    <text x="102.12" y="122.94" class="pt">Q2</text>
+    <circle cx="136.18" cy="381.88000000000005" r="2.4" class="dot"/>
+    <text x="136.18" y="395.88000000000005" class="pt">P3</text>
+    <circle cx="136.18" cy="125.26000000000002" r="2.4" class="dot"/>
+    <text x="136.18" y="118.26000000000002" class="pt">Q3</text>
+  <text x="34" y="419.88000000000005" class="dim">0</text>
+     <line x1="34" y1="403.88000000000005" x2="34" y2="409.88000000000005" class="tick"/><text x="68.06" y="419.88000000000005" class="dim">13.1</text>
+     <line x1="68.06" y1="403.88000000000005" x2="68.06" y2="409.88000000000005" class="tick"/><text x="102.12" y="419.88000000000005" class="dim">26.2</text>
+     <line x1="102.12" y1="403.88000000000005" x2="102.12" y2="409.88000000000005" class="tick"/><text x="136.18" y="419.88000000000005" class="dim">39.3</text>
+     <line x1="136.18" y1="403.88000000000005" x2="136.18" y2="409.88000000000005" class="tick"/><text x="146.32" y="431.88000000000005" class="dim">43.2</text>
+     <line x1="146.32" y1="403.88000000000005" x2="146.32" y2="409.88000000000005" class="tick"/>
+  <text x="34" y="20" class="title">short arm — blank 43.2 x 133.8 mm (cut 12)</text>
+  <text x="142.18" y="207.94000000000003" class="dim rot" transform="rotate(90 142.18 207.94000000000003)">glue flap 3.9</text>
+</svg>

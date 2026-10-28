@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="51.6mm" height="111.3mm" viewBox="0 0 51.6 111.3">
+<style>
+  .cut{fill:none;stroke:#111;stroke-width:0.4}
+  .fold{fill:none;stroke:#c00;stroke-width:0.3;stroke-dasharray:3 2}
+  .flap{fill:none;stroke:#888;stroke-width:0.3;stroke-dasharray:1 2}
+  text{font:3.2px sans-serif;fill:#444}
+</style>
+  <path d="M6.00 11.13 L15.32 6.37 L25.70 6.00 L30.41 8.38 L42.61 11.13 L42.61 85.82 L30.41 94.05 L25.70 91.27 L15.32 81.43 L6.00 85.82 Z" class="cut"/>
+  <path d="M15.32 6.37 L15.32 81.43" class="fold"/>
+  <path d="M25.70 6.00 L25.70 91.27" class="fold"/>
+  <path d="M30.41 8.38 L30.41 94.05" class="fold"/>
+  <path d="M20.32 86.17 L20.32 101.24 L24.60 105.30 L24.60 90.22" class="cut"/>
+  <path d="M20.32 86.17 L24.60 90.22" class="fold"/>
+  <path d="M42.61 11.13 L45.61 11.13 L45.61 85.82 L42.61 85.82" class="flap"/>
+  <text x="6" y="109.3">long strut — fold 12 — red dashed = fold, solid = cut, grey = glue flap, 60.0 mm per unit</text>
+</svg>
